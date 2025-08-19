@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/fleetops_staging}
+    username: ${DATABASE_USERNAME:fleetops}
+    password: ${DATABASE_PASSWORD:fleetops}
+    
+  jpa:
+    show-sql: false
+    
+logging:
+  level:
+    com.fleetops: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

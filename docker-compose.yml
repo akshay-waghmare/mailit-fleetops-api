@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with PostGIS for development
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: fleetops-postgres
+    environment:
+      POSTGRES_DB: fleetops_dev
+      POSTGRES_USER: fleetops
+      POSTGRES_PASSWORD: fleetops
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fleetops -d fleetops_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fleetops-network
+
+  # Application (optional - for full Docker development)
+  app:
+    build: .
+    container_name: fleetops-app
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: fleetops_dev
+      DB_USERNAME: fleetops
+      DB_PASSWORD: fleetops
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fleetops-network
+    profiles:
+      - full  # Only start when using 'full' profile
+
+volumes:
+  postgres_data:
+
+networks:
+  fleetops-network:
+    driver: bridge
