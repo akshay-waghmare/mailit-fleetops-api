@@ -1,0 +1,45 @@
+{
+  "name": "fleetops-monorepo",
+  "version": "1.0.0",
+  "description": "FleetOps Full-Stack Application - Angular Frontend + Spring Boot Backend",
+  "private": true,
+  "workspaces": [
+    "frontend/apps/*",
+    "frontend/libs/*"
+  ],
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && ng serve --port 4200",
+    "dev:backend": "cd backend && ./gradlew bootRun --args='--server.port=8081'",
+    "build:all": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && ng build",
+    "build:backend": "cd backend && ./gradlew build",
+    "test:all": "npm run test:frontend && npm run test:backend",
+    "test:frontend": "cd frontend && ng test",
+    "test:backend": "cd backend && ./gradlew test",
+    "lint:frontend": "cd frontend && ng lint",
+    "install:all": "npm install && npm run install:frontend",
+    "install:frontend": "cd frontend && npm install",
+    "clean:all": "npm run clean:frontend && npm run clean:backend",
+    "clean:frontend": "cd frontend && rimraf dist node_modules",
+    "clean:backend": "cd backend && ./gradlew clean"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5"
+  },
+  "keywords": [
+    "fleetops",
+    "angular",
+    "spring-boot",
+    "postgresql",
+    "maplibre",
+    "fleet-management"
+  ],
+  "author": "FleetOps Team",
+  "license": "MIT"
+}
