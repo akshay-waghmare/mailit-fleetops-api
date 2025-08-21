@@ -1,16 +1,140 @@
 <div class="fleetops-app">
-  <header class="app-header">
-    <h1>FleetOps Console</h1>
-    
-    <nav>
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Dashboard</a>
-      <a routerLink="/orders" routerLinkActive="active">Orders</a>
-      <a routerLink="/organizations" routerLinkActive="active">Organizations</a>
-      <a routerLink="/places" routerLinkActive="active">Places</a>
-      <a routerLink="/geofences" routerLinkActive="active">Geofences</a>
-    </nav>
+  <!-- Mobile Top Header (visible on screens < 768px) -->
+  <header class="mobile-header lg:hidden">
+    <div class="mobile-header-content">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="app-logo">
+            <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">M</span>
+          </div>
+          <h1 class="text-lg font-bold text-white">Mailit</h1>
+        </div>
+        
+        <button class="mobile-menu-toggle" (click)="toggleMobileMenu()">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Mobile Navigation Menu -->
+      <nav class="mobile-nav" [class.active]="isMobileMenuOpen">
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" 
+           (click)="closeMobileMenu()">
+          <span class="nav-icon">📊</span>
+          Dashboard
+        </a>
+        <a routerLink="/orders" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">📦</span>
+          New Order
+        </a>
+        <a routerLink="/organizations" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">🏢</span>
+          Organizations
+        </a>
+        <a routerLink="/places" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">📍</span>
+          Places
+        </a>
+        <a routerLink="/geofences" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">🗺️</span>
+          Geofences
+        </a>
+        <a routerLink="/billing" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">📊</span>
+          Billing & Invoice
+        </a>
+        <a routerLink="/mis-reports" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">📋</span>
+          MIS Reports
+        </a>
+        <a routerLink="/settings" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">⚙️</span>
+          Settings
+        </a>
+      </nav>
+    </div>
   </header>
 
+  <!-- Desktop Gradient Sidebar (visible on screens ≥ 768px) -->
+  <aside class="gradient-sidebar hidden lg:flex">
+    <div class="sidebar-content">
+      <!-- Logo Section -->
+      <div class="sidebar-logo">
+        <div class="logo-container">
+          <div class="logo-circle">
+            <span class="logo-text">M</span>
+          </div>
+          <div class="logo-info">
+            <h1 class="logo-title">Mailit</h1>
+            <p class="logo-subtitle">© 2025 Mailit</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" 
+             class="nav-link">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">Dashboard</span>
+          </a>
+          
+          <a routerLink="/orders" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">📦</span>
+            <span class="nav-text">New Order</span>
+          </a>
+          
+          <a routerLink="/organizations" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">🏢</span>
+            <span class="nav-text">View / Track Shipment</span>
+          </a>
+          
+          <a routerLink="/places" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">📍</span>
+            <span class="nav-text">Pickup Management</span>
+          </a>
+          
+          <a routerLink="/billing" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">Billing & Invoice</span>
+          </a>
+          
+          <a routerLink="/mis-reports" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">📋</span>
+            <span class="nav-text">MIS Reports</span>
+          </a>
+          
+          <a routerLink="/settings" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text">Settings</span>
+          </a>
+        </div>
+      </nav>
+
+      <!-- User Profile Section -->
+      <div class="sidebar-footer">
+        <div class="user-profile">
+          <div class="user-avatar">
+            <span class="avatar-text">👤</span>
+          </div>
+          <div class="user-info">
+            <p class="user-name">Admin User</p>
+            <p class="user-role">System Administrator</p>
+          </div>
+        </div>
+        
+        <button class="logout-btn">
+          <span class="nav-icon">🚪</span>
+          <span class="nav-text">Logout</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
   <main class="app-main">
     <router-outlet></router-outlet>
   </main>

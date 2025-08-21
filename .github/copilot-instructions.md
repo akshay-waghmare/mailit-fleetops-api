@@ -1,142 +1,336 @@
 <!-- FleetOps Full-Stack Monorepo - Angular Frontend Setup Instructions -->
 
-# FleetOps Angular Frontend Development Plan
+# 🚀 FleetOps UI Enhancement Plan: Angular Material + Tailwind CSS Hybrid
 
-## 🎯 Current Goal: Angular 20 Frontend Setup & Integration
+## 🎯 Current Sprint: Orders Page UI Upgrade with Hybrid Framework
 
-### ✅ Backend Foundation COMPLETED
-- Spring Boot 3.3.5 with Java 21 (via SDKMAN)
-- PostgreSQL + PostGIS spatial database
-- Modular monolith architecture (accounts, catalog, orders, dispatch, geo, routing, tracking)
-- Docker development environment
-- Flyway migrations and spatial data support
-- JWT/OAuth2 authentication ready
-- Actuator endpoints for monitoring
-- Cross-platform development support (Windows, Linux, macOS)
+### ✅ Current State Analysis
+- **Angular 20** with standalone components ✅
+- **Existing SCSS** styling foundation ✅
+- **MapLibre GL JS** for spatial features ✅
+- **Professional design** already implemented ✅
+- **Responsive layout** needs enhancement ⚠️
+- **Form UX** needs Material components ⚠️
+### 🛠️ Technology Stack - UI Enhancement
+- **Base Framework**: Angular 20 + Standalone Components
+- **UI Components**: Angular Material 20.2.0 (Forms, Cards, Steppers)
+- **Styling Framework**: Tailwind CSS 3.4+ (Utilities, Layout, Responsiveness)
+- **Component Library**: Custom FleetOps UI Kit (libs/ui-kit/)
+- **Icons**: Material Icons + Custom Fleet Icons
+- **Theme**: FleetOps Brand Colors + Material Design System
 
-### 🚧 Current Sprint: Frontend Monorepo Setup
+## 📋 Implementation Phases
 
-## Angular Frontend Requirements
-- **Angular Version**: Angular 20 (stable Signals, modern control flow)
-- **Node.js**: 20.19+ required
-- **TypeScript**: 5.8
-- **Package Manager**: npm with workspaces
-- **Architecture**: Monorepo structure for shared libraries
+### Phase 1: Foundation Setup (Day 1-2)
+**Goal**: Install and configure hybrid framework
 
-## Frontend Applications Structure
-```
-frontend/
-├── apps/
-│   ├── console-app/          # Admin/Operations SPA (Primary)
-│   └── driver-app/           # Driver web/mobile app (Future)
-└── libs/
-    ├── shared/               # Common utilities, types, services
-    ├── ui-kit/               # Reusable UI components
-    ├── map-widgets/          # MapLibre GL JS components
-    └── state-management/     # NgRx store modules
-```
-
-## Technology Stack - Frontend
-- **Framework**: Angular 20 with Standalone Components
-- **Styling**: SCSS + Angular Material
-- **State Management**: NgRx (Store, Effects, DevTools)
-- **Maps**: MapLibre GL JS (open-source vector maps)
-- **Tile Server**: TileServer GL with OpenMapTiles
-- **Build Tool**: Angular CLI with workspace support
-- **Testing**: Jasmine + Karma, Playwright E2E
-
-## Sprint Tasks
-
-### Phase 1: Monorepo Foundation
-- [ ] Create root package.json with workspaces
-- [ ] Update .gitignore for full-stack development
-- [ ] Create Angular workspace structure
-- [ ] Set up console-app with routing and SCSS
-- [ ] Configure development scripts (dev:all, dev:frontend, dev:backend)
-- [ ] Update docker-compose.yml for frontend development
-
-### Phase 2: Core Angular Setup
-- [ ] Install Angular CLI 20 globally
-- [ ] Create console-app: `ng new console-app --routing --style=scss`
-- [ ] Install dependencies:
-  - `maplibre-gl` + `@maplibre/maplibre-gl-geocoder`
-  - `@angular/material` + `@angular/cdk`
-  - `@ngrx/store` + `@ngrx/effects` + `@ngrx/store-devtools`
-- [ ] Configure Angular Material theme
-- [ ] Set up shared library structure
-
-### Phase 3: Map Integration
-- [ ] Install and configure MapLibre GL JS
-- [ ] Create map wrapper component in map-widgets library
-- [ ] Set up TileServer GL in Docker for local development
-- [ ] Integrate OpenMapTiles or custom tile source
-- [ ] Create basic map service with markers support
-
-### Phase 4: API Integration
-- [ ] Generate TypeScript interfaces from Spring Boot entities
-- [ ] Create HTTP client services for backend APIs
-- [ ] Set up environment configurations (dev, staging, prod)
-- [ ] Implement authentication guards and JWT handling
-- [ ] Connect to backend actuator endpoints for health checks
-
-### Phase 5: State Management
-- [ ] Set up NgRx store structure
-- [ ] Create feature stores for:
-  - Authentication state
-  - Map state (bounds, markers, selected features)
-  - Fleet data (vehicles, drivers, routes)
-  - Real-time updates (WebSocket integration)
-
-## Development Commands
+#### 1.1 Install Dependencies
 ```bash
-# Backend only
-npm run dev:backend
-./gradlew bootRun --args='--server.port=8081'
+# Navigate to frontend directory
+cd frontend
 
-# Frontend only  
-npm run dev:frontend
+# Install Angular Material
+npm install @angular/material@^20.2.0 @angular/cdk@^20.2.0
+
+# Install Tailwind CSS
+npm install -D tailwindcss@^3.4.0 postcss autoprefixer
+npx tailwindcss init -p
+
+# Install Tailwind plugins
+npm install -D @tailwindcss/forms @tailwindcss/typography
+```
+
+#### 1.2 Configure Tailwind CSS
+- [ ] Update `tailwind.config.js` with FleetOps brand colors
+- [ ] Configure content paths for Angular workspace
+- [ ] Add FleetOps custom utility classes
+- [ ] Set up component layer for reusable styles
+
+#### 1.3 Update Global Styles
+- [ ] Replace existing SCSS with Tailwind base
+- [ ] Preserve MapLibre GL CSS imports
+- [ ] Add FleetOps custom component classes
+- [ ] Configure Material theme with Tailwind colors
+
+#### 1.4 Angular Material Setup
+- [ ] Add Material theme to `styles.scss`
+- [ ] Configure typography scale
+- [ ] Set up custom Material palette
+- [ ] Test basic Material components
+
+**Deliverables**: ✅ Working Tailwind + Material setup
+
+---
+
+### Phase 2: UI Kit Library Enhancement (Day 3-5)
+**Goal**: Create reusable FleetOps components
+
+#### 2.1 Enhanced Form Components
+```typescript
+// libs/ui-kit/components/
+fleet-form-field.component.ts     // Material + Tailwind hybrid input
+fleet-button.component.ts         // Consistent button styles
+fleet-card.component.ts           // Enhanced card component
+fleet-badge.component.ts          // Status badges
+fleet-stepper.component.ts        // Custom stepper component
+```
+
+#### 2.2 FleetOps Form Field Component
+```typescript
+@Component({
+  selector: 'fleet-form-field',
+  standalone: true,
+  imports: [CommonModule, MatFormFieldModule, MatInputModule, MatSelectModule],
+  template: `
+    <mat-form-field appearance="outline" 
+                    class="w-full fleet-form-field"
+                    [class]="fieldClasses">
+      <mat-label class="text-slate-700 font-medium">{{label}}</mat-label>
+      
+      <!-- Text Input -->
+      <input *ngIf="type !== 'select'" 
+             matInput 
+             [placeholder]="placeholder"
+             [formControlName]="controlName"
+             [type]="type"
+             class="text-slate-900">
+      
+      <!-- Select Input -->
+      <mat-select *ngIf="type === 'select'" 
+                  [formControlName]="controlName"
+                  class="text-slate-900">
+        <mat-option *ngFor="let option of options" [value]="option.value">
+          {{option.label}}
+        </mat-option>
+      </mat-select>
+      
+      <mat-error class="text-red-600 text-sm" *ngIf="hasError">
+        {{errorMessage}}
+      </mat-error>
+    </mat-form-field>
+  `,
+  styles: [`
+    ::ng-deep .fleet-form-field {
+      .mat-mdc-form-field-outline {
+        @apply border-slate-300 rounded-lg;
+      }
+      
+      .mat-mdc-form-field-focus-overlay {
+        @apply border-blue-500;
+      }
+      
+      &.mat-focused .mat-mdc-form-field-outline {
+        @apply border-blue-500 border-2;
+      }
+    }
+  `]
+})
+```
+
+#### 2.3 FleetOps Button Component
+```typescript
+@Component({
+  selector: 'fleet-button',
+  standalone: true,
+  template: `
+    <button [type]="type" 
+            [disabled]="disabled"
+            [class]="buttonClasses"
+            (click)="onClick.emit($event)">
+      <ng-content></ng-content>
+    </button>
+  `
+})
+export class FleetButtonComponent {
+  @Input() variant: 'primary' | 'secondary' | 'outline' | 'danger' = 'primary';
+  @Input() size: 'sm' | 'md' | 'lg' = 'md';
+  @Input() type: 'button' | 'submit' = 'button';
+  @Input() disabled = false;
+  @Output() onClick = new EventEmitter<Event>();
+
+  get buttonClasses(): string {
+    const base = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
+    
+    const sizes = {
+      sm: 'px-3 py-1.5 text-sm',
+      md: 'px-4 py-2 text-sm',
+      lg: 'px-6 py-3 text-base'
+    };
+    
+    const variants = {
+      primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+      secondary: 'bg-slate-600 text-white hover:bg-slate-700 focus:ring-slate-500',
+      outline: 'border border-slate-300 text-slate-700 hover:bg-slate-50 focus:ring-blue-500',
+      danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500'
+    };
+    
+    const disabled = this.disabled ? 'opacity-50 cursor-not-allowed' : '';
+    
+    return `${base} ${sizes[this.size]} ${variants[this.variant]} ${disabled}`;
+  }
+}
+```
+
+**Deliverables**: ✅ Reusable UI Kit components
+
+---
+
+### Phase 3: Orders Page Enhancement (Day 6-8)
+**Goal**: Transform orders page with hybrid components
+
+#### 3.1 Enhanced Orders Layout Structure
+```typescript
+@Component({
+  selector: 'app-orders',
+  standalone: true,
+  imports: [
+    CommonModule, ReactiveFormsModule, FormsModule,
+    MatStepperModule, MatCardModule, MatChipsModule,
+    FleetFormFieldComponent, FleetButtonComponent, FleetCardComponent
+  ],
+  template: `
+    <!-- Modern Layout with Tailwind + Material -->
+    <div class="min-h-screen bg-slate-50">
+      <!-- Header Section -->
+      <header class="bg-white border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between items-center py-6">
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center">
+              📦 <span class="ml-2">New Order</span>
+            </h1>
+            <fleet-button variant="outline" size="sm">
+              🧪 Demo Mode
+            </fleet-button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Enhanced Stepper Layout -->
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <mat-stepper linear="false" class="bg-transparent mb-8" #stepper>
+          
+          <!-- Step 1: Client Selection -->
+          <mat-step label="Client Selection" [completed]="selectedClient !== null">
+            <!-- Enhanced client selection with search -->
+          </mat-step>
+
+          <!-- Step 2: Shipment Details -->
+          <mat-step label="Shipment Details" [completed]="orderForm.get('weight')?.valid">
+            <!-- Material form fields with Tailwind styling -->
+          </mat-step>
+
+          <!-- Step 3: Carrier Selection -->
+          <mat-step label="Carrier Selection" [completed]="selectedCarrier !== null">
+            <!-- Material cards for carrier options -->
+          </mat-step>
+
+        </mat-stepper>
+      </main>
+
+      <!-- Booking Summary Sidebar -->
+      <aside class="fixed top-20 right-8 w-80 z-10" *ngIf="selectedClient">
+        <!-- Sticky sidebar with booking summary -->
+      </aside>
+    </div>
+  `
+})
+```
+
+**Deliverables**: ✅ Enhanced orders page with stepper navigation
+
+---
+
+### Phase 4: Responsive & Polish (Day 9-10)
+**Goal**: Mobile optimization and final polish
+
+#### 4.1 Mobile Responsiveness
+- [ ] Test on mobile devices (320px - 768px)
+- [ ] Adjust sidebar to bottom sheet on mobile
+- [ ] Optimize touch targets (44px minimum)
+- [ ] Test landscape orientation
+
+#### 4.2 Accessibility Enhancements
+- [ ] ARIA labels for all interactive elements
+- [ ] Keyboard navigation support
+- [ ] Screen reader testing
+- [ ] Color contrast validation (WCAG AA)
+
+#### 4.3 Performance Optimization
+- [ ] Lazy load non-critical components
+- [ ] Optimize bundle size with tree-shaking
+- [ ] Add loading states and skeletons
+- [ ] Implement error boundaries
+
+**Deliverables**: ✅ Production-ready orders page
+
+---
+
+## 🎯 Success Criteria
+
+### Technical Metrics
+- [ ] **Bundle Size**: < 2MB initial load (Tailwind tree-shaking)
+- [ ] **Performance**: Lighthouse score > 90
+- [ ] **Accessibility**: WCAG AA compliance
+- [ ] **Mobile**: Responsive on all devices (320px+)
+- [ ] **Browser**: Cross-browser compatibility (Chrome, Firefox, Safari, Edge)
+
+### User Experience Metrics
+- [ ] **Form Completion**: Reduced steps and validation errors
+- [ ] **Navigation**: Intuitive stepper flow
+- [ ] **Visual Hierarchy**: Clear information architecture
+- [ ] **Loading States**: No flash of unstyled content
+- [ ] **Error Handling**: Graceful error recovery
+
+### Developer Experience
+- [ ] **Component Reusability**: UI Kit components used across app
+- [ ] **Type Safety**: Full TypeScript coverage
+- [ ] **Documentation**: Storybook for UI Kit components
+- [ ] **Testing**: Unit tests for all components
+- [ ] **Maintainability**: Clean separation of concerns
+
+## 🚀 Implementation Commands
+
+### Setup Commands
+```bash
+# Navigate to frontend
+cd frontend
+
+# Install dependencies
+npm install @angular/material@^20.2.0 @angular/cdk@^20.2.0
+npm install -D tailwindcss@^3.4.0 postcss autoprefixer
+npm install -D @tailwindcss/forms @tailwindcss/typography
+
+# Initialize Tailwind
+npx tailwindcss init -p
+
+# Generate Angular Material theme
+ng add @angular/material
+
+# Create UI Kit library
+ng generate library ui-kit --prefix=fleet
+
+# Generate components
+ng generate component fleet-form-field --project=ui-kit
+ng generate component fleet-button --project=ui-kit
+ng generate component fleet-card --project=ui-kit
+```
+
+### Development Commands
+```bash
+# Start development server
 ng serve --port 4200
 
-# Full stack
-npm run dev:all
-concurrently "npm run dev:backend" "npm run dev:frontend"
+# Build for production
+ng build --configuration=production
 
-# Build
-npm run build:all
-npm run build:frontend && npm run build:backend
+# Run tests
+ng test
 
-# Test
-npm run test:all
-npm run test:frontend && npm run test:backend
+# Lint code
+ng lint
+
+# Build library
+ng build ui-kit
 ```
 
-## Integration Points
-1. **API Communication**: Angular HTTP client → Spring Boot REST endpoints
-2. **Authentication**: Angular guards → Spring Security JWT
-3. **Real-time Data**: WebSocket → Spring Boot WebSocket endpoints
-4. **Spatial Data**: MapLibre GL JS → PostGIS spatial queries
-5. **Development**: Docker Compose orchestration for full stack
-
-## Next Immediate Steps
-1. **Setup Node.js 20+ via nvm**
-2. **Install Angular CLI 20 globally**
-3. **Create monorepo package.json structure**
-4. **Initialize Angular workspace**
-5. **Configure MapLibre GL JS integration**
-6. **Connect to Spring Boot backend APIs**
-
-## Success Criteria
-- [ ] Angular 20 console-app running on http://localhost:4200
-- [ ] Spring Boot backend running on http://localhost:8081
-- [ ] MapLibre map rendering with basic controls
-- [ ] API communication between frontend and backend
-- [ ] Authentication flow working end-to-end
-- [ ] Live markers displaying on map from backend data
-- [ ] Docker Compose orchestrating both services
-
-## Architecture Benefits
-✅ **Monorepo**: Shared types, unified CI/CD, coordinated releases  
-✅ **Modern Stack**: Angular 20 Signals, Spring Boot 3.3.5, Java 21  
-✅ **Spatial**: MapLibre + PostGIS for fleet management  
-✅ **Scalable**: Modular monolith → microservices migration path  
-✅ **Cross-platform**: Windows, Linux, macOS development support
+This comprehensive plan provides a roadmap for implementing the Angular Material + Tailwind CSS hybrid approach for the FleetOps orders page enhancement.

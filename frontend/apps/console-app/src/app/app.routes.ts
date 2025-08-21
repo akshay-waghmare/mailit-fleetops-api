@@ -7,5 +7,8 @@ export const routes: Routes = [
   { path: 'places', loadComponent: () => import('./pages/places.component').then(m => m.PlacesComponent) },
   { path: 'geofences', loadComponent: () => import('./pages/geofences.component').then(m => m.GeofencesComponent) },
   { path: 'orders', loadComponent: () => import('./pages/orders.component').then(m => m.OrdersComponent) },
+  { path: 'billing', loadComponent: () => import('./pages/billing.component').then(m => m.BillingComponent) },
+  { path: 'mis-reports', loadComponent: () => import('./pages/mis-reports.component').then(m => m.MisReportsComponent) },
+  { path: 'settings', loadComponent: () => import('./pages/settings.component').then(m => m.SettingsComponent) },
   { path: '**', redirectTo: '' }
 ];
