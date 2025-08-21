@@ -6,5 +6,6 @@ export const routes: Routes = [
   { path: 'organizations', loadComponent: () => import('./pages/organizations.component').then(m => m.OrganizationsComponent) },
   { path: 'places', loadComponent: () => import('./pages/places.component').then(m => m.PlacesComponent) },
   { path: 'geofences', loadComponent: () => import('./pages/geofences.component').then(m => m.GeofencesComponent) },
+  { path: 'orders', loadComponent: () => import('./pages/orders.component').then(m => m.OrdersComponent) },
   { path: '**', redirectTo: '' }
 ];
