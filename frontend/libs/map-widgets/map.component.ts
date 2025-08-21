@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, OnDestroy, ViewChild, Input, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, ElementRef, OnInit, OnDestroy, ViewChild, Input, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { Map, NavigationControl, GeolocateControl, ScaleControl, FullscreenControl, LngLatLike } from 'maplibre-gl';
 
@@ -8,7 +8,7 @@ import { Map, NavigationControl, GeolocateControl, ScaleControl, FullscreenContr
   imports: [CommonModule],
   template: `
     <div #mapContainer class="map-container" [style.height]="height">
-      <div class="map-loading" *ngIf="!mapLoaded">
+      <div class="map-loading" *ngIf="!isMapLoaded()">
         <div class="loading-spinner"></div>
         <p>Loading map...</p>
       </div>
@@ -92,12 +92,19 @@ export class MapComponent implements OnInit, OnDestroy {
   @Input() height = '400px';
   @Input() center: LngLatLike = [-74.0059, 40.7128]; // New York City
   @Input() zoom = 12;
-  @Input() style = 'https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL';
+  @Input() style = 'https://api.maptiler.com/maps/streets/style.json?key=FqpjPjNhz5yU1vgFWeGi';
 
   private map: Map | null = null;
   public mapLoaded = false;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private cdr: ChangeDetectorRef
+  ) {}
+
+  public isMapLoaded(): boolean {
+    return this.mapLoaded;
+  }
 
   ngOnInit(): void {
     if (isPlatformBrowser(this.platformId)) {
@@ -157,11 +164,15 @@ export class MapComponent implements OnInit, OnDestroy {
       this.map.on('load', () => {
         console.log('FleetOps map loaded successfully');
         this.mapLoaded = true;
+        this.cdr.detectChanges(); // Force Angular to update the template
         this.setupMapStyles();
       });
 
       this.map.on('error', (e) => {
         console.error('Map error:', e);
+        // Set mapLoaded = true even on error to hide spinner
+        this.mapLoaded = true;
+        this.cdr.detectChanges(); // Force Angular to update the template
         // Fallback to basic OpenStreetMap style
         if (this.map && e.error && e.error.message?.includes('401')) {
           console.log('Switching to fallback map style...');
@@ -170,8 +181,20 @@ export class MapComponent implements OnInit, OnDestroy {
       });
 
       this.map.on('style.load', () => {
+        console.log('Map style loaded');
+        this.mapLoaded = true;
+        this.cdr.detectChanges(); // Force Angular to update the template
         this.setupMapStyles();
       });
+
+      // Add timeout fallback to ensure spinner disappears
+      setTimeout(() => {
+        if (!this.mapLoaded) {
+          console.warn('Map loading timeout - hiding spinner');
+          this.mapLoaded = true;
+          this.cdr.detectChanges();
+        }
+      }, 8000);
 
     } catch (error) {
       console.error('Failed to initialize map:', error);
