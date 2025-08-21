@@ -12,6 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatIconModule } from '@angular/material/icon';
 
 interface CarrierOption {
   id: string;
@@ -56,7 +57,8 @@ interface Client {
     MatSelectModule,
     MatButtonModule,
     MatChipsModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatIconModule
   ],
   template: `
     <!-- Modern Layout with Tailwind + Material -->
@@ -97,51 +99,194 @@ interface Client {
               </mat-card-header>
               
               <mat-card-content>
-                <!-- Search Bar -->
-                <div class="mb-6" *ngIf="showClientSearch">
-                  <mat-form-field  class="w-full">
-                    <mat-label>Search Clients</mat-label>
-                    <input matInput 
-                           placeholder="Search by client name, code, contact person..."
-                           [(ngModel)]="searchQuery"
-                           (input)="onSearchChange($event)">
-                  </mat-form-field>
-                  <p class="mt-2 text-sm text-slate-600 text-center" *ngIf="searchQuery">
-                    Found {{filteredClients.length}} client(s)
-                  </p>
-                </div>
-
-                <!-- Client Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div *ngFor="let client of filteredClients" 
-                       class="relative bg-white border-2 rounded-xl p-6 cursor-pointer transition-all duration-200 hover:shadow-lg"
-                       [class]="getClientCardClasses(client)"
-                       (click)="selectClient(client)">
-                    
-                    <!-- Status Badge -->
-                    <div class="absolute top-4 right-4">
-                      <mat-chip [class]="client.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
-                        {{client.active ? '✅ Active' : '❌ Inactive'}}
-                      </mat-chip>
+                <!-- Enhanced Search Bar with Filters -->
+                <div class="mb-8" *ngIf="showClientSearch">
+                  <div class="flex flex-col lg:flex-row gap-4 mb-4">
+                    <!-- Search Input -->
+                    <div class="flex-1 relative">
+                      <mat-form-field class="w-full search-field-override" appearance="outline">
+                        <mat-label>Search Clients</mat-label>
+                        <input matInput 
+                               placeholder="Type to search..."
+                               [(ngModel)]="searchQuery"
+                               (input)="onSearchChange($event)">
+                      </mat-form-field>
+                      <!-- Custom Search Icon as SVG -->
+                      <div class="search-icon-overlay">
+                        <svg class="search-icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                      </div>
                     </div>
                     
-                    <!-- Client Info -->
-                    <div class="pr-16">
-                      <h3 class="text-lg font-semibold text-slate-900 mb-2">{{client.clientName}}</h3>
-                      <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                          <span class="text-slate-500 font-medium">Code:</span>
-                          <span class="text-blue-600 font-bold">{{client.subContractCode}}</span>
+                    <!-- Quick Filters -->
+                    <div class="flex gap-2 items-end pb-1">
+                      <button 
+                        class="filter-chip"
+                        [class.active]="statusFilter === 'all'"
+                        (click)="setStatusFilter('all')">
+                        All ({{getTotalClientsCount()}})
+                      </button>
+                      <button 
+                        class="filter-chip"
+                        [class.active]="statusFilter === 'active'"
+                        (click)="setStatusFilter('active')">
+                        Active ({{getActiveClientsCount()}})
+                      </button>
+                      <button 
+                        class="filter-chip"
+                        [class.active]="statusFilter === 'inactive'"
+                        (click)="setStatusFilter('inactive')">
+                        Inactive ({{getInactiveClientsCount()}})
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- Search Results Summary -->
+                  <div class="flex justify-between items-center mb-4 px-1">
+                    <div class="text-sm text-slate-600">
+                      <span *ngIf="searchQuery">
+                        Found <strong>{{filteredClients.length}}</strong> client(s) for "<em>{{searchQuery}}</em>"
+                      </span>
+                      <span *ngIf="!searchQuery">
+                        Showing <strong>{{filteredClients.length}}</strong> client(s)
+                      </span>
+                    </div>
+                    
+                    <!-- View Mode Toggle -->
+                    <div class="flex bg-white border border-slate-200 rounded-lg p-1">
+                      <button 
+                        class="view-toggle-btn"
+                        [class.active]="viewMode === 'grid'"
+                        (click)="viewMode = 'grid'"
+                        title="Grid View">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                        </svg>
+                      </button>
+                      <button 
+                        class="view-toggle-btn"
+                        [class.active]="viewMode === 'list'"
+                        (click)="viewMode = 'list'"
+                        title="List View">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Enhanced Client Grid with Improved Cards -->
+                <div [ngClass]="getClientGridClasses()" class="client-search-results">
+                  
+                  <!-- Grid View Cards -->
+                  <div *ngFor="let client of filteredClients; trackBy: trackByClientId" 
+                       class="enhanced-client-card"
+                       [class]="getEnhancedClientCardClasses(client)"
+                       (click)="selectClient(client)"
+                       [attr.data-client-id]="client.id"
+                       role="button"
+                       tabindex="0"
+                       [attr.aria-label]="'Select client ' + client.clientName"
+                       (keydown.enter)="selectClient(client)"
+                       (keydown.space)="selectClient(client)">
+                    
+                    <!-- Card Header with Status and Selection -->
+                    <div class="card-header">
+                      <div class="flex justify-between items-start mb-4">
+                        <!-- Selection Indicator -->
+                        <div class="selection-indicator" [class.visible]="selectedClient?.id === client.id">
+                          <div class="selection-ring">
+                            <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                          </div>
                         </div>
-                        <div class="flex justify-between">
-                          <span class="text-slate-500 font-medium">Contact:</span>
-                          <span class="text-slate-700">{{client.contactPerson}}</span>
-                        </div>
-                        <div class="flex justify-between">
-                          <span class="text-slate-500 font-medium">Location:</span>
-                          <span class="text-slate-700">{{client.city}} - {{client.pincode}}</span>
+                        
+                        <!-- Status Badge -->
+                        <div class="status-badge-enhanced" [class]="client.active ? 'status-active' : 'status-inactive'">
+                          <div class="status-dot"></div>
+                          <span>{{client.active ? 'Active' : 'Inactive'}}</span>
                         </div>
                       </div>
+                    </div>
+
+                    <!-- Client Identity Section -->
+                    <div class="client-identity mb-4">
+                      <h3 class="client-name">{{client.clientName}}</h3>
+                      <div class="client-meta">
+                        <span class="contract-code">{{client.subContractCode}}</span>
+                        <span class="account-separator">•</span>
+                        <span class="account-number">{{client.accountNo}}</span>
+                      </div>
+                    </div>
+
+                    <!-- Contact Information -->
+                    <div class="contact-info mb-4">
+                      <div class="contact-item">
+                        <div class="contact-icon">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                          </svg>
+                        </div>
+                        <div class="contact-details">
+                          <div class="contact-label">Contact Person</div>
+                          <div class="contact-value">{{client.contactPerson}}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Location Information -->
+                    <div class="location-info mb-4">
+                      <div class="location-item">
+                        <div class="location-icon">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                          </svg>
+                        </div>
+                        <div class="location-details">
+                          <div class="location-primary">{{client.city}}</div>
+                          <div class="location-secondary">{{client.pincode}}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Quick Actions (Shown on Hover) -->
+                    <div class="card-actions">
+                      <div class="flex justify-between items-center">
+                        <div class="client-date">
+                          <span class="date-label">Added:</span>
+                          <span class="date-value">{{client.date}}</span>
+                        </div>
+                        <div class="action-hint" *ngIf="selectedClient?.id !== client.id">
+                          <span class="hint-text">Click to select</span>
+                        </div>
+                        <div class="selected-indicator" *ngIf="selectedClient?.id === client.id">
+                          <span class="selected-text">✓ Selected</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Selection Overlay for Better Visual Feedback -->
+                    <div class="selection-overlay" [class.active]="selectedClient?.id === client.id"></div>
+                  </div>
+                  
+                  <!-- Empty State -->
+                  <div *ngIf="filteredClients.length === 0" class="empty-state">
+                    <div class="empty-state-content">
+                      <div class="empty-icon">
+                        <svg class="w-16 h-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                      </div>
+                      <h3 class="empty-title">No clients found</h3>
+                      <p class="empty-description">
+                        <span *ngIf="searchQuery">Try adjusting your search terms or</span>
+                        <span *ngIf="!searchQuery">No clients match the current filter. Try</span>
+                        <button class="link-button" (click)="clearFilters()">clearing filters</button>
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -617,6 +762,8 @@ export class OrdersComponent implements OnInit {
   searchQuery = '';
   filteredClients: Client[] = [];
   showClientSearch = false;
+  statusFilter: 'all' | 'active' | 'inactive' = 'active';
+  viewMode: 'grid' | 'list' = 'grid';
 
   clients: Client[] = [
     { 
@@ -734,7 +881,9 @@ export class OrdersComponent implements OnInit {
   ngOnInit() {
     this.initializeForm();
     this.generateTrackingId();
-    this.filteredClients = this.clients.filter(client => client.active);
+    
+    // Initialize filtered clients with active clients by default
+    this.searchClients();
     
     // Auto-select first active client for demo
     const firstActiveClient = this.filteredClients.find(client => client.active);
@@ -750,29 +899,85 @@ export class OrdersComponent implements OnInit {
   }
 
   searchClients() {
-    if (!this.searchQuery.trim()) {
-      this.filteredClients = this.clients.filter(client => client.active);
-      return;
+    let filtered = this.clients;
+
+    // Apply status filter first
+    if (this.statusFilter === 'active') {
+      filtered = filtered.filter(client => client.active);
+    } else if (this.statusFilter === 'inactive') {
+      filtered = filtered.filter(client => !client.active);
     }
 
-    const query = this.searchQuery.toLowerCase();
-    this.filteredClients = this.clients.filter(client => {
-      return client.active && (
-        client.clientName.toLowerCase().includes(query) ||
-        client.subContractCode.toLowerCase().includes(query) ||
-        client.contactPerson.toLowerCase().includes(query) ||
-        client.accountNo.toLowerCase().includes(query) ||
-        client.city.toLowerCase().includes(query) ||
-        client.pincode.includes(query)
-      );
-    });
+    // Apply search query if provided
+    if (this.searchQuery.trim()) {
+      const query = this.searchQuery.toLowerCase();
+      filtered = filtered.filter(client => {
+        return (
+          client.clientName.toLowerCase().includes(query) ||
+          client.subContractCode.toLowerCase().includes(query) ||
+          client.contactPerson.toLowerCase().includes(query) ||
+          client.accountNo.toLowerCase().includes(query) ||
+          client.city.toLowerCase().includes(query) ||
+          client.pincode.includes(query)
+        );
+      });
+    }
+
+    this.filteredClients = filtered;
+  }
+
+  setStatusFilter(filter: 'all' | 'active' | 'inactive') {
+    this.statusFilter = filter;
+    this.searchClients();
+  }
+
+  clearFilters() {
+    this.searchQuery = '';
+    this.statusFilter = 'active';
+    this.searchClients();
+  }
+
+  // Helper methods for filter counts
+  getTotalClientsCount(): number {
+    return this.clients.length;
+  }
+
+  getActiveClientsCount(): number {
+    return this.clients.filter(client => client.active).length;
+  }
+
+  getInactiveClientsCount(): number {
+    return this.clients.filter(client => !client.active).length;
+  }
+
+  // Enhanced UI helper methods
+  getClientGridClasses(): string {
+    const baseClasses = 'transition-all duration-300';
+    if (this.viewMode === 'grid') {
+      return `${baseClasses} grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6`;
+    }
+    return `${baseClasses} space-y-4`;
+  }
+
+  getEnhancedClientCardClasses(client: Client): string {
+    const baseClasses = 'relative bg-white border-2 rounded-xl cursor-pointer transition-all duration-300 overflow-hidden';
+    const selectedClasses = this.selectedClient?.id === client.id 
+      ? 'border-blue-500 bg-blue-50 shadow-xl ring-4 ring-blue-100 transform scale-105' 
+      : 'border-slate-200 hover:border-blue-300 hover:shadow-lg hover:transform hover:scale-102';
+    const statusClasses = client.active ? 'hover:bg-white' : 'opacity-75 hover:opacity-85';
+    const interactionClasses = client.active ? 'cursor-pointer' : 'cursor-not-allowed';
+    
+    return `${baseClasses} ${selectedClasses} ${statusClasses} ${interactionClasses}`;
+  }
+
+  trackByClientId(index: number, client: Client): string {
+    return client.id;
   }
 
   toggleClientSearch() {
     this.showClientSearch = !this.showClientSearch;
     if (!this.showClientSearch) {
-      this.searchQuery = '';
-      this.filteredClients = this.clients.filter(client => client.active);
+      this.clearFilters();
     }
   }
 
