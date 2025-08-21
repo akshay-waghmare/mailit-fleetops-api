@@ -1,0 +1,55 @@
+# 🚀 FleetOps Frontend Docker Compose
+# For local development and production deployment testing
+
+version: '3.8'
+
+services:
+  fleetops-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: fleetops-frontend
+    ports:
+      - "80:80"
+      - "443:443"  # For future SSL support
+    environment:
+      - NODE_ENV=production
+      - ANGULAR_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fleetops.rule=Host(`localhost`)"
+      - "traefik.http.services.fleetops.loadbalancer.server.port=80"
+    networks:
+      - fleetops-network
+
+  # Optional: Add a reverse proxy for production-like setup
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: fleetops-proxy
+    ports:
+      - "8080:80"
+    volumes:
+      - ./proxy.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - fleetops-frontend
+    networks:
+      - fleetops-network
+    profiles:
+      - proxy
+
+networks:
+  fleetops-network:
+    driver: bridge
+    name: fleetops-network
+
+volumes:
+  nginx-cache:
+    name: fleetops-nginx-cache
