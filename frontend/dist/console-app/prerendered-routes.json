@@ -1,9 +1,0 @@
-{
-  "routes": {
-    "/": {},
-    "/geofences": {},
-    "/orders": {},
-    "/organizations": {},
-    "/places": {}
-  }
-}

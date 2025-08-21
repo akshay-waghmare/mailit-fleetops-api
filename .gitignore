@@ -182,6 +182,22 @@ junit.xml
 # Dependency directories
 node_modules/
 
+# Angular build artifacts
+frontend/dist/
+frontend/.angular/
+frontend/apps/*/dist/
+frontend/apps/*/.angular/
+
+# Angular testing
+coverage/
+.nyc_output
+
+# Angular e2e
+e2e/
+
+# Angular CLI cache
+.angular/
+
 # Environment variables
 .env
 .env.local

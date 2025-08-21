@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Unified Booking Page</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+    /* Sidebar */
+    .sidebar {
+      position: fixed; top: 0; left: 0;
+      width: 200px; height: 100%;
+      background-color: #fff;
+      border-right: 1px solid #ddd;
+      padding-top: 20px;
+    }
+    .sidebar h2 {
+      font-size: 18px; text-align: center; color: #6c63ff;
+    }
+    .sidebar ul { list-style: none; padding: 0; }
+    .sidebar li { padding: 10px 20px; font-size: 14px; cursor: pointer; }
+    .sidebar li.active { background-color: #e9e7ff; font-weight: bold; }
+
+    /* Main */
+    .main {
+      margin-left: 200px; padding: 20px;
+      display: flex; gap: 20px;
+    }
+    .form-area { flex: 3; }
+    .summary { flex: 1; position: sticky; top: 20px; height: fit-content; }
+
+    .header {
+      background-color: #fff;
+      padding: 10px 20px;
+      border-bottom: 1px solid #ddd;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .header h1 { margin: 0; font-size: 20px; color: #6c63ff; }
+    .controls button {
+      background-color: #6c63ff; color: #fff; border: none;
+      padding: 6px 12px; margin-left: 8px; border-radius: 4px; cursor: pointer;
+    }
+    .controls button:hover { background-color: #574fd5; }
+
+    /* Cards */
+    .card {
+      background-color: #fff; border: 1px solid #ddd;
+      border-radius: 4px; padding: 15px; margin-bottom: 15px;
+    }
+    .card h3 { margin-top: 0; }
+
+    .form-row { display: flex; flex-wrap: wrap; margin-bottom: 10px; }
+    .form-group { flex: 1; min-width: 160px; margin-right: 10px; margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 13px; margin-bottom: 4px; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 6px; font-size: 14px;
+      border: 1px solid #ccc; border-radius: 4px;
+    }
+
+    /* Summary */
+    .summary-card {
+      background: #fff; border: 1px solid #ddd;
+      border-radius: 4px; padding: 15px; margin-bottom: 15px;
+    }
+    .summary-card h3 { margin-top: 0; }
+    .summary p { margin: 6px 0; font-size: 14px; }
+
+    /* Buttons */
+    .button-group { margin-top: 20px; }
+    .button-group button {
+      background-color: #6c63ff; border: none; color: #fff;
+      padding: 10px 20px; margin-right: 10px; border-radius: 4px; cursor: pointer;
+    }
+    .button-group button.reset { background-color: #dc3545; }
+    .button-group button:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Menu</h2>
+    <ul>
+      <li>Dashboard</li>
+      <li class="active">Create Booking</li>
+      <li>View Shipments</li>
+      <li>MIS Reports</li>
+      <li>NDR</li>
+      <li>Billing</li>
+      <li>Integrations</li>
+    </ul>
+  </div>
+
+  <div class="main">
+    <div class="form-area">
+      <div class="header">
+        <h1>Book Shipment</h1>
+        <div class="controls">
+          <button>Rate Calculator</button>
+          <button>Recharge</button>
+          <button>348.09</button>
+        </div>
+      </div>
+
+      <!-- Consignor -->
+      <div class="card">
+        <h3>Consignor Details</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Name</label><input type="text"></div>
+          <div class="form-group"><label>Contact</label><input type="text"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Address</label><input type="text"></div>
+          <div class="form-group"><label>City</label><input type="text"></div>
+          <div class="form-group"><label>State</label><input type="text"></div>
+        </div>
+      </div>
+
+      <!-- Consignee -->
+      <div class="card">
+        <h3>Consignee Details</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Name</label><input type="text"></div>
+          <div class="form-group"><label>Contact</label><input type="text"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Address</label><input type="text"></div>
+          <div class="form-group"><label>City</label><input type="text"></div>
+          <div class="form-group"><label>State</label><input type="text"></div>
+        </div>
+      </div>
+
+      <!-- Shipment -->
+      <div class="card">
+        <h3>Shipment Details</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Invoice #</label><input type="text"></div>
+          <div class="form-group"><label>Invoice Date</label><input type="date"></div>
+          <div class="form-group"><label>Order #</label><input type="text"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Payment Mode</label><select><option>Prepaid</option><option>COD</option></select></div>
+          <div class="form-group"><label>Express</label><select><option>Standard</option><option>Priority</option></select></div>
+        </div>
+      </div>
+
+      <!-- Product -->
+      <div class="card">
+        <h3>Product & Amount</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Product</label><input type="text"></div>
+          <div class="form-group"><label>Qty</label><input type="number" value="1"></div>
+          <div class="form-group"><label>Value</label><input type="number"></div>
+        </div>
+      </div>
+
+      <!-- Package -->
+      <div class="card">
+        <h3>Package Details</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Weight (kg)</label><input type="number" step="0.1"></div>
+          <div class="form-group"><label>Length</label><input type="number"></div>
+          <div class="form-group"><label>Width</label><input type="number"></div>
+          <div class="form-group"><label>Height</label><input type="number"></div>
+        </div>
+      </div>
+
+      <!-- Pickup -->
+      <div class="card">
+        <h3>Pickup Details</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Pickup Address</label><select><option>Warehouse A</option><option>Warehouse B</option></select></div>
+        </div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="button-group">
+        <button>Book Shipment</button>
+        <button>Save as Draft</button>
+        <button class="reset">Reset</button>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary">
+      <div class="summary-card">
+        <h3>Booking Summary</h3>
+        <p><b>Consignor:</b> --</p>
+        <p><b>Consignee:</b> --</p>
+        <p><b>Product:</b> --</p>
+        <p><b>Weight:</b> --</p>
+        <p><b>Amount:</b> --</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
