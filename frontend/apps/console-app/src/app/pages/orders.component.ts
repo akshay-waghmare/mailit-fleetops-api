@@ -1,16 +1,32 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 
+// Angular Material imports
+import { MatStepperModule, MatStepper } from '@angular/material/stepper';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
 interface CarrierOption {
   id: string;
   name: string;
+  type?: string;
   duration: string;
   price: number;
   serviceable: boolean;
   estimatedDelivery: string;
   logo?: string;
+  // Enhanced serviceability properties
+  deliveryDays?: number;
+  weightCharged?: number;
+  route?: string;
+  reason?: string;
 }
 
 interface Client {
@@ -29,317 +45,614 @@ interface Client {
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [
+    CommonModule, 
+    ReactiveFormsModule, 
+    FormsModule,
+    MatStepperModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatProgressSpinnerModule
+  ],
   template: `
-    <div class="new-order-page">
-      <div class="page-header">
-        <h1>📦 New Order</h1>
-        <div class="header-actions">
-          <button type="button" class="btn btn-outline">Demo</button>
-        </div>
-      </div>
-
-      <!-- Client Selection Section -->
-      <div class="client-selection-section">
-        <div class="client-section-header">
-          <h2>Select Client</h2>
-          <div class="search-controls">
-            <button type="button" class="search-toggle-btn" (click)="toggleClientSearch()">
-              🔍 {{showClientSearch ? 'Hide Search' : 'Search Clients'}}
+    <!-- Modern Layout with Tailwind + Material -->
+    <div class="min-h-screen bg-slate-50">
+      
+      <!-- Header Section -->
+      <header class="bg-white border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between items-center py-6">
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center">
+              📦 <span class="ml-2">New Order</span>
+            </h1>
+            <button class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-200 transition-colors">
+              🧪 Demo Mode
             </button>
           </div>
         </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        <!-- Client Search -->
-        <div class="client-search" *ngIf="showClientSearch">
-          <input 
-            type="text" 
-            class="search-input" 
-            placeholder="Search by client name, sub contract code, contact person, account no, city, or pincode..."
-            [(ngModel)]="searchQuery"
-            (input)="onSearchChange($event)">
-          <div class="search-results-count" *ngIf="searchQuery">
-            Found {{filteredClients.length}} client(s)
-          </div>
-        </div>
-
-        <div class="client-grid">
-          <div *ngFor="let client of filteredClients" 
-               class="client-card" 
-               [class.selected]="selectedClient?.id === client.id"
-               [class.inactive]="!client.active"
-               (click)="selectClient(client)">
-            <div class="client-info">
-              <div class="client-header">
-                <span class="client-name">{{client.clientName}}</span>
-                <span class="contract-code">{{client.subContractCode}}</span>
-              </div>
-              <div class="client-details">
-                <div class="detail-row">
-                  <span class="label">Contact:</span>
-                  <span class="value">{{client.contactPerson}}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Account:</span>
-                  <span class="value">{{client.accountNo}}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Location:</span>
-                  <span class="value">{{client.city}} - {{client.pincode}}</span>
-                </div>
-              </div>
-            </div>
-            <div class="client-status" [class.active]="client.active">
-              {{client.active ? 'Active' : 'Inactive'}}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="order-container" *ngIf="selectedClient">
-        <div class="order-form">
-          <form [formGroup]="orderForm" (ngSubmit)="onSubmit()">
-            
-            <!-- Shipment Type -->
-            <div class="form-section">
-              <h3>Shipment Type</h3>
-              <div class="shipment-type-tabs">
-                <label class="tab-option">
-                  <input type="radio" formControlName="shipmentType" value="domestic" checked>
-                  <span>Domestic</span>
-                </label>
-                <label class="tab-option">
-                  <input type="radio" formControlName="shipmentType" value="international">
-                  <span>International</span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Shipment Details -->
-            <div class="form-section">
-              <h3>Shipment Details</h3>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Weight (kg)</label>
-                  <input type="number" formControlName="weight" placeholder="10" step="0.1" min="0.1" (input)="onShipmentDetailsChange()">
-                </div>
-                <div class="form-group">
-                  <label>Dimensions</label>
-                  <div class="dimensions-input">
-                    <input type="number" formControlName="length" placeholder="30" min="1" (input)="onShipmentDetailsChange()">
-                    <span>×</span>
-                    <input type="number" formControlName="width" placeholder="40" min="1" (input)="onShipmentDetailsChange()">
-                    <span>×</span>
-                    <input type="number" formControlName="height" placeholder="50" min="1" (input)="onShipmentDetailsChange()">
-                    <span>cm</span>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label>Packages</label>
-                  <input type="number" formControlName="packages" placeholder="1" min="1">
-                </div>
-                <div class="form-group">
-                  <label>Commodity</label>
-                  <select formControlName="commodity">
-                    <option value="">Select Commodity</option>
-                    <option value="electronics">Electronics</option>
-                    <option value="clothing">Clothing</option>
-                    <option value="documents">Documents</option>
-                    <option value="books">Books</option>
-                    <option value="jewelry">Jewelry</option>
-                    <option value="food">Food Items</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <!-- Delivery Details -->
-            <div class="form-section">
-              <h3>Delivery Details</h3>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Receiver</label>
-                  <input type="text" formControlName="receiverName" placeholder="Naveen" (input)="onAddressChange()">
-                </div>
-                <div class="form-group">
-                  <label>Contact</label>
-                  <input type="tel" formControlName="receiverContact" placeholder="9878543210">
-                </div>
-                <div class="form-group full-width">
-                  <label>Delivery Address</label>
-                  <input type="text" formControlName="receiverAddress" placeholder="Delhi 110024" (input)="onAddressChange()">
-                </div>
-              </div>
-            </div>
-
-            <!-- Sender Details -->
-            <div class="form-section">
-              <h3>Sender Details</h3>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Sender Name</label>
-                  <input type="text" formControlName="senderName" placeholder="FleetOps India Pvt Ltd">
-                </div>
-                <div class="form-group">
-                  <label>Contact</label>
-                  <input type="tel" formControlName="senderContact" placeholder="9876543210">
-                </div>
-                <div class="form-group full-width">
-                  <label>Pickup Address</label>
-                  <input type="text" formControlName="senderAddress" placeholder="Mumbai, Maharashtra 400001">
-                </div>
-              </div>
-            </div>
-
-            <!-- Carrier Selection -->
-            <div class="form-section">
-              <h3>Carrier Selection & Serviceability</h3>
-              <div class="carrier-selection">
-                <div class="carrier-dropdown-section">
-                  <label>Select Carrier</label>
-                  <select formControlName="selectedCarrier" (change)="onCarrierChange()" class="carrier-dropdown">
-                    <option value="">Check serviceability and get rates...</option>
-                    <option *ngFor="let carrier of carrierOptions" [value]="carrier.id">
-                      {{carrier.name}} - {{carrier.duration}}
-                    </option>
-                  </select>
-                  <button type="button" class="btn btn-primary check-serviceability" 
-                          (click)="checkServiceability()" 
-                          [disabled]="!canCheckServiceability()">
-                    🔍 Check Serviceability
+        <!-- Enhanced Stepper -->
+        <mat-stepper linear="false" class="bg-transparent mb-8" #stepper>
+          
+          <!-- Step 1: Client Selection -->
+          <mat-step label="Client Selection" [completed]="selectedClient !== null">
+            <mat-card class="mb-6 border-0 shadow-md">
+              <mat-card-header class="pb-4">
+                <div class="flex justify-between items-center w-full">
+                  <mat-card-title class="text-2xl font-semibold text-slate-900">Select Client</mat-card-title>
+                  <button 
+                    class="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
+                    (click)="toggleClientSearch()">
+                    🔍 {{showClientSearch ? 'Hide Search' : 'Search Clients'}}
                   </button>
                 </div>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <!-- Search Bar -->
+                <div class="mb-6" *ngIf="showClientSearch">
+                  <mat-form-field appearance="outline" class="w-full">
+                    <mat-label>Search Clients</mat-label>
+                    <input matInput 
+                           placeholder="Search by client name, code, contact person..."
+                           [(ngModel)]="searchQuery"
+                           (input)="onSearchChange($event)">
+                  </mat-form-field>
+                  <p class="mt-2 text-sm text-slate-600 text-center" *ngIf="searchQuery">
+                    Found {{filteredClients.length}} client(s)
+                  </p>
+                </div>
 
-                <!-- Serviceability Results -->
-                <div class="serviceability-results" *ngIf="serviceabilityChecked">
-                  <div class="loading" *ngIf="checkingServiceability">
-                    <div class="spinner"></div>
-                    <span>Checking serviceability and fetching rates...</span>
-                  </div>
-                  
-                  <div class="carrier-results" *ngIf="!checkingServiceability && availableCarriers.length > 0">
-                    <h4>📦 Available Services</h4>
-                    <div class="carrier-options-grid">
-                      <div *ngFor="let carrier of availableCarriers" 
-                           class="carrier-result-card" 
-                           [class.selected]="selectedCarrier?.id === carrier.id"
-                           [class.not-serviceable]="!carrier.serviceable"
-                           (click)="carrier.serviceable && selectCarrier(carrier)">
-                        <div class="carrier-header">
-                          <div class="carrier-name">{{carrier.name}}</div>
-                          <div class="serviceable-badge" [class.serviceable]="carrier.serviceable">
-                            {{carrier.serviceable ? '✅ Serviceable' : '❌ Not Serviceable'}}
-                          </div>
+                <!-- Client Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div *ngFor="let client of filteredClients" 
+                       class="relative bg-white border-2 rounded-xl p-6 cursor-pointer transition-all duration-200 hover:shadow-lg"
+                       [class]="getClientCardClasses(client)"
+                       (click)="selectClient(client)">
+                    
+                    <!-- Status Badge -->
+                    <div class="absolute top-4 right-4">
+                      <mat-chip [class]="client.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+                        {{client.active ? '✅ Active' : '❌ Inactive'}}
+                      </mat-chip>
+                    </div>
+                    
+                    <!-- Client Info -->
+                    <div class="pr-16">
+                      <h3 class="text-lg font-semibold text-slate-900 mb-2">{{client.clientName}}</h3>
+                      <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                          <span class="text-slate-500 font-medium">Code:</span>
+                          <span class="text-blue-600 font-bold">{{client.subContractCode}}</span>
                         </div>
-                        <div class="carrier-details" *ngIf="carrier.serviceable">
-                          <div class="delivery-info">
-                            <span class="duration">🚚 {{carrier.duration}}</span>
-                            <span class="estimated-delivery">📅 Est: {{carrier.estimatedDelivery}}</span>
-                          </div>
-                          <div class="price-info">
-                            <span class="price">💰 ₹{{carrier.price}}</span>
-                          </div>
+                        <div class="flex justify-between">
+                          <span class="text-slate-500 font-medium">Contact:</span>
+                          <span class="text-slate-700">{{client.contactPerson}}</span>
                         </div>
-                        <div class="not-serviceable-reason" *ngIf="!carrier.serviceable">
-                          <span>Service not available for this route</span>
+                        <div class="flex justify-between">
+                          <span class="text-slate-500 font-medium">Location:</span>
+                          <span class="text-slate-700">{{client.city}} - {{client.pincode}}</span>
                         </div>
                       </div>
                     </div>
                   </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end">
+                  <button 
+                    mat-raised-button 
+                    color="primary"
+                    [disabled]="!selectedClient" 
+                    (click)="stepper.next()"
+                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-300">
+                    Next: Shipment Details →
+                  </button>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </mat-step>
 
-                  <div class="no-carriers" *ngIf="!checkingServiceability && availableCarriers.length === 0">
-                    <div class="no-service-message">
-                      <span>❌ No carriers serviceable for this route</span>
-                      <p>Please check your pickup and delivery addresses</p>
+          <!-- Step 2: Shipment Details -->
+          <mat-step label="Shipment Details" [completed]="orderForm.get('weight')?.valid">
+            <mat-card class="mb-6 border-0 shadow-md">
+              <mat-card-header class="pb-4">
+                <mat-card-title class="text-xl font-semibold text-slate-900">
+                  📦 Shipment Information
+                </mat-card-title>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <form [formGroup]="orderForm">
+                  <!-- Shipment Type Selection -->
+                  <div class="mb-8">
+                    <h4 class="text-lg font-medium text-slate-700 mb-4">Shipment Type</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                      <label class="relative cursor-pointer">
+                        <input type="radio" formControlName="shipmentType" value="domestic" class="sr-only">
+                        <div class="shipment-type-card p-6 border-2 rounded-xl transition-all duration-200"
+                             [class]="getShipmentTypeClasses('domestic')">
+                          <div class="text-center">
+                            <div class="text-3xl mb-3">🇮🇳</div>
+                            <div class="font-semibold text-lg mb-1">Domestic</div>
+                            <div class="text-sm text-slate-600">Within India</div>
+                            <div class="text-xs text-slate-500 mt-2">Standard rates apply</div>
+                          </div>
+                        </div>
+                      </label>
+                      <label class="relative cursor-pointer">
+                        <input type="radio" formControlName="shipmentType" value="international" class="sr-only">
+                        <div class="shipment-type-card p-6 border-2 rounded-xl transition-all duration-200"
+                             [class]="getShipmentTypeClasses('international')">
+                          <div class="text-center">
+                            <div class="text-3xl mb-3">🌍</div>
+                            <div class="font-semibold text-lg mb-1">International</div>
+                            <div class="text-sm text-slate-600">Worldwide delivery</div>
+                            <div class="text-xs text-slate-500 mt-2">Customs clearance included</div>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Form Grid -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Weight (kg)</mat-label>
+                    <input matInput 
+                           formControlName="weight" 
+                           type="number" 
+                           placeholder="10.5"
+                           (input)="onShipmentDetailsChange()">
+                    <mat-error *ngIf="orderForm.get('weight')?.hasError('required')">
+                      Weight is required
+                    </mat-error>
+                  </mat-form-field>
+                  
+                  <mat-form-field appearance="outline">
+                    <mat-label>Packages</mat-label>
+                    <input matInput 
+                           formControlName="packages" 
+                           type="number" 
+                           placeholder="1">
+                  </mat-form-field>
+                  
+                  <mat-form-field appearance="outline">
+                    <mat-label>Commodity Type</mat-label>
+                    <mat-select formControlName="commodity">
+                      <mat-option value="electronics">Electronics</mat-option>
+                      <mat-option value="clothing">Clothing</mat-option>
+                      <mat-option value="documents">Documents</mat-option>
+                      <mat-option value="books">Books</mat-option>
+                      <mat-option value="jewelry">Jewelry</mat-option>
+                      <mat-option value="food">Food Items</mat-option>
+                      <mat-option value="other">Other</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  
+                  <!-- Dimensions -->
+                  <div class="md:col-span-2 lg:col-span-3">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Dimensions (L × W × H cm)</label>
+                    <div class="grid grid-cols-3 gap-3">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Length</mat-label>
+                        <input matInput formControlName="length" type="number" placeholder="30" (input)="onShipmentDetailsChange()">
+                      </mat-form-field>
+                      <mat-form-field appearance="outline">
+                        <mat-label>Width</mat-label>
+                        <input matInput formControlName="width" type="number" placeholder="40" (input)="onShipmentDetailsChange()">
+                      </mat-form-field>
+                      <mat-form-field appearance="outline">
+                        <mat-label>Height</mat-label>
+                        <input matInput formControlName="height" type="number" placeholder="50" (input)="onShipmentDetailsChange()">
+                      </mat-form-field>
+                    </div>
+                  </div>
+
+                  <!-- Delivery Details -->
+                  <div class="md:col-span-2 lg:col-span-3">
+                    <h4 class="text-lg font-medium text-slate-700 mb-4 pt-4 border-t border-slate-200">Delivery Details</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Receiver Name</mat-label>
+                        <input matInput formControlName="receiverName" placeholder="Naveen Kumar" (input)="onAddressChange()">
+                      </mat-form-field>
+                      <mat-form-field appearance="outline">
+                        <mat-label>Receiver Contact</mat-label>
+                        <input matInput formControlName="receiverContact" placeholder="9878543210">
+                      </mat-form-field>
+                      <div class="md:col-span-2">
+                        <mat-form-field appearance="outline" class="w-full">
+                          <mat-label>Delivery Address</mat-label>
+                          <input matInput formControlName="receiverAddress" placeholder="Delhi 110024" (input)="onAddressChange()">
+                        </mat-form-field>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Sender Details -->
+                  <div class="md:col-span-2 lg:col-span-3">
+                    <h4 class="text-lg font-medium text-slate-700 mb-4 pt-4 border-t border-slate-200">Sender Details</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Sender Name</mat-label>
+                        <input matInput formControlName="senderName" placeholder="FleetOps India Pvt Ltd">
+                      </mat-form-field>
+                      <mat-form-field appearance="outline">
+                        <mat-label>Sender Contact</mat-label>
+                        <input matInput formControlName="senderContact" placeholder="9876543210">
+                      </mat-form-field>
+                      <div class="md:col-span-2">
+                        <mat-form-field appearance="outline" class="w-full">
+                          <mat-label>Pickup Address</mat-label>
+                          <input matInput formControlName="senderAddress" placeholder="Mumbai, Maharashtra 400001">
+                        </mat-form-field>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+                </form>
+                
+                <div class="mt-8 flex justify-between">
+                  <button 
+                    mat-stroked-button 
+                    (click)="stepper.previous()"
+                    class="border-slate-300 text-slate-700 hover:bg-slate-50">
+                    ← Previous
+                  </button>
+                  <button 
+                    mat-raised-button 
+                    color="primary"
+                    [disabled]="!orderForm.get('weight')?.valid" 
+                    (click)="proceedToCarrierSelection(stepper)"
+                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    Check Serviceability →
+                  </button>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </mat-step>
 
-          </form>
-        </div>
+          <!-- Step 3: Carrier Selection -->
+          <mat-step label="Carrier Selection" [completed]="selectedCarrier !== null">
+            <mat-card class="mb-6 border-0 shadow-md">
+              <mat-card-header class="pb-4">
+                <mat-card-title class="text-xl font-semibold text-slate-900">
+                  🚚 Select Carrier & Service
+                </mat-card-title>
+                <p class="text-sm text-slate-600 mt-2">Choose from available carriers for your shipment route</p>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <!-- Serviceability Check Button -->
+                <div class="mb-6 text-center" *ngIf="!serviceabilityChecked">
+                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <div class="text-blue-700 mb-4">
+                      <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      <h3 class="text-lg font-semibold">Ready to Check Serviceability</h3>
+                      <p class="text-sm">We'll check which carriers can deliver to your destination</p>
+                    </div>
+                    <button 
+                      mat-raised-button 
+                      color="primary"
+                      [disabled]="!canCheckServiceability()" 
+                      (click)="checkServiceability()"
+                      class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                      🔍 Check Available Carriers
+                    </button>
+                    <div class="mt-3 text-xs text-slate-500" *ngIf="!canCheckServiceability()">
+                      Please fill in weight and addresses to check serviceability
+                    </div>
+                  </div>
+                </div>
 
-        <!-- Booking Summary Sidebar -->
-        <div class="booking-sidebar">
-          <div class="booking-summary">
-            <h3>Booking & Tracking</h3>
+                <!-- Loading State -->
+                <div class="text-center py-12" *ngIf="checkingServiceability">
+                  <mat-spinner diameter="48" class="mx-auto mb-4"></mat-spinner>
+                  <h3 class="text-lg font-semibold text-slate-700 mb-2">Checking Serviceability</h3>
+                  <p class="text-slate-600">Finding the best carriers for your route...</p>
+                  <div class="mt-4 bg-slate-50 rounded-lg p-4 max-w-md mx-auto">
+                    <div class="text-sm text-slate-600">
+                      <div class="flex items-center justify-between mb-2">
+                        <span>From:</span>
+                        <span class="font-medium">{{getShortAddress(orderForm.get('senderAddress')?.value)}}</span>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <span>To:</span>
+                        <span class="font-medium">{{getShortAddress(orderForm.get('receiverAddress')?.value)}}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Carrier Results -->
+                <div *ngIf="!checkingServiceability && serviceabilityChecked && availableCarriers.length > 0">
+                  <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-slate-700 mb-2">Available Services</h3>
+                    <p class="text-sm text-slate-600">{{getServiceableCount()}} out of {{availableCarriers.length}} carriers available for this route</p>
+                  </div>
+                  
+                  <div class="space-y-4">
+                    <div *ngFor="let carrier of availableCarriers; trackBy: trackByCarrierId" 
+                         class="carrier-option border rounded-xl p-4 transition-all duration-200"
+                         [class]="getCarrierCardClasses(carrier)"
+                         (click)="selectCarrier(carrier)"
+                         [attr.data-carrier]="carrier.id"
+                         [attr.data-serviceable]="carrier.serviceable">
+                      
+                      <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-3">
+                          <div class="carrier-logo w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center">
+                            <span class="text-xl">{{getCarrierIcon(carrier.name)}}</span>
+                          </div>
+                          <div>
+                            <h4 class="font-semibold text-slate-900">{{carrier.name}}</h4>
+                            <p class="text-sm text-slate-600">{{carrier.type || 'Express Delivery'}}</p>
+                          </div>
+                        </div>
+                        <mat-chip [class]="carrier.serviceable ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'">
+                          {{carrier.serviceable ? '✅ Available' : '❌ Not Available'}}
+                        </mat-chip>
+                      </div>
+                      
+                      <div *ngIf="carrier.serviceable" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                        <div class="text-center">
+                          <div class="text-sm text-slate-500">Delivery Days</div>
+                          <div class="font-semibold text-slate-900">{{carrier.deliveryDays || carrier.duration}}</div>
+                        </div>
+                        <div class="text-center">
+                          <div class="text-sm text-slate-500">Price ({{carrier.weightCharged}}kg)</div>
+                          <div class="font-bold text-blue-600 text-lg">₹{{carrier.price}}</div>
+                        </div>
+                        <div class="text-center">
+                          <div class="text-sm text-slate-500">Est. Delivery</div>
+                          <div class="font-semibold text-slate-900">{{carrier.estimatedDelivery}}</div>
+                        </div>
+                        <div class="text-center">
+                          <div class="text-sm text-slate-500">Route</div>
+                          <div class="font-semibold text-green-600 text-xs">{{carrier.route || 'Serviceable'}}</div>
+                        </div>
+                      </div>
+                      
+                      <div *ngIf="!carrier.serviceable" class="text-center py-4">
+                        <p class="text-red-600 text-sm italic">{{carrier.reason || 'Service not available for this route'}}</p>
+                        <div class="text-xs text-slate-500 mt-1">Unable to service {{orderForm.get('fromPincode')?.value}} → {{orderForm.get('toPincode')?.value}}</div>
+                      </div>
+                      
+                      <div *ngIf="carrier.serviceable" class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div class="flex items-center space-x-2 text-sm text-slate-600">
+                          <span>✓ Insurance included</span>
+                          <span>✓ SMS tracking</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                          <span class="text-sm text-slate-500" *ngIf="selectedCarrier?.id !== carrier.id">Click to select</span>
+                          <span class="text-sm font-semibold text-blue-600" *ngIf="selectedCarrier?.id === carrier.id">✓ Selected</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- No Carriers Available -->
+                <div class="text-center py-12" *ngIf="!checkingServiceability && serviceabilityChecked && availableCarriers.length === 0">
+                  <div class="text-red-600 mb-4">
+                    <svg class="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.732 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                    <h3 class="text-lg font-semibold">No Carriers Available</h3>
+                    <p class="text-slate-600 mt-2">Unfortunately, no carriers service this route currently</p>
+                  </div>
+                  <button 
+                    mat-stroked-button 
+                    (click)="resetServiceability()"
+                    class="border-slate-300 text-slate-700 hover:bg-slate-50">
+                    🔄 Check Different Route
+                  </button>
+                </div>
+                
+                <div class="mt-8 flex justify-between" *ngIf="serviceabilityChecked">
+                  <button 
+                    mat-stroked-button 
+                    (click)="stepper.previous()"
+                    class="border-slate-300 text-slate-700 hover:bg-slate-50">
+                    ← Previous
+                  </button>
+                  <button 
+                    mat-raised-button 
+                    color="primary"
+                    [disabled]="!selectedCarrier?.serviceable" 
+                    (click)="stepper.next()"
+                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    Proceed to Book →
+                  </button>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </mat-step>
+
+        </mat-stepper>
+      </main>
+
+      <!-- Responsive Booking Summary -->
+      <div *ngIf="selectedClient">
+        
+        <!-- Desktop: Fixed Sidebar (lg and above) -->
+        <aside class="hidden lg:block fixed top-60 right-8 w-80 z-10">
+          <mat-card class="sticky top-8 border-0 shadow-lg">
+            <mat-card-header class="pb-4">
+              <mat-card-title class="text-lg font-semibold text-slate-900">
+                📋 Booking Summary
+              </mat-card-title>
+            </mat-card-header>
             
-            <div class="client-summary">
-              <div class="selected-client">
-                <span class="label">Client:</span>
-                <span class="value">{{selectedClient.clientName}}</span>
+            <mat-card-content>
+              <!-- Client Summary -->
+              <div class="bg-slate-50 rounded-lg p-4 mb-6">
+                <div class="text-sm space-y-2">
+                  <div class="flex justify-between">
+                    <span class="text-slate-500 font-medium">Client:</span>
+                    <span class="text-slate-900 font-semibold">{{selectedClient.clientName}}</span>
+                  </div>
+                  <div class="text-center text-blue-600 font-bold">
+                    {{selectedClient.subContractCode}}
+                  </div>
+                </div>
               </div>
-              <div class="client-company">{{selectedClient.subContractCode}} - {{selectedClient.contactPerson}}</div>
-              <div class="client-location">{{selectedClient.city}} - {{selectedClient.pincode}}</div>
-            </div>
+              
+              <!-- Tracking ID -->
+              <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <div class="text-sm text-green-700 font-medium mb-1">Tracking ID:</div>
+                <div class="text-lg font-bold text-green-800 font-mono">{{trackingId}}</div>
+              </div>
+              
+              <!-- Order Summary -->
+              <div class="space-y-3 mb-6">
+                <div class="flex justify-between text-sm">
+                  <span class="text-slate-500">Weight:</span>
+                  <span class="text-slate-900 font-medium">{{orderForm.get('weight')?.value || 0}}kg</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-slate-500">Packages:</span>
+                  <span class="text-slate-900 font-medium">{{orderForm.get('packages')?.value || 0}}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-slate-500">Type:</span>
+                  <span class="text-slate-900 font-medium">{{orderForm.get('shipmentType')?.value || 'N/A'}}</span>
+                </div>
+              </div>
+              
+              <!-- Selected Carrier -->
+              <div *ngIf="selectedCarrier" class="border-t border-slate-200 pt-4">
+                <div class="text-sm text-slate-500 mb-2">Selected Carrier:</div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="font-semibold text-blue-900">{{selectedCarrier.name}}</span>
+                    <span class="text-lg font-bold text-blue-600">₹{{selectedCarrier.price}}</span>
+                  </div>
+                  <div class="text-sm text-blue-700">{{selectedCarrier.estimatedDelivery}}</div>
+                </div>
+              </div>
+              
+              <!-- Action Button -->
+              <div class="mt-6 pt-4 border-t border-slate-200">
+                <button type="button" 
+                        class="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
+                        [disabled]="!selectedCarrier"
+                        (click)="bookShipment()">
+                  {{selectedCarrier ? 'Book Shipment' : 'Select Carrier First'}}
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </aside>
+        
+        <!-- Tablet: Bottom Sheet (md to lg) -->
+        <div class="hidden md:block lg:hidden fixed bottom-0 left-0 right-0 z-20 transform transition-transform duration-300"
+             [class]="showMobileSummary ? 'translate-y-0' : 'translate-y-full'">
+          <mat-card class="rounded-t-xl border-0 shadow-2xl max-h-96 overflow-y-auto">
+            <mat-card-header class="pb-4 border-b border-slate-200">
+              <div class="flex items-center justify-between w-full">
+                <mat-card-title class="text-lg font-semibold text-slate-900">
+                  📋 Booking Summary
+                </mat-card-title>
+                <button type="button" 
+                        (click)="toggleMobileSummary()"
+                        class="p-2 text-slate-500 hover:text-slate-700">
+                  <span class="text-xl">{{showMobileSummary ? '↓' : '↑'}}</span>
+                </button>
+              </div>
+            </mat-card-header>
             
-            <div class="tracking-number">
-              <span class="tracking-label">Tracking ID:</span>
-              <span class="tracking-id">{{trackingId}}</span>
-            </div>
-
-            <div class="summary-details">
-              <div class="summary-item">
-                <span>Weight:</span>
-                <span>{{orderForm.get('weight')?.value || 0}} kg</span>
+            <mat-card-content class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <!-- Compact Summary for Tablet -->
+              <div class="text-center">
+                <div class="text-xs text-slate-500">Client</div>
+                <div class="font-semibold text-sm">{{selectedClient.clientName}}</div>
               </div>
-              <div class="summary-item" *ngIf="getDimensions()">
-                <span>Dimensions:</span>
-                <span>{{getDimensions()}}</span>
+              <div class="text-center">
+                <div class="text-xs text-slate-500">Weight</div>
+                <div class="font-semibold text-sm">{{orderForm.get('weight')?.value}}kg</div>
               </div>
-              <div class="summary-item">
-                <span>Packages:</span>
-                <span>{{orderForm.get('packages')?.value || 1}}</span>
+              <div class="text-center" *ngIf="selectedCarrier">
+                <div class="text-xs text-slate-500">Carrier</div>
+                <div class="font-semibold text-sm">{{selectedCarrier.name}}</div>
               </div>
-              <div class="summary-item" *ngIf="selectedCarrier">
-                <span>Carrier:</span>
-                <span>{{selectedCarrier.name}}</span>
+              <div class="text-center" *ngIf="selectedCarrier">
+                <div class="text-xs text-slate-500">Price</div>
+                <div class="font-bold text-blue-600">₹{{selectedCarrier.price}}</div>
               </div>
-              <div class="summary-item" *ngIf="selectedCarrier">
-                <span>Delivery:</span>
-                <span>{{selectedCarrier.duration}}</span>
-              </div>
-              <div class="summary-item" *ngIf="selectedCarrier && selectedCarrier.serviceable">
-                <span>Est. Delivery:</span>
-                <span>{{selectedCarrier.estimatedDelivery}}</span>
-              </div>
-              <div class="summary-item total" *ngIf="selectedCarrier && selectedCarrier.serviceable">
-                <span>Total Cost:</span>
-                <span>₹{{selectedCarrier.price}}</span>
-              </div>
-            </div>
-
-            <div class="action-buttons">
-              <button type="button" class="btn btn-outline" (click)="printLabel()" [disabled]="!selectedCarrier?.serviceable">
-                🖨️ Print Label
-              </button>
-              <button type="button" class="btn btn-outline" (click)="downloadAWB()" [disabled]="!selectedCarrier?.serviceable">
-                📄 Download AWB
-              </button>
-              <button type="button" class="btn btn-outline" (click)="sendTrackingEmail()" [disabled]="!selectedCarrier?.serviceable">
-                📧 Send Tracking Email
-              </button>
-              <button type="button" class="btn btn-primary" (click)="bookShipment()" 
-                      [disabled]="!orderForm.valid || !selectedCarrier?.serviceable">
-                🚀 Book Shipment
-              </button>
-              <button type="button" class="btn btn-secondary" (click)="saveAsDraft()">
-                💾 Save as Draft
-              </button>
-              <button type="button" class="btn btn-outline" (click)="cancelOrder()">
-                ❌ Cancel
-              </button>
-            </div>
-          </div>
+            </mat-card-content>
+          </mat-card>
         </div>
+        
+        <!-- Mobile: Collapsible Section (below md) -->
+        <div class="md:hidden mt-6">
+          <mat-card class="border-0 shadow-lg">
+            <mat-card-header class="pb-4" (click)="toggleMobileSummary()" class="cursor-pointer">
+              <div class="flex items-center justify-between w-full">
+                <mat-card-title class="text-lg font-semibold text-slate-900">
+                  📋 Booking Summary
+                </mat-card-title>
+                <span class="text-xl text-slate-500">{{showMobileSummary ? '↑' : '↓'}}</span>
+              </div>
+            </mat-card-header>
+            
+            <mat-card-content *ngIf="showMobileSummary" class="space-y-4">
+              <!-- Mobile Summary Content -->
+              <div class="bg-slate-50 rounded-lg p-3">
+                <div class="text-sm space-y-1">
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Client:</span>
+                    <span class="text-slate-900 font-medium">{{selectedClient.clientName}}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Weight:</span>
+                    <span class="text-slate-900 font-medium">{{orderForm.get('weight')?.value}}kg</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Tracking:</span>
+                    <span class="text-green-600 font-mono text-xs">{{trackingId}}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div *ngIf="selectedCarrier" class="bg-blue-50 rounded-lg p-3">
+                <div class="flex justify-between items-center">
+                  <div>
+                    <div class="font-semibold text-blue-900">{{selectedCarrier.name}}</div>
+                    <div class="text-sm text-blue-700">{{selectedCarrier.estimatedDelivery}}</div>
+                  </div>
+                  <div class="text-lg font-bold text-blue-600">₹{{selectedCarrier.price}}</div>
+                </div>
+              </div>
+              
+              <button type="button" 
+                      class="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
+                      [disabled]="!selectedCarrier"
+                      (click)="bookShipment()">
+                {{selectedCarrier ? 'Book Shipment' : 'Select Carrier First'}}
+              </button>
+            </mat-card-content>
+          </mat-card>
+        </div>
+        
       </div>
     </div>
   `,
   styleUrl: './orders.component.scss'
 })
 export class OrdersComponent implements OnInit {
+  @ViewChild('stepper') stepper!: MatStepper;
+  
   orderForm!: FormGroup;
   selectedCarrier: CarrierOption | null = null;
   selectedClient: Client | null = null;
@@ -347,6 +660,7 @@ export class OrdersComponent implements OnInit {
   serviceabilityChecked = false;
   checkingServiceability = false;
   availableCarriers: CarrierOption[] = [];
+  showMobileSummary = false;
   
   // Client search functionality
   searchQuery = '';
@@ -420,6 +734,7 @@ export class OrdersComponent implements OnInit {
     { 
       id: 'dhl', 
       name: 'DHL Express', 
+      type: 'Express International',
       duration: '1–2 days', 
       price: 2100, 
       serviceable: true, 
@@ -428,6 +743,7 @@ export class OrdersComponent implements OnInit {
     { 
       id: 'delhivery', 
       name: 'Delhivery', 
+      type: 'Standard Delivery',
       duration: '2–3 days', 
       price: 1700, 
       serviceable: true, 
@@ -436,6 +752,7 @@ export class OrdersComponent implements OnInit {
     { 
       id: 'bluedart', 
       name: 'Blue Dart', 
+      type: 'Express Domestic',
       duration: '1–2 days', 
       price: 2000, 
       serviceable: true, 
@@ -444,6 +761,7 @@ export class OrdersComponent implements OnInit {
     { 
       id: 'dtdc', 
       name: 'DTDC Courier', 
+      type: 'Economy Delivery',
       duration: '3–5 days', 
       price: 1300, 
       serviceable: false, 
@@ -452,6 +770,7 @@ export class OrdersComponent implements OnInit {
     { 
       id: 'ecom', 
       name: 'Ecom Express', 
+      type: 'E-commerce Specialist',
       duration: '2–4 days', 
       price: 1400, 
       serviceable: true, 
@@ -459,12 +778,18 @@ export class OrdersComponent implements OnInit {
     }
   ];
 
-  constructor(private fb: FormBuilder) {}
+  constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef, private ngZone: NgZone) {}
 
   ngOnInit() {
     this.initializeForm();
     this.generateTrackingId();
     this.filteredClients = this.clients.filter(client => client.active);
+    
+    // Auto-select first active client for demo
+    const firstActiveClient = this.filteredClients.find(client => client.active);
+    if (firstActiveClient) {
+      this.selectClient(firstActiveClient);
+    }
   }
 
   // Client search functionality
@@ -509,12 +834,12 @@ export class OrdersComponent implements OnInit {
       height: ['50', Validators.min(1)],
       packages: ['1', [Validators.required, Validators.min(1)]],
       commodity: ['electronics', Validators.required],
-      receiverName: ['', Validators.required],
-      receiverContact: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
-      receiverAddress: ['', Validators.required],
-      senderName: ['', Validators.required],
-      senderContact: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
-      senderAddress: ['', Validators.required],
+      receiverName: ['Naveen Kumar', Validators.required],
+      receiverContact: ['9878543210', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
+      receiverAddress: ['123 Main Street, New Delhi, Delhi 110001', Validators.required],
+      senderName: ['FleetOps India Pvt Ltd', Validators.required],
+      senderContact: ['9876543210', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
+      senderAddress: ['456 Business Park, Mumbai, Maharashtra 400001', Validators.required],
       selectedCarrier: ['']
     });
   }
@@ -580,27 +905,129 @@ export class OrdersComponent implements OnInit {
     this.serviceabilityChecked = true;
     this.availableCarriers = [];
 
-    // Simulate API call delay
-    setTimeout(() => {
-      // Simulate serviceability check based on addresses
-      const pickupPin = this.extractPincode(this.orderForm.get('senderAddress')?.value || '');
-      const deliveryPin = this.extractPincode(this.orderForm.get('receiverAddress')?.value || '');
-      
-      this.availableCarriers = this.carrierOptions.map(carrier => {
-        // Simulate serviceability logic
-        const isServiceable = this.isServiceableRoute(pickupPin, deliveryPin, carrier.id);
-        const dynamicPrice = this.calculateDynamicPrice(carrier, this.orderForm.get('weight')?.value || 10);
-        
-        return {
-          ...carrier,
-          serviceable: isServiceable,
-          price: dynamicPrice,
-          estimatedDelivery: this.calculateEstimatedDelivery(carrier.duration)
-        };
-      });
+    // Force change detection to show spinner immediately
+    this.cdr.detectChanges();
+    console.log('🔄 Serviceability check started - Change detection triggered');
 
-      this.checkingServiceability = false;
-    }, 2000);
+    // Extract pincodes from addresses
+    const senderAddress = this.orderForm.get('senderAddress')?.value || '';
+    const receiverAddress = this.orderForm.get('receiverAddress')?.value || '';
+    const fromPin = this.extractPincode(senderAddress);
+    const toPin = this.extractPincode(receiverAddress);
+    const weight = this.orderForm.get('weight')?.value || 1;
+
+    console.log(`🔍 Checking serviceability from ${fromPin} to ${toPin} for ${weight}kg...`);
+    console.log(`Sender: ${senderAddress}`);
+    console.log(`Receiver: ${receiverAddress}`);
+
+    // Simulate multiple carrier API calls with realistic delays
+    setTimeout(() => {
+      // Wrap the entire callback in NgZone.run to ensure proper change detection
+      this.ngZone.run(() => {
+        console.log('📡 Fetching rates from multiple carriers...');
+        console.log(`Route: ${fromPin} → ${toPin}, Weight: ${weight}kg`);
+        
+        // Realistic carrier serviceability logic
+        this.availableCarriers = this.carrierOptions.map((carrier, index) => {
+          console.log(`🔍 Checking ${carrier.name} serviceability...`);
+          
+          // Simulate different serviceability based on pincodes
+          const isServiceable = this.checkPincodeServiceability(carrier.id, fromPin, toPin);
+          console.log(`${carrier.name}: ${isServiceable ? '✅ Serviceable' : '❌ Not serviceable'}`);
+          
+          if (!isServiceable) {
+            return {
+              ...carrier,
+              serviceable: false,
+              price: 0,
+              estimatedDelivery: 'Not Available',
+              reason: 'Service not available for this route'
+            };
+          }
+
+          // Calculate realistic pricing based on weight, distance, and carrier type
+          const basePricePerKg = carrier.price;
+          const weightMultiplier = weight <= 5 ? 1 : 1 + ((weight - 5) * 0.15);
+          const distanceMultiplier = this.getDistanceMultiplier(fromPin, toPin);
+          const serviceMultiplier = carrier.type === 'Express' ? 1.5 : carrier.type === 'Priority' ? 1.2 : 1;
+          
+          const calculatedPrice = Math.round(
+            basePricePerKg * weightMultiplier * distanceMultiplier * serviceMultiplier
+          );
+
+          // Calculate delivery days based on carrier type and distance
+          const carrierType = carrier.type || 'Standard';
+          const baseDeliveryDays = this.getDeliveryDays(carrierType, fromPin, toPin);
+          
+          console.log(`${carrier.name}: ₹${calculatedPrice}, ${baseDeliveryDays} days`);
+          
+          return {
+            ...carrier,
+            serviceable: true,
+            price: calculatedPrice,
+            estimatedDelivery: this.getEstimatedDeliveryDate(baseDeliveryDays.toString()),
+            deliveryDays: baseDeliveryDays,
+            weightCharged: weight,
+            route: `${fromPin} → ${toPin}`
+          };
+        });
+
+        // Sort by price (serviceable carriers first)
+        this.availableCarriers.sort((a, b) => {
+          if (a.serviceable && !b.serviceable) return -1;
+          if (!a.serviceable && b.serviceable) return 1;
+          if (a.serviceable && b.serviceable) return a.price - b.price;
+          return 0;
+        });
+
+        const serviceableCount = this.availableCarriers.filter(c => c.serviceable).length;
+        console.log(`✅ Found ${serviceableCount} serviceable carriers out of ${this.availableCarriers.length}`);
+        
+        this.checkingServiceability = false;
+        console.log('🛑 Spinner should stop now - checkingServiceability set to false');
+        
+        // Try multiple change detection strategies
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+        console.log('🔄 Both markForCheck and detectChanges triggered in NgZone');
+        
+        // Force a re-render by updating a dummy property
+        this.ngZone.runOutsideAngular(() => {
+          setTimeout(() => {
+            this.ngZone.run(() => {
+              // Dummy update to force template re-evaluation
+              console.log('🔄 Final attempt with zone re-entry');
+              this.cdr.detectChanges();
+            });
+          }, 50);
+        });
+        
+        // Double check the state
+        console.log('State after immediate change detection:', {
+          checkingServiceability: this.checkingServiceability,
+          serviceabilityChecked: this.serviceabilityChecked,
+          availableCarriersLength: this.availableCarriers.length,
+          serviceableCount: this.availableCarriers.filter(c => c.serviceable).length
+        });
+      });
+    }, 3000);
+  }
+
+  private getEstimatedDeliveryDate(duration: string): string {
+    const today = new Date();
+    const days = duration.includes('1–2') ? 2 : 
+                 duration.includes('2–3') ? 3 : 
+                 duration.includes('2–4') ? 4 : 
+                 duration.includes('3–5') ? 5 : 3;
+    
+    const deliveryDate = new Date(today);
+    deliveryDate.setDate(today.getDate() + days);
+    
+    return deliveryDate.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
   }
 
   private extractPincode(address: string): string {
@@ -643,9 +1070,23 @@ export class OrdersComponent implements OnInit {
   }
 
   selectCarrier(carrier: CarrierOption) {
+    console.log('🎯 Click detected on carrier:', carrier.name);
+    console.log('🎯 Attempting to select carrier:', carrier.name, 'Serviceable:', carrier.serviceable);
+    
     if (carrier.serviceable) {
       this.selectedCarrier = carrier;
       this.orderForm.patchValue({ selectedCarrier: carrier.id });
+      console.log('✅ Carrier selected:', carrier.name);
+      console.log('✅ Form updated with carrier ID:', carrier.id);
+      
+      // Force change detection for SSR
+      this.cdr.detectChanges();
+      console.log('🔄 Carrier selection - Change detection triggered');
+      
+      // Trigger change detection
+      this.logComponentState();
+    } else {
+      console.log('❌ Cannot select non-serviceable carrier:', carrier.name);
     }
   }
 
@@ -655,6 +1096,24 @@ export class OrdersComponent implements OnInit {
     this.availableCarriers = [];
     this.selectedCarrier = null;
     this.orderForm.patchValue({ selectedCarrier: '' });
+  }
+
+  toggleMobileSummary() {
+    this.showMobileSummary = !this.showMobileSummary;
+    this.cdr.detectChanges();
+  }
+
+  proceedToCarrierSelection(stepper: any) {
+    // Always move to the next step first
+    stepper.next();
+    
+    // Then check serviceability if not already checked
+    if (!this.serviceabilityChecked && this.canCheckServiceability()) {
+      // Small delay to ensure the step transition is complete
+      setTimeout(() => {
+        this.checkServiceability();
+      }, 100);
+    }
   }
 
   generateTrackingId() {
@@ -722,7 +1181,233 @@ export class OrdersComponent implements OnInit {
     }
   }
 
+  // UI Helper Methods for Tailwind Classes
+  getClientCardClasses(client: any): string {
+    const baseClasses = 'border-slate-200 hover:border-blue-300';
+    const selectedClasses = this.selectedClient?.id === client.id 
+      ? 'border-blue-500 bg-blue-50 shadow-md' 
+      : 'hover:shadow-sm';
+    const statusClasses = client.active ? '' : 'opacity-60';
+    return `${baseClasses} ${selectedClasses} ${statusClasses}`;
+  }
+
+  getShipmentTypeClasses(type: string): string {
+    const selected = this.orderForm.get('shipmentType')?.value === type;
+    return selected 
+      ? 'border-blue-500 bg-blue-50 text-blue-700' 
+      : 'border-slate-300 text-slate-700 hover:border-slate-400 hover:bg-slate-50';
+  }
+
+  getCarrierCardClasses(carrier: any): string {
+    const baseClasses = 'transition-all duration-200';
+    if (!carrier.serviceable) {
+      return `${baseClasses} opacity-60 cursor-not-allowed bg-gray-50 border-gray-200`;
+    }
+    const selectedClasses = this.selectedCarrier?.id === carrier.id 
+      ? 'border-blue-500 bg-blue-50 shadow-lg cursor-pointer' 
+      : 'border-slate-200 hover:border-blue-300 hover:shadow-md cursor-pointer';
+    return `${baseClasses} ${selectedClasses}`;
+  }
+
+  // New helper methods for improved carrier selection
+  getShortAddress(address: string): string {
+    if (!address) return 'Not specified';
+    const parts = address.split(',');
+    return parts.length > 2 ? `${parts[parts.length - 2]?.trim()}, ${parts[parts.length - 1]?.trim()}` : address;
+  }
+
+  getServiceableCount(): number {
+    return this.availableCarriers.filter(c => c.serviceable).length;
+  }
+
+  getCarrierIcon(carrierName: string): string {
+    const icons: { [key: string]: string } = {
+      'BlueDart': '🔵',
+      'FedEx': '🟣',
+      'DHL': '🟡',
+      'Aramex': '🟠',
+      'DTDC': '🟢',
+      'Ecom Express': '🔴',
+      'Delhivery': '⚫',
+      'Xpressbees': '🟤'
+    };
+    return icons[carrierName] || '📦';
+  }
+
   onSubmit() {
     this.bookShipment();
+  }
+
+  // TrackBy function for carrier list performance
+  trackByCarrierId(index: number, carrier: CarrierOption): string {
+    return carrier.id;
+  }
+
+  // Debug method to check component state
+  logComponentState() {
+    console.log('Component State:', {
+      checkingServiceability: this.checkingServiceability,
+      serviceabilityChecked: this.serviceabilityChecked,
+      availableCarriers: this.availableCarriers.length,
+      selectedCarrier: this.selectedCarrier?.name || 'None'
+    });
+  }
+
+  // Force method to manually fix the UI state
+  forceShowCarriers() {
+    console.log('🔧 Forcing UI to show carriers...');
+    this.checkingServiceability = false;
+    this.serviceabilityChecked = true;
+    
+    // If we don't have carriers, create some dummy ones
+    if (this.availableCarriers.length === 0) {
+      console.log('No carriers found, creating dummy carriers...');
+      this.availableCarriers = [
+        {
+          id: 'dhl',
+          name: 'DHL Express',
+          type: 'Express',
+          duration: '1-2 days',
+          price: 450,
+          serviceable: true,
+          estimatedDelivery: 'Aug 23, 2025',
+          deliveryDays: 2,
+          weightCharged: 10,
+          route: '411040 → 110024'
+        },
+        {
+          id: 'dtdc',
+          name: 'DTDC Courier',
+          type: 'Standard',
+          duration: '3-5 days',
+          price: 280,
+          serviceable: true,
+          estimatedDelivery: 'Aug 25, 2025',
+          deliveryDays: 4,
+          weightCharged: 10,
+          route: '411040 → 110024'
+        }
+      ];
+    }
+    
+    // Multiple change detection attempts
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
+    
+    setTimeout(() => {
+      this.cdr.detectChanges();
+    }, 100);
+    
+    console.log('🔧 Force complete. Current state:', {
+      checkingServiceability: this.checkingServiceability,
+      serviceabilityChecked: this.serviceabilityChecked,
+      availableCarriers: this.availableCarriers.length
+    });
+  }
+
+  // Helper method to check pincode serviceability for different carriers
+  private checkPincodeServiceability(carrierId: string, fromPin: string, toPin: string): boolean {
+    // Add null/undefined checks
+    if (!fromPin || !toPin || fromPin.length !== 6 || toPin.length !== 6) {
+      console.warn(`Invalid pincodes: ${fromPin} -> ${toPin}`);
+      return false;
+    }
+
+    // Simulate realistic serviceability based on carrier reach
+    const pincodeRules = {
+      'dhl': this.isMetroToMetro(fromPin, toPin) || this.isInternationalHub(fromPin, toPin),
+      'fedex': this.isMetroToMetro(fromPin, toPin) || this.isTierOneCity(fromPin, toPin),
+      'ups': this.isUrbanArea(fromPin, toPin),
+      'dtdc': this.isDomesticRoute(fromPin, toPin) && !this.isRemoteArea(fromPin, toPin),
+      'bluedart': this.isUrbanArea(fromPin, toPin) || this.isTierTwoCity(fromPin, toPin),
+      'ecom': this.isDomesticRoute(fromPin, toPin), // Ecom Express
+      'delhivery': true, // Most comprehensive coverage
+      'indiapost': true  // Government service - covers all areas
+    };
+    
+    return pincodeRules[carrierId as keyof typeof pincodeRules] ?? true;
+  }
+
+  // Helper method to calculate distance-based pricing multiplier
+  private getDistanceMultiplier(fromPin: string, toPin: string): number {
+    // Simulate distance calculation based on pincode zones
+    const zone1 = this.getPincodeZone(fromPin);
+    const zone2 = this.getPincodeZone(toPin);
+    
+    if (zone1 === zone2) return 1.0; // Same zone
+    if (Math.abs(zone1 - zone2) === 1) return 1.2; // Adjacent zones
+    if (Math.abs(zone1 - zone2) === 2) return 1.4; // 2 zones apart
+    return 1.6; // Far zones
+  }
+
+  // Helper method to calculate delivery days based on carrier type and route
+  private getDeliveryDays(carrierType: string, fromPin: string, toPin: string): number {
+    const baseDelivery = {
+      'Express': 1,
+      'Priority': 2,
+      'Standard': 3,
+      'Economy': 5
+    };
+    
+    const base = baseDelivery[carrierType as keyof typeof baseDelivery] || 3;
+    const distanceMultiplier = this.getDistanceMultiplier(fromPin, toPin);
+    
+    return Math.round(base * distanceMultiplier);
+  }
+
+  // Pincode utility methods
+  private getPincodeZone(pincode: string): number {
+    if (!pincode || pincode.length === 0) return 1;
+    const firstDigit = parseInt(pincode.charAt(0));
+    return firstDigit || 1;
+  }
+
+  private isMetroToMetro(fromPin: string, toPin: string): boolean {
+    if (!fromPin || !toPin) return false;
+    const metroZones = ['110', '400', '560', '600', '700', '201']; // Delhi, Mumbai, Bangalore, Chennai, Kolkata, Noida
+    return metroZones.some(zone => fromPin.startsWith(zone)) && 
+           metroZones.some(zone => toPin.startsWith(zone));
+  }
+
+  private isInternationalHub(fromPin: string, toPin: string): boolean {
+    if (!fromPin || !toPin) return false;
+    const hubs = ['110', '400', '600']; // Major international hubs
+    return hubs.some(hub => fromPin.startsWith(hub) || toPin.startsWith(hub));
+  }
+
+  private isTierOneCity(fromPin: string, toPin: string): boolean {
+    if (!fromPin || !toPin) return false;
+    const tierOne = ['110', '400', '560', '600', '700', '201', '411', '500']; // Major cities
+    return tierOne.some(city => fromPin.startsWith(city) || toPin.startsWith(city));
+  }
+
+  private isTierTwoCity(fromPin: string, toPin: string): boolean {
+    if (!fromPin || !toPin) return false;
+    const tierTwo = ['302', '380', '462', '482', '641', '682']; // Tier 2 cities
+    return tierTwo.some(city => fromPin.startsWith(city) || toPin.startsWith(city));
+  }
+
+  private isUrbanArea(fromPin: string, toPin: string): boolean {
+    if (!fromPin || !toPin || fromPin.length < 6 || toPin.length < 6) return false;
+    // Urban areas typically have pincodes ending in 001-099
+    const fromUrban = parseInt(fromPin.slice(-3)) < 100;
+    const toUrban = parseInt(toPin.slice(-3)) < 100;
+    return fromUrban || toUrban;
+  }
+
+  private isRemoteArea(fromPin: string, toPin: string): boolean {
+    if (!fromPin || !toPin || fromPin.length < 6 || toPin.length < 6) return false;
+    // Remote areas typically have pincodes ending in 800-999
+    const fromRemote = parseInt(fromPin.slice(-3)) > 800;
+    const toRemote = parseInt(toPin.slice(-3)) > 800;
+    return fromRemote || toRemote;
+  }
+
+  private isDomesticRoute(fromPin: string, toPin: string): boolean {
+    if (!fromPin || !toPin) return false;
+    // All Indian pincodes are 6 digits starting with 1-8
+    const fromValid = /^[1-8]\d{5}$/.test(fromPin);
+    const toValid = /^[1-8]\d{5}$/.test(toPin);
+    return fromValid && toValid;
   }
 }

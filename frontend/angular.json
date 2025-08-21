@@ -115,6 +115,32 @@
           }
         }
       }
+    },
+    "ui-kit": {
+      "projectType": "library",
+      "root": "apps/ui-kit",
+      "sourceRoot": "apps/ui-kit/src",
+      "prefix": "fleet",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:ng-packagr",
+          "configurations": {
+            "production": {
+              "tsConfig": "apps/ui-kit/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "apps/ui-kit/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "tsConfig": "apps/ui-kit/tsconfig.spec.json"
+          }
+        }
+      }
     }
   },
   "schematics": {

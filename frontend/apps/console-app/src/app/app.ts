@@ -8,4 +8,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
   styleUrl: './app.scss'
 })
 export class App {
+  onTestClick(event: Event) {
+    console.log('FleetButton clicked!', event);
+  }
 }

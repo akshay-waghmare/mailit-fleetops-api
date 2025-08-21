@@ -1,0 +1,35 @@
+<mat-form-field 
+  appearance="outline" 
+  [class]="fieldClasses">
+  
+  <mat-label class="text-slate-700 font-medium">
+    {{label}}
+    <span *ngIf="required" class="text-red-500 ml-1">*</span>
+  </mat-label>
+  
+  <!-- Text/Number/Email/Password Input -->
+  <input 
+    *ngIf="type !== 'select'" 
+    matInput 
+    [placeholder]="placeholder"
+    [formControlName]="controlName"
+    [type]="type"
+    [disabled]="disabled"
+    class="text-slate-900">
+  
+  <!-- Select Input -->
+  <mat-select 
+    *ngIf="type === 'select'" 
+    [formControlName]="controlName"
+    [disabled]="disabled"
+    class="text-slate-900">
+    <mat-option *ngFor="let option of options" [value]="option.value">
+      {{option.label}}
+    </mat-option>
+  </mat-select>
+  
+  <!-- Error Message -->
+  <mat-error *ngIf="hasError" class="text-red-600 text-sm">
+    {{errorMessage}}
+  </mat-error>
+</mat-form-field>
