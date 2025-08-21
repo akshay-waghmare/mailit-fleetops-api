@@ -484,12 +484,12 @@ interface Client {
         </mat-stepper>
       </main>
 
-      <!-- Responsive Booking Summary -->
+      <!-- Improved Responsive Booking Summary -->
       <div *ngIf="selectedClient">
         
-        <!-- Desktop: Fixed Sidebar (lg and above) -->
-        <aside class="hidden lg:block fixed top-60 right-8 w-80 z-10">
-          <mat-card class="sticky top-8 border-0 shadow-lg">
+        <!-- Desktop: Fixed Sidebar (1200px and above) -->
+        <aside class="booking-sidebar">
+          <mat-card class="sidebar-card border-0 shadow-lg">
             <mat-card-header class="pb-4">
               <mat-card-title class="text-lg font-semibold text-slate-900">
                 📋 Booking Summary
@@ -547,7 +547,7 @@ interface Client {
               <!-- Action Button -->
               <div class="mt-6 pt-4 border-t border-slate-200">
                 <button type="button" 
-                        class="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
+                        class="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         [disabled]="!selectedCarrier"
                         (click)="bookShipment()">
                   {{selectedCarrier ? 'Book Shipment' : 'Select Carrier First'}}
@@ -557,96 +557,22 @@ interface Client {
           </mat-card>
         </aside>
         
-        <!-- Tablet: Bottom Sheet (md to lg) -->
-        <div class="hidden md:block lg:hidden fixed bottom-0 left-0 right-0 z-20 transform transition-transform duration-300"
-             [class]="showMobileSummary ? 'translate-y-0' : 'translate-y-full'">
-          <mat-card class="rounded-t-xl border-0 shadow-2xl max-h-96 overflow-y-auto">
-            <mat-card-header class="pb-4 border-b border-slate-200">
-              <div class="flex items-center justify-between w-full">
-                <mat-card-title class="text-lg font-semibold text-slate-900">
-                  📋 Booking Summary
-                </mat-card-title>
-                <button type="button" 
-                        (click)="toggleMobileSummary()"
-                        class="p-2 text-slate-500 hover:text-slate-700">
-                  <span class="text-xl">{{showMobileSummary ? '↓' : '↑'}}</span>
-                </button>
-              </div>
-            </mat-card-header>
-            
-            <mat-card-content class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <!-- Compact Summary for Tablet -->
-              <div class="text-center">
-                <div class="text-xs text-slate-500">Client</div>
-                <div class="font-semibold text-sm">{{selectedClient.clientName}}</div>
-              </div>
-              <div class="text-center">
-                <div class="text-xs text-slate-500">Weight</div>
-                <div class="font-semibold text-sm">{{orderForm.get('weight')?.value}}kg</div>
-              </div>
-              <div class="text-center" *ngIf="selectedCarrier">
-                <div class="text-xs text-slate-500">Carrier</div>
-                <div class="font-semibold text-sm">{{selectedCarrier.name}}</div>
-              </div>
-              <div class="text-center" *ngIf="selectedCarrier">
-                <div class="text-xs text-slate-500">Price</div>
-                <div class="font-bold text-blue-600">₹{{selectedCarrier.price}}</div>
-              </div>
-            </mat-card-content>
-          </mat-card>
+      </div>
+      
+      <!-- Mobile/Tablet Sticky Bottom Action Bar (Always visible when carrier selected) -->
+      <div *ngIf="selectedCarrier" 
+           class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-lg p-4 mobile-action-bar">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+          <div class="flex-1">
+            <div class="text-sm text-slate-600">Selected: {{selectedCarrier.name}}</div>
+            <div class="font-bold text-blue-600">₹{{selectedCarrier.price}} • {{selectedCarrier.estimatedDelivery}}</div>
+          </div>
+          <button type="button" 
+                  class="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors ml-4"
+                  (click)="bookShipment()">
+            Book Now
+          </button>
         </div>
-        
-        <!-- Mobile: Collapsible Section (below md) -->
-        <div class="md:hidden mt-6">
-          <mat-card class="border-0 shadow-lg">
-            <mat-card-header class="pb-4" (click)="toggleMobileSummary()" class="cursor-pointer">
-              <div class="flex items-center justify-between w-full">
-                <mat-card-title class="text-lg font-semibold text-slate-900">
-                  📋 Booking Summary
-                </mat-card-title>
-                <span class="text-xl text-slate-500">{{showMobileSummary ? '↑' : '↓'}}</span>
-              </div>
-            </mat-card-header>
-            
-            <mat-card-content *ngIf="showMobileSummary" class="space-y-4">
-              <!-- Mobile Summary Content -->
-              <div class="bg-slate-50 rounded-lg p-3">
-                <div class="text-sm space-y-1">
-                  <div class="flex justify-between">
-                    <span class="text-slate-500">Client:</span>
-                    <span class="text-slate-900 font-medium">{{selectedClient.clientName}}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-slate-500">Weight:</span>
-                    <span class="text-slate-900 font-medium">{{orderForm.get('weight')?.value}}kg</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-slate-500">Tracking:</span>
-                    <span class="text-green-600 font-mono text-xs">{{trackingId}}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div *ngIf="selectedCarrier" class="bg-blue-50 rounded-lg p-3">
-                <div class="flex justify-between items-center">
-                  <div>
-                    <div class="font-semibold text-blue-900">{{selectedCarrier.name}}</div>
-                    <div class="text-sm text-blue-700">{{selectedCarrier.estimatedDelivery}}</div>
-                  </div>
-                  <div class="text-lg font-bold text-blue-600">₹{{selectedCarrier.price}}</div>
-                </div>
-              </div>
-              
-              <button type="button" 
-                      class="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
-                      [disabled]="!selectedCarrier"
-                      (click)="bookShipment()">
-                {{selectedCarrier ? 'Book Shipment' : 'Select Carrier First'}}
-              </button>
-            </mat-card-content>
-          </mat-card>
-        </div>
-        
       </div>
     </div>
   `,
