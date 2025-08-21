@@ -484,95 +484,118 @@ interface Client {
         </mat-stepper>
       </main>
 
-      <!-- Improved Responsive Booking Summary -->
-      <div *ngIf="selectedClient">
-        
-        <!-- Desktop: Fixed Sidebar (1200px and above) -->
-        <aside class="booking-sidebar">
-          <mat-card class="sidebar-card border-0 shadow-lg">
-            <mat-card-header class="pb-4">
-              <mat-card-title class="text-lg font-semibold text-slate-900">
-                📋 Booking Summary
-              </mat-card-title>
-            </mat-card-header>
-            
-            <mat-card-content>
-              <!-- Client Summary -->
-              <div class="bg-slate-50 rounded-lg p-4 mb-6">
-                <div class="text-sm space-y-2">
-                  <div class="flex justify-between">
-                    <span class="text-slate-500 font-medium">Client:</span>
-                    <span class="text-slate-900 font-semibold">{{selectedClient.clientName}}</span>
+      <!-- Always Visible Booking Summary Below Content -->
+      <div *ngIf="selectedClient" class="mt-8">
+        <mat-card class="booking-summary-card border-0 shadow-lg">
+          <mat-card-header class="pb-4">
+            <mat-card-title class="text-xl font-semibold text-slate-900 flex items-center">
+              📋 <span class="ml-2">Booking Summary</span>
+            </mat-card-title>
+          </mat-card-header>
+          
+          <mat-card-content>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              <!-- Client & Order Summary -->
+              <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Client Summary -->
+                <div class="bg-slate-50 rounded-lg p-4">
+                  <h3 class="font-semibold text-slate-900 mb-3">Client Information</h3>
+                  <div class="space-y-2">
+                    <div class="flex justify-between">
+                      <span class="text-slate-500 font-medium">Client:</span>
+                      <span class="text-slate-900 font-semibold">{{selectedClient.clientName}}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-slate-500 font-medium">Contract Code:</span>
+                      <span class="text-blue-600 font-bold">{{selectedClient.subContractCode}}</span>
+                    </div>
                   </div>
-                  <div class="text-center text-blue-600 font-bold">
-                    {{selectedClient.subContractCode}}
+                </div>
+                
+                <!-- Order Details -->
+                <div class="bg-slate-50 rounded-lg p-4">
+                  <h3 class="font-semibold text-slate-900 mb-3">Order Details</h3>
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center">
+                      <div class="text-sm text-slate-500">Weight</div>
+                      <div class="font-bold text-slate-900">{{orderForm.get('weight')?.value || 0}}kg</div>
+                    </div>
+                    <div class="text-center">
+                      <div class="text-sm text-slate-500">Packages</div>
+                      <div class="font-bold text-slate-900">{{orderForm.get('packages')?.value || 0}}</div>
+                    </div>
+                    <div class="text-center">
+                      <div class="text-sm text-slate-500">Type</div>
+                      <div class="font-bold text-slate-900">{{orderForm.get('shipmentType')?.value || 'N/A'}}</div>
+                    </div>
+                    <div class="text-center">
+                      <div class="text-sm text-slate-500">Tracking ID</div>
+                      <div class="font-bold text-green-600 font-mono text-xs">{{trackingId}}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              <!-- Tracking ID -->
-              <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <div class="text-sm text-green-700 font-medium mb-1">Tracking ID:</div>
-                <div class="text-lg font-bold text-green-800 font-mono">{{trackingId}}</div>
-              </div>
-              
-              <!-- Order Summary -->
-              <div class="space-y-3 mb-6">
-                <div class="flex justify-between text-sm">
-                  <span class="text-slate-500">Weight:</span>
-                  <span class="text-slate-900 font-medium">{{orderForm.get('weight')?.value || 0}}kg</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                  <span class="text-slate-500">Packages:</span>
-                  <span class="text-slate-900 font-medium">{{orderForm.get('packages')?.value || 0}}</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                  <span class="text-slate-500">Type:</span>
-                  <span class="text-slate-900 font-medium">{{orderForm.get('shipmentType')?.value || 'N/A'}}</span>
-                </div>
-              </div>
-              
-              <!-- Selected Carrier -->
-              <div *ngIf="selectedCarrier" class="border-t border-slate-200 pt-4">
-                <div class="text-sm text-slate-500 mb-2">Selected Carrier:</div>
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="font-semibold text-blue-900">{{selectedCarrier.name}}</span>
-                    <span class="text-lg font-bold text-blue-600">₹{{selectedCarrier.price}}</span>
+                
+                <!-- Selected Carrier (if any) -->
+                <div *ngIf="selectedCarrier" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 class="font-semibold text-blue-900 mb-3">Selected Carrier</h3>
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="font-semibold text-blue-900 text-lg">{{selectedCarrier.name}}</div>
+                      <div class="text-sm text-blue-700">{{selectedCarrier.estimatedDelivery}}</div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-2xl font-bold text-blue-600">₹{{selectedCarrier.price}}</div>
+                      <div class="text-sm text-blue-600">Total Cost</div>
+                    </div>
                   </div>
-                  <div class="text-sm text-blue-700">{{selectedCarrier.estimatedDelivery}}</div>
+                </div>
+                
+              </div>
+              
+              <!-- Action Panel -->
+              <div class="lg:col-span-1">
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6 h-full flex flex-col justify-center">
+                  
+                  <div class="text-center mb-6">
+                    <div class="text-3xl mb-2">🚀</div>
+                    <h3 class="font-bold text-slate-900 text-lg mb-2">Ready to Book?</h3>
+                    <p class="text-sm text-slate-600">Review your order details and complete the booking</p>
+                  </div>
+                  
+                  <!-- Status indicator -->
+                  <div class="mb-6">
+                    <div *ngIf="!selectedCarrier" class="text-center">
+                      <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <span class="text-orange-600 text-xl">⏳</span>
+                      </div>
+                      <div class="text-sm text-orange-600 font-medium">Select a carrier to proceed</div>
+                    </div>
+                    
+                    <div *ngIf="selectedCarrier" class="text-center">
+                      <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <span class="text-green-600 text-xl">✅</span>
+                      </div>
+                      <div class="text-sm text-green-600 font-medium">Ready for booking!</div>
+                    </div>
+                  </div>
+                  
+                  <!-- Booking Button -->
+                  <button type="button" 
+                          class="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4 rounded-lg font-bold text-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg"
+                          [disabled]="!selectedCarrier"
+                          (click)="bookShipment()">
+                    <span *ngIf="selectedCarrier">🎯 Book Shipment</span>
+                    <span *ngIf="!selectedCarrier">🔄 Select Carrier First</span>
+                  </button>
+                  
                 </div>
               </div>
               
-              <!-- Action Button -->
-              <div class="mt-6 pt-4 border-t border-slate-200">
-                <button type="button" 
-                        class="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        [disabled]="!selectedCarrier"
-                        (click)="bookShipment()">
-                  {{selectedCarrier ? 'Book Shipment' : 'Select Carrier First'}}
-                </button>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </aside>
-        
-      </div>
-      
-      <!-- Mobile/Tablet Sticky Bottom Action Bar (Always visible when carrier selected) -->
-      <div *ngIf="selectedCarrier" 
-           class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-lg p-4 mobile-action-bar">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-          <div class="flex-1">
-            <div class="text-sm text-slate-600">Selected: {{selectedCarrier.name}}</div>
-            <div class="font-bold text-blue-600">₹{{selectedCarrier.price}} • {{selectedCarrier.estimatedDelivery}}</div>
-          </div>
-          <button type="button" 
-                  class="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors ml-4"
-                  (click)="bookShipment()">
-            Book Now
-          </button>
-        </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
       </div>
     </div>
   `,

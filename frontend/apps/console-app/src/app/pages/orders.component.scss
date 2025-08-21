@@ -638,67 +638,43 @@
   }
 }
 
-/* Simplified Responsive Booking Summary - Always Accessible */
-.booking-sidebar {
-  position: fixed;
-  top: 120px;
-  right: 2rem;
-  width: 320px;
-  z-index: 10;
-  
-  /* Hide on screens smaller than 1200px to avoid overlap */
-  @media (max-width: 1199px) {
-    display: none;
-  }
-}
-
-/* Mobile/Tablet Bottom Action Bar - Always visible when carrier is selected */
-.mobile-action-bar {
+/* Always Visible Booking Summary - Below Content */
+.booking-summary-card {
   background: white;
-  border-top: 1px solid #e2e8f0;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  margin-top: 2rem;
   
-  /* Only show when desktop sidebar is hidden */
-  @media (min-width: 1200px) {
-    display: none !important;
+  .mat-mdc-card-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1.5rem;
+    
+    .mat-mdc-card-title {
+      color: #1f2937;
+      font-weight: 700;
+      font-size: 1.25rem;
+      margin: 0;
+    }
   }
   
-  /* Ensure booking button is always accessible */
-  button {
-    min-height: 48px;
-    padding: 12px 24px;
-    font-weight: 600;
-    background: linear-gradient(135deg, #10b981, #059669);
-    border: none;
-    border-radius: 8px;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    
-    &:hover {
-      background: linear-gradient(135deg, #059669, #047857);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    }
-    
-    &:active {
-      transform: translateY(0);
-    }
+  .mat-mdc-card-content {
+    padding: 1.5rem;
   }
 }
 
-/* Adjust main content padding when sidebar is visible */
-@media (min-width: 1200px) {
-  .orders-container .max-w-7xl {
-    padding-right: 384px; /* 320px sidebar + 64px gap */
-  }
+/* Remove all sidebar and mobile action bar styles */
+.booking-sidebar,
+.mobile-action-bar {
+  display: none !important;
 }
 
-/* Add bottom padding to prevent overlap with mobile action bar */
-@media (max-width: 1199px) {
-  .orders-container {
-    padding-bottom: 120px; /* Space for fixed bottom action bar */
-  }
+/* Reset main content padding - no sidebar offset needed */
+.orders-container .max-w-7xl {
+  padding-right: 2rem; /* Reset to normal padding */
+  padding-bottom: 2rem; /* Reset bottom padding */
 }
 
 .sidebar-card {
@@ -791,45 +767,26 @@
   border-bottom: 2px solid #e5e7eb;
 }
 
-/* Enhanced Responsive Design - Simplified Booking Access */
+/* Clean Responsive Design - No Sidebar Complexity */
 @media (max-width: 1440px) {
-  .booking-sidebar {
-    width: 280px;
-    right: 1rem;
+  .orders-header {
+    padding: 1.25rem;
   }
 }
 
-@media (max-width: 1280px) {
-  .booking-sidebar {
-    width: 300px;
-  }
-}
-
-/* Critical breakpoint: Switch to mobile action bar */
-@media (max-width: 1199px) {
-  .booking-sidebar {
-    display: none; /* Completely hide sidebar */
-  }
-  
-  /* Ensure mobile action bar has proper spacing */
-  .mobile-action-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 50;
-    padding: 16px;
-    background: white;
-    border-top: 1px solid #e2e8f0;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-  }
-  
+@media (max-width: 1200px) {
   .orders-header {
     padding: 1rem;
   }
   
   .orders-header h1 {
     font-size: 1.5rem;
+  }
+  
+  /* Stack booking summary grid on smaller screens */
+  .booking-summary-card .grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 }
 
@@ -850,11 +807,20 @@
     justify-content: center;
   }
   
-  /* Optimize mobile action bar button */
-  .mobile-action-bar button {
-    font-size: 16px;
-    padding: 14px 28px;
-    min-height: 52px;
+  /* Mobile booking summary adjustments */
+  .booking-summary-card {
+    .mat-mdc-card-header {
+      padding: 1rem;
+    }
+    
+    .mat-mdc-card-content {
+      padding: 1rem;
+    }
+    
+    /* Stack order details in 2 columns on mobile */
+    .grid-cols-4 {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 }
 
@@ -871,22 +837,10 @@
     padding: 0.75rem;
   }
   
-  /* Mobile action bar optimization for small screens */
-  .mobile-action-bar {
-    padding: 12px;
-    
-    .max-w-7xl {
-      flex-direction: column;
-      gap: 8px;
-      
-      .flex-1 {
-        text-align: center;
-      }
-      
-      button {
-        width: 100%;
-        margin-left: 0;
-      }
+  /* Single column on very small screens */
+  .booking-summary-card {
+    .grid-cols-2 {
+      grid-template-columns: 1fr;
     }
   }
 }
