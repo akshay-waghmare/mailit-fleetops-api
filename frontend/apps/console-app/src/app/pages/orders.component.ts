@@ -99,7 +99,7 @@ interface Client {
               <mat-card-content>
                 <!-- Search Bar -->
                 <div class="mb-6" *ngIf="showClientSearch">
-                  <mat-form-field appearance="outline" class="w-full">
+                  <mat-form-field  class="w-full">
                     <mat-label>Search Clients</mat-label>
                     <input matInput 
                            placeholder="Search by client name, code, contact person..."
@@ -203,8 +203,9 @@ interface Client {
                   </div>
 
                   <!-- Form Grid -->
-                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <mat-form-field appearance="outline">
+                  <div class="professional-form-container">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <mat-form-field >
                     <mat-label>Weight (kg)</mat-label>
                     <input matInput 
                            formControlName="weight" 
@@ -216,7 +217,7 @@ interface Client {
                     </mat-error>
                   </mat-form-field>
                   
-                  <mat-form-field appearance="outline">
+                  <mat-form-field >
                     <mat-label>Packages</mat-label>
                     <input matInput 
                            formControlName="packages" 
@@ -224,7 +225,7 @@ interface Client {
                            placeholder="1">
                   </mat-form-field>
                   
-                  <mat-form-field appearance="outline">
+                  <mat-form-field >
                     <mat-label>Commodity Type</mat-label>
                     <mat-select formControlName="commodity">
                       <mat-option value="electronics">Electronics</mat-option>
@@ -241,15 +242,15 @@ interface Client {
                   <div class="md:col-span-2 lg:col-span-3">
                     <label class="block text-sm font-medium text-slate-700 mb-2">Dimensions (L × W × H cm)</label>
                     <div class="grid grid-cols-3 gap-3">
-                      <mat-form-field appearance="outline">
+                      <mat-form-field >
                         <mat-label>Length</mat-label>
                         <input matInput formControlName="length" type="number" placeholder="30" (input)="onShipmentDetailsChange()">
                       </mat-form-field>
-                      <mat-form-field appearance="outline">
+                      <mat-form-field >
                         <mat-label>Width</mat-label>
                         <input matInput formControlName="width" type="number" placeholder="40" (input)="onShipmentDetailsChange()">
                       </mat-form-field>
-                      <mat-form-field appearance="outline">
+                      <mat-form-field >
                         <mat-label>Height</mat-label>
                         <input matInput formControlName="height" type="number" placeholder="50" (input)="onShipmentDetailsChange()">
                       </mat-form-field>
@@ -260,16 +261,16 @@ interface Client {
                   <div class="md:col-span-2 lg:col-span-3">
                     <h4 class="text-lg font-medium text-slate-700 mb-4 pt-4 border-t border-slate-200">Delivery Details</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <mat-form-field appearance="outline">
+                      <mat-form-field >
                         <mat-label>Receiver Name</mat-label>
                         <input matInput formControlName="receiverName" placeholder="Naveen Kumar" (input)="onAddressChange()">
                       </mat-form-field>
-                      <mat-form-field appearance="outline">
+                      <mat-form-field >
                         <mat-label>Receiver Contact</mat-label>
                         <input matInput formControlName="receiverContact" placeholder="9878543210">
                       </mat-form-field>
                       <div class="md:col-span-2">
-                        <mat-form-field appearance="outline" class="w-full">
+                        <mat-form-field  class="w-full">
                           <mat-label>Delivery Address</mat-label>
                           <input matInput formControlName="receiverAddress" placeholder="Delhi 110024" (input)="onAddressChange()">
                         </mat-form-field>
@@ -281,20 +282,21 @@ interface Client {
                   <div class="md:col-span-2 lg:col-span-3">
                     <h4 class="text-lg font-medium text-slate-700 mb-4 pt-4 border-t border-slate-200">Sender Details</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <mat-form-field appearance="outline">
+                      <mat-form-field >
                         <mat-label>Sender Name</mat-label>
                         <input matInput formControlName="senderName" placeholder="FleetOps India Pvt Ltd">
                       </mat-form-field>
-                      <mat-form-field appearance="outline">
+                      <mat-form-field >
                         <mat-label>Sender Contact</mat-label>
                         <input matInput formControlName="senderContact" placeholder="9876543210">
                       </mat-form-field>
                       <div class="md:col-span-2">
-                        <mat-form-field appearance="outline" class="w-full">
+                        <mat-form-field  class="w-full">
                           <mat-label>Pickup Address</mat-label>
                           <input matInput formControlName="senderAddress" placeholder="Mumbai, Maharashtra 400001">
                         </mat-form-field>
                       </div>
+                    </div>
                     </div>
                   </div>
                 </div>

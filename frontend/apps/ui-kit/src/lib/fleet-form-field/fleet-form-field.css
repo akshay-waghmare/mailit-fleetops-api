@@ -1,0 +1,309 @@
+/* FleetOps Professional Form Field Component - Complete Override */
+.fleet-form-field {
+  font-family: system-ui, -apple-system, sans-serif;
+  position: relative;
+  
+  /* Completely override ALL Material form field appearances */
+  &.mat-mdc-form-field {
+    .mat-mdc-text-field-wrapper {
+      background-color: #ffffff !important;
+      border-radius: 12px !important;
+      border: 2px solid #e5e7eb !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      position: relative;
+      overflow: hidden;
+      padding: 0 !important;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.9));
+        z-index: -1;
+      }
+    }
+    
+    /* FORCEFULLY HIDE ALL MATERIAL OUTLINES AND BORDERS */
+    .mat-mdc-notched-outline,
+    .mat-mdc-form-field-outline,
+    .mat-mdc-form-field-outline-start,
+    .mat-mdc-form-field-outline-end,
+    .mat-mdc-form-field-outline-gap,
+    .mat-mdc-form-field-outline-thick,
+    .mdc-notched-outline,
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing,
+    .mdc-line-ripple,
+    .mat-mdc-form-field-focus-overlay,
+    .mat-mdc-line-ripple {
+      display: none !important;
+      opacity: 0 !important;
+      border: none !important;
+      visibility: hidden !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+    
+    /* Override the infix to remove any borders */
+    .mat-mdc-form-field-infix {
+      border: none !important;
+      padding: 20px 18px 12px 18px !important; /* Increased top padding for better label spacing */
+      min-height: auto !important;
+      width: auto !important;
+      border-top: none !important;
+      
+      &::after,
+      &::before {
+        display: none !important;
+      }
+    }
+    
+    /* Professional floating label with better positioning */
+    .mat-mdc-form-field-label-wrapper {
+      top: -10px !important; /* Moved label higher */
+      left: 14px !important;
+      padding: 0 6px !important;
+      
+      .mat-mdc-form-field-label {
+        background-color: #ffffff !important;
+        padding: 3px 8px !important; /* Increased padding for better visibility */
+        border-radius: 6px !important;
+        font-size: 0.8125rem !important; /* Slightly smaller font */
+        font-weight: 600 !important;
+        color: #6b7280 !important;
+        letter-spacing: 0.025em !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+        transition: all 0.2s ease !important;
+        transform: translateY(0) scale(1) !important;
+        top: 0 !important;
+        position: relative !important;
+        line-height: 1.2 !important;
+      }
+    }
+    
+    /* Enhanced focus states with better spacing */
+    &.mat-focused {
+      .mat-mdc-text-field-wrapper {
+        border-color: #3182ce !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+        transform: translateY(-1px) !important;
+      }
+      
+      .mat-mdc-form-field-label {
+        color: #3182ce !important;
+        font-weight: 700 !important;
+        transform: translateY(-3px) scale(0.9) !important; /* Better scaling and positioning */
+        background-color: #f8fafc !important; /* Slight background color change on focus */
+      }
+    }
+    
+    /* Error states */
+    &.mat-form-field-invalid,
+    &.error {
+      .mat-mdc-text-field-wrapper {
+        border-color: #dc2626 !important;
+        box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12), 0 4px 12px rgba(220, 38, 38, 0.1) !important;
+      }
+      
+      .mat-mdc-form-field-label {
+        color: #dc2626 !important;
+      }
+    }
+    
+    /* Input styling with proper spacing and removed default appearance */
+    .mat-mdc-input-element {
+      padding: 0 !important;
+      font-size: 1rem !important;
+      font-weight: 500 !important;
+      color: #1f2937 !important;
+      background: transparent !important;
+      border: none !important;
+      outline: none !important;
+      line-height: 1.5 !important;
+      margin-top: 4px !important; /* Add top margin for separation from label */
+      appearance: none !important; /* Remove default input styling */
+      -webkit-appearance: none !important;
+      -moz-appearance: none !important;
+      box-shadow: none !important;
+      
+      /* Keep number input spinners but style them */
+      &[type="number"] {
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: textfield !important;
+        
+        /* Custom number input spinners */
+        &::-webkit-outer-spin-button,
+        &::-webkit-inner-spin-button {
+          -webkit-appearance: inner-spin-button !important;
+          opacity: 0.7 !important;
+          height: 20px !important;
+          width: 20px !important;
+          cursor: pointer !important;
+          background: transparent !important;
+          border: none !important;
+          margin: 0 4px 0 0 !important;
+        }
+        
+        &:hover::-webkit-outer-spin-button,
+        &:hover::-webkit-inner-spin-button {
+          opacity: 1 !important;
+          background: rgba(59, 130, 246, 0.1) !important;
+          border-radius: 4px !important;
+        }
+        
+        &:focus::-webkit-outer-spin-button,
+        &:focus::-webkit-inner-spin-button {
+          opacity: 1 !important;
+        }
+      }
+      
+      &::placeholder {
+        color: #9ca3af !important;
+        font-weight: 400 !important;
+        opacity: 0.7 !important;
+      }
+      
+      &:focus {
+        box-shadow: none !important;
+        border: none !important;
+        outline: none !important;
+        
+        &::placeholder {
+          opacity: 0.5 !important;
+        }
+      }
+      
+      /* Remove any focus rings or highlights */
+      &:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+      }
+      
+      /* Remove autocomplete styling */
+      &:-webkit-autofill,
+      &:-webkit-autofill:hover,
+      &:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+        -webkit-text-fill-color: #1f2937 !important;
+        background-color: transparent !important;
+        background-image: none !important;
+      }
+    }
+    
+    /* Disabled state */
+    &.mat-form-field-disabled {
+      .mat-mdc-text-field-wrapper {
+        background-color: #f9fafb !important;
+        border-color: #e5e7eb !important;
+        opacity: 0.7 !important;
+      }
+      
+      .mat-mdc-input-element {
+        color: #9ca3af !important;
+      }
+    }
+  }
+  
+  /* Error message styling */
+  .mat-mdc-form-field-error {
+    color: #dc2626 !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    margin-top: 6px !important;
+    padding-left: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    
+    &::before {
+      content: '⚠️';
+      margin-right: 6px;
+      font-size: 0.8rem;
+    }
+  }
+  
+  /* Required asterisk styling */
+  .text-red-500 {
+    color: #dc2626 !important;
+    font-weight: bold !important;
+  }
+}
+
+/* Select field specific styling with better spacing */
+.fleet-form-field .mat-mdc-select {
+  .mat-mdc-select-trigger {
+    padding: 4px 18px 0 18px !important; /* Adjusted padding for better label spacing */
+    font-size: 1rem;
+    color: #1f2937;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    min-height: auto;
+    line-height: 1.5;
+    margin-top: 4px; /* Add top margin for separation from label */
+  }
+  
+  .mat-mdc-select-placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+    opacity: 0.7;
+  }
+  
+  .mat-mdc-select-value {
+    color: #1f2937;
+    font-weight: 500;
+  }
+  
+  .mat-mdc-select-arrow-wrapper {
+    .mat-mdc-select-arrow {
+      color: #6b7280;
+      transition: all 0.2s ease;
+      width: 20px;
+      height: 20px;
+    }
+  }
+  
+  &.mat-mdc-select-focused {
+    .mat-mdc-select-arrow {
+      color: #3182ce;
+      transform: rotate(180deg);
+    }
+  }
+}
+
+/* Hover effects */
+.fleet-form-field:hover:not(.mat-focused):not(.mat-form-field-disabled) {
+  .mat-mdc-text-field-wrapper {
+    border-color: #9ca3af;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Animation for form field appearance */
+.fleet-form-field {
+  animation: slideInForm 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideInForm {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Focus ring for accessibility */
+.fleet-form-field:focus-within {
+  .mat-mdc-text-field-wrapper {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+}

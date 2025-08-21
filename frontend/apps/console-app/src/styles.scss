@@ -151,3 +151,212 @@ body {
   border: 1px solid #e2e8f0;
   padding: 1.5rem;
 }
+
+/* Global Material Form Field Override - Completely Remove Outlines */
+.mat-mdc-form-field {
+  /* Force hide ALL possible Material outline elements globally */
+  .mat-mdc-notched-outline,
+  .mat-mdc-form-field-outline,
+  .mat-mdc-form-field-outline-start,
+  .mat-mdc-form-field-outline-end,
+  .mat-mdc-form-field-outline-gap,
+  .mat-mdc-form-field-outline-thick,
+  .mdc-notched-outline,
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing,
+  .mdc-line-ripple,
+  .mat-mdc-form-field-focus-overlay,
+  .mat-mdc-line-ripple {
+    display: none !important;
+    opacity: 0 !important;
+    border: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  
+  /* Ensure the text field wrapper has our custom styling */
+  .mat-mdc-text-field-wrapper {
+    background-color: #ffffff !important;
+    border-radius: 12px !important;
+    border: 2px solid #e5e7eb !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    overflow: hidden !important;
+    position: relative !important;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.9));
+      z-index: -1;
+    }
+  }
+  
+  /* Override the infix completely */
+  .mat-mdc-form-field-infix {
+    border: none !important;
+    padding: 20px 18px 12px 18px !important; /* Better top padding for label spacing */
+    min-height: auto !important;
+    width: auto !important;
+    border-top: none !important;
+    
+    &::after,
+    &::before {
+      display: none !important;
+    }
+  }
+  
+  /* Professional floating label positioning */
+  .mat-mdc-form-field-label-wrapper {
+    top: -10px !important;
+    left: 14px !important;
+    padding: 0 6px !important;
+    
+    .mat-mdc-form-field-label {
+      background-color: #ffffff !important;
+      padding: 3px 8px !important;
+      border-radius: 6px !important;
+      font-size: 0.8125rem !important;
+      font-weight: 600 !important;
+      color: #6b7280 !important;
+      letter-spacing: 0.025em !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+      transition: all 0.2s ease !important;
+      transform: translateY(0) scale(1) !important;
+      top: 0 !important;
+      position: relative !important;
+      line-height: 1.2 !important;
+    }
+  }
+  
+  /* Enhanced focus states */
+  &.mat-focused {
+    .mat-mdc-text-field-wrapper {
+      border-color: #3182ce !important;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+      transform: translateY(-1px) !important;
+    }
+    
+    .mat-mdc-form-field-label {
+      color: #3182ce !important;
+      font-weight: 700 !important;
+      transform: translateY(-3px) scale(0.9) !important;
+      background-color: #f8fafc !important;
+    }
+  }
+  
+  /* Error states */
+  &.mat-form-field-invalid {
+    .mat-mdc-text-field-wrapper {
+      border-color: #dc2626 !important;
+      box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12), 0 4px 12px rgba(220, 38, 38, 0.1) !important;
+    }
+  }
+  
+  /* Input element styling with proper spacing and no default appearance */
+  .mat-mdc-input-element {
+    padding: 0 !important;
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    color: #1f2937 !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    line-height: 1.5 !important;
+    margin-top: 4px !important; /* Separation from label */
+    appearance: none !important; /* Remove default input styling */
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    box-shadow: none !important;
+    
+    /* Number input specific styling */
+    &[type="number"] {
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      -moz-appearance: textfield !important;
+      
+      /* Custom styled number spinners */
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: inner-spin-button !important;
+        opacity: 0.7 !important;
+        height: 20px !important;
+        width: 20px !important;
+        cursor: pointer !important;
+        background: transparent !important;
+        border: none !important;
+        margin: 0 4px 0 0 !important;
+      }
+      
+      &:hover::-webkit-outer-spin-button,
+      &:hover::-webkit-inner-spin-button {
+        opacity: 1 !important;
+        background: rgba(59, 130, 246, 0.1) !important;
+        border-radius: 4px !important;
+      }
+    }
+    
+    &::placeholder {
+      color: #9ca3af !important;
+      font-weight: 400 !important;
+      opacity: 0.7 !important;
+    }
+    
+    &:focus {
+      box-shadow: none !important;
+      border: none !important;
+      outline: none !important;
+      
+      &::placeholder {
+        opacity: 0.5 !important;
+      }
+    }
+    
+    /* Remove focus rings and autocomplete styling */
+    &:focus-visible {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+    
+    &:-webkit-autofill,
+    &:-webkit-autofill:hover,
+    &:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+      -webkit-text-fill-color: #1f2937 !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+  }
+}
+
+/* Additional global input styling to remove all browser defaults */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  
+  &:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  &:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
