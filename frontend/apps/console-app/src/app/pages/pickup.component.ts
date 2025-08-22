@@ -13,6 +13,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
+import { MatRadioModule } from '@angular/material/radio';
 
 interface PickupCarrierOption {
   id: string;
@@ -43,6 +44,16 @@ interface Client {
   active: boolean;
 }
 
+interface Employee {
+  id: string;
+  name: string;
+  employeeId: string;
+  department: string;
+  designation: string;
+  contact: string;
+  active: boolean;
+}
+
 @Component({
   selector: 'app-pickup',
   standalone: true,
@@ -58,7 +69,8 @@ interface Client {
     MatButtonModule,
     MatChipsModule,
     MatProgressSpinnerModule,
-    MatIconModule
+    MatIconModule,
+    MatRadioModule
   ],
   template: `
     <!-- Modern Layout with Tailwind + Material -->
@@ -306,7 +318,7 @@ interface Client {
           </mat-step>
 
           <!-- Step 2: Pickup Details (Modified from Orders Step 2) -->
-          <mat-step label="Pickup Details" [completed]="pickupForm.get('weight')?.valid">
+          <mat-step label="Pickup Details" [completed]="isPickupDetailsComplete()">
             <mat-card class="mb-6 border-0 shadow-md">
               <mat-card-header class="pb-4">
                 <mat-card-title class="text-xl font-semibold text-slate-900">
@@ -350,6 +362,56 @@ interface Client {
                     </div>
                   </div>
 
+                  <!-- Vendor Type Selection -->
+                  <div class="md:col-span-2 lg:col-span-3">
+                    <h4 class="text-lg font-medium text-slate-700 mb-4 pt-4 border-t border-slate-200">Pickup Configuration</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      
+                      <!-- Vendor Type Selection -->
+                      <div class="bg-slate-50 rounded-lg p-4">
+                        <h5 class="text-md font-medium text-slate-700 mb-3 flex items-center">
+                          <span class="mr-2">🏪</span> Pickup Type
+                        </h5>
+                        <mat-radio-group formControlName="isVendorType" (change)="onVendorTypeChange()">
+                          <div class="space-y-3">
+                            <mat-radio-button [value]="true" class="block">
+                              <span class="ml-2">
+                                <strong>Vendor Pickup</strong>
+                                <div class="text-sm text-slate-600">Requires carrier selection and scheduling</div>
+                              </span>
+                            </mat-radio-button>
+                            <mat-radio-button [value]="false" class="block">
+                              <span class="ml-2">
+                                <strong>Direct Pickup</strong>
+                                <div class="text-sm text-slate-600">Internal pickup, no external carrier needed</div>
+                              </span>
+                            </mat-radio-button>
+                          </div>
+                        </mat-radio-group>
+                      </div>
+
+                      <!-- Pickup Staff Selection -->
+                      <div class="bg-blue-50 rounded-lg p-4">
+                        <h5 class="text-md font-medium text-slate-700 mb-3 flex items-center">
+                          <span class="mr-2">👤</span> Assign Pickup Staff
+                        </h5>
+                        <mat-form-field class="w-full">
+                          <mat-label>Select Employee</mat-label>
+                          <mat-select formControlName="pickupStaffId" (selectionChange)="onPickupStaffChange()">
+                            <mat-option value="">Choose Staff Member</mat-option>
+                            <mat-option *ngFor="let employee of employees" [value]="employee.id">
+                              <div class="py-1">
+                                <div class="font-medium">{{employee.name}}</div>
+                                <div class="text-sm text-slate-600">{{employee.designation}} • {{employee.employeeId}}</div>
+                              </div>
+                            </mat-option>
+                          </mat-select>
+                          <mat-hint>Employee responsible for handling this pickup</mat-hint>
+                        </mat-form-field>
+                      </div>
+                    </div>
+                  </div>
+
                   <!-- Pickup Details (Sender Details from Orders) -->
                   <div class="md:col-span-2 lg:col-span-3">
                     <h4 class="text-lg font-medium text-slate-700 mb-4 pt-4 border-t border-slate-200">Pickup Address</h4>
@@ -389,18 +451,18 @@ interface Client {
                   <button 
                     mat-raised-button 
                     color="primary"
-                    [disabled]="!pickupForm.get('weight')?.valid" 
-                    (click)="proceedToServiceSelection(stepper)"
+                    [disabled]="!isPickupDetailsComplete()" 
+                    (click)="proceedToNextStep(stepper)"
                     class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                    Check Service Availability →
+                    {{getNextStepLabel()}} →
                   </button>
                 </div>
               </mat-card-content>
             </mat-card>
           </mat-step>
 
-          <!-- Step 3: Pickup Service Selection (Modified from Orders Step 3) -->
-          <mat-step label="Service Selection" [completed]="selectedCarrier !== null">
+          <!-- Step 3: Pickup Service Selection (Modified from Orders Step 3) - Only for Vendor Type -->
+          <mat-step *ngIf="isVendorPickup()" label="Service Selection" [completed]="selectedCarrier !== null">
             <mat-card class="mb-6 border-0 shadow-md">
               <mat-card-header class="pb-4">
                 <mat-card-title class="text-xl font-semibold text-slate-900">
@@ -540,6 +602,74 @@ interface Client {
             </mat-card>
           </mat-step>
 
+          <!-- Step 3 Alternative: Direct Pickup Confirmation (For Non-Vendor Type) -->
+          <mat-step *ngIf="!isVendorPickup() && isPickupDetailsComplete()" label="Confirm Pickup" [completed]="false">
+            <mat-card class="mb-6 border-0 shadow-md">
+              <mat-card-header class="pb-4">
+                <mat-card-title class="text-xl font-semibold text-slate-900">
+                  ✅ Confirm Direct Pickup
+                </mat-card-title>
+                <p class="text-sm text-slate-600 mt-2">Review and confirm your internal pickup details</p>
+              </mat-card-header>
+              
+              <mat-card-content>
+                <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                  <div class="text-green-700 mb-4">
+                    <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-center">Direct Pickup Ready</h3>
+                    <p class="text-sm text-center">This pickup will be handled internally by your staff</p>
+                  </div>
+                  
+                  <!-- Internal Pickup Summary -->
+                  <div class="bg-white rounded-lg p-4 mb-4">
+                    <h4 class="font-semibold text-slate-700 mb-3">Pickup Summary</h4>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span class="text-slate-600">Pickup Type:</span>
+                        <span class="font-medium text-green-700 ml-2">Direct/Internal</span>
+                      </div>
+                      <div>
+                        <span class="text-slate-600">Assigned Staff:</span>
+                        <span class="font-medium text-blue-700 ml-2">{{getSelectedEmployeeName()}}</span>
+                      </div>
+                      <div>
+                        <span class="text-slate-600">Items:</span>
+                        <span class="font-medium ml-2">{{pickupForm.get('itemCount')?.value}} item(s)</span>
+                      </div>
+                      <div>
+                        <span class="text-slate-600">Weight:</span>
+                        <span class="font-medium ml-2">{{pickupForm.get('weight')?.value}} kg</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="text-center">
+                    <p class="text-sm text-green-600 mb-4">✓ No external carrier required for this pickup</p>
+                    <button 
+                      mat-raised-button 
+                      color="primary"
+                      (click)="confirmDirectPickup()"
+                      class="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 font-semibold">
+                      🎯 Confirm Internal Pickup
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="mt-8 flex justify-between">
+                  <button 
+                    mat-stroked-button 
+                    (click)="stepper.previous()"
+                    class="border-slate-300 text-slate-700 hover:bg-slate-50">
+                    ← Previous
+                  </button>
+                  <div></div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </mat-step>
+
         </mat-stepper>
 
       </main>
@@ -596,6 +726,25 @@ interface Client {
                     </div>
                   </div>
                 </div>
+
+                <!-- Pickup Configuration -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 class="font-semibold text-blue-900 mb-3">Pickup Configuration</h3>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <div class="text-sm text-blue-600">Pickup Type:</div>
+                      <div class="font-semibold text-blue-900">
+                        {{isVendorPickup() ? '🏪 Vendor Pickup' : '🏢 Direct Pickup'}}
+                      </div>
+                    </div>
+                    <div>
+                      <div class="text-sm text-blue-600">Assigned Staff:</div>
+                      <div class="font-semibold text-blue-900">
+                        {{getSelectedEmployeeName()}}
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 
                 <!-- Selected Carrier (if any) -->
                 <div *ngIf="selectedCarrier" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -628,15 +777,27 @@ interface Client {
                     </div>
                     <div class="flex items-center space-x-3">
                       <div class="flex-shrink-0">
-                        <div class="w-5 h-5 rounded-full" [class]="pickupForm.get('weight')?.valid ? 'bg-green-500' : 'bg-slate-300'"></div>
+                        <div class="w-5 h-5 rounded-full" [class]="isPickupDetailsComplete() ? 'bg-green-500' : 'bg-slate-300'"></div>
                       </div>
-                      <span class="text-sm" [class]="pickupForm.get('weight')?.valid ? 'text-green-700 font-medium' : 'text-slate-500'">Pickup Details</span>
+                      <span class="text-sm" [class]="isPickupDetailsComplete() ? 'text-green-700 font-medium' : 'text-slate-500'">Pickup Details</span>
                     </div>
                     <div class="flex items-center space-x-3">
+                      <div class="flex-shrink-0">
+                        <div class="w-5 h-5 rounded-full" [class]="selectedEmployee ? 'bg-green-500' : 'bg-slate-300'"></div>
+                      </div>
+                      <span class="text-sm" [class]="selectedEmployee ? 'text-green-700 font-medium' : 'text-slate-500'">Staff Assigned</span>
+                    </div>
+                    <div class="flex items-center space-x-3" *ngIf="isVendorPickup()">
                       <div class="flex-shrink-0">
                         <div class="w-5 h-5 rounded-full" [class]="selectedCarrier ? 'bg-green-500' : 'bg-slate-300'"></div>
                       </div>
                       <span class="text-sm" [class]="selectedCarrier ? 'text-green-700 font-medium' : 'text-slate-500'">Service Selected</span>
+                    </div>
+                    <div class="flex items-center space-x-3" *ngIf="!isVendorPickup()">
+                      <div class="flex-shrink-0">
+                        <div class="w-5 h-5 rounded-full" [class]="isPickupDetailsComplete() ? 'bg-green-500' : 'bg-slate-300'"></div>
+                      </div>
+                      <span class="text-sm" [class]="isPickupDetailsComplete() ? 'text-green-700 font-medium' : 'text-slate-500'">Ready for Confirmation</span>
                     </div>
                   </div>
                 </div>
@@ -664,16 +825,30 @@ interface Client {
                 </div>
                 
                 <!-- Final Action Button -->
-                <div *ngIf="selectedCarrier" class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div *ngIf="isPickupDetailsComplete()" class="bg-green-50 border border-green-200 rounded-lg p-4">
                   <button 
+                    *ngIf="isVendorPickup() && selectedCarrier"
                     mat-raised-button 
                     color="primary"
                     class="w-full bg-green-600 hover:bg-green-700"
                     (click)="confirmPickup()">
-                    🎯 Confirm Pickup
+                    🎯 Confirm Vendor Pickup
+                  </button>
+                  <button 
+                    *ngIf="!isVendorPickup()"
+                    mat-raised-button 
+                    color="primary"
+                    class="w-full bg-green-600 hover:bg-green-700"
+                    (click)="confirmDirectPickup()">
+                    🎯 Confirm Direct Pickup
                   </button>
                   <div class="text-center mt-2">
-                    <span class="text-xs text-green-700">Total: ₹{{selectedCarrier.price}}</span>
+                    <span *ngIf="isVendorPickup() && selectedCarrier" class="text-xs text-green-700">
+                      Total: ₹{{selectedCarrier.price}}
+                    </span>
+                    <span *ngIf="!isVendorPickup()" class="text-xs text-green-700">
+                      Internal Pickup - No Service Fee
+                    </span>
                   </div>
                 </div>
               </div>
@@ -691,6 +866,7 @@ export class PickupComponent implements OnInit {
   pickupForm!: FormGroup;
   selectedClient: Client | null = null;
   selectedCarrier: PickupCarrierOption | null = null;
+  selectedEmployee: Employee | null = null;
   pickupId: string = '';
   
   // Search and filter properties
@@ -756,6 +932,55 @@ export class PickupComponent implements OnInit {
     }
   ];
 
+  // Demo employee data
+  employees: Employee[] = [
+    {
+      id: 'emp001',
+      name: 'Rahul Sharma',
+      employeeId: 'FLT001',
+      department: 'Operations',
+      designation: 'Pickup Executive',
+      contact: '9876543210',
+      active: true
+    },
+    {
+      id: 'emp002',
+      name: 'Priya Patel',
+      employeeId: 'FLT002',
+      department: 'Logistics',
+      designation: 'Senior Pickup Coordinator',
+      contact: '9876543211',
+      active: true
+    },
+    {
+      id: 'emp003',
+      name: 'Amit Kumar',
+      employeeId: 'FLT003',
+      department: 'Operations',
+      designation: 'Field Officer',
+      contact: '9876543212',
+      active: true
+    },
+    {
+      id: 'emp004',
+      name: 'Sneha Singh',
+      employeeId: 'FLT004',
+      department: 'Customer Service',
+      designation: 'Pickup Specialist',
+      contact: '9876543213',
+      active: true
+    },
+    {
+      id: 'emp005',
+      name: 'Ravi Gupta',
+      employeeId: 'FLT005',
+      department: 'Operations',
+      designation: 'Team Lead - Pickup',
+      contact: '9876543214',
+      active: false
+    }
+  ];
+
   pickupCarriers: PickupCarrierOption[] = [
     {
       id: 'express-pickup',
@@ -813,6 +1038,10 @@ export class PickupComponent implements OnInit {
       height: [''],
       itemCount: ['1', [Validators.required, Validators.min(1)]],
       itemDescription: [''],
+      
+      // Pickup configuration
+      isVendorType: [true, Validators.required], // Default to vendor pickup
+      pickupStaffId: ['', Validators.required],
       
       // Pickup details
       senderName: ['', Validators.required],
@@ -933,6 +1162,81 @@ export class PickupComponent implements OnInit {
     this.selectedCarrier = null;
   }
 
+  onVendorTypeChange() {
+    // Reset carrier selection when vendor type changes
+    this.selectedCarrier = null;
+    this.serviceabilityChecked = false;
+  }
+
+  onPickupStaffChange() {
+    const staffId = this.pickupForm.get('pickupStaffId')?.value;
+    this.selectedEmployee = this.employees.find(emp => emp.id === staffId) || null;
+  }
+
+  // Form validation helpers
+  isPickupDetailsComplete(): boolean {
+    const form = this.pickupForm;
+    return !!(
+      form.get('weight')?.valid &&
+      form.get('itemCount')?.valid &&
+      form.get('senderName')?.valid &&
+      form.get('senderContact')?.valid &&
+      form.get('pickupAddress')?.valid &&
+      form.get('pickupStaffId')?.valid &&
+      form.get('isVendorType')?.valid
+    );
+  }
+
+  isVendorPickup(): boolean {
+    return this.pickupForm.get('isVendorType')?.value === true;
+  }
+
+  getNextStepLabel(): string {
+    return this.isVendorPickup() ? 'Check Service Availability' : 'Confirm Pickup';
+  }
+
+  proceedToNextStep(stepper: MatStepper) {
+    if (this.isPickupDetailsComplete()) {
+      if (this.isVendorPickup()) {
+        stepper.next(); // Go to carrier selection
+      } else {
+        stepper.next(); // Go to direct pickup confirmation
+      }
+    }
+  }
+
+  getSelectedEmployeeName(): string {
+    return this.selectedEmployee?.name || 'Not assigned';
+  }
+
+  confirmDirectPickup() {
+    if (this.pickupForm.valid && this.selectedClient && this.selectedEmployee) {
+      const pickupData = {
+        ...this.pickupForm.value,
+        client: this.selectedClient,
+        employee: this.selectedEmployee,
+        pickupId: this.generatePickupId(),
+        pickupType: 'Direct/Internal'
+      };
+      
+      console.log('Direct pickup confirmed:', pickupData);
+      
+      alert(`✅ Internal pickup confirmed successfully!
+        
+Client: ${this.selectedClient.clientName}
+Pickup Staff: ${this.selectedEmployee.name}
+Pickup Type: Direct/Internal
+Items: ${this.pickupForm.get('itemCount')?.value} (${this.pickupForm.get('weight')?.value}kg)
+        
+Pickup ID: ${pickupData.pickupId}`);
+      
+      // Reset form for next pickup
+      this.resetForm();
+    } else {
+      alert('❌ Please fill all required fields and select pickup staff.');
+    }
+  }
+
   // Service selection methods (adapted from orders)
   canCheckServiceability(): boolean {
     return !!(this.pickupForm.get('weight')?.valid && 
@@ -976,36 +1280,43 @@ export class PickupComponent implements OnInit {
   }
 
   confirmPickup() {
-    if (this.pickupForm.valid && this.selectedClient && this.selectedCarrier) {
+    if (this.pickupForm.valid && this.selectedClient && this.selectedCarrier && this.selectedEmployee) {
       const pickupData = {
         ...this.pickupForm.value,
         client: this.selectedClient,
         carrier: this.selectedCarrier,
-        pickupId: this.generatePickupId()
+        employee: this.selectedEmployee,
+        pickupId: this.generatePickupId(),
+        pickupType: 'Vendor'
       };
       
-      console.log('Pickup scheduled:', pickupData);
+      console.log('Vendor pickup scheduled:', pickupData);
       
-      alert(`🚚 Pickup scheduled successfully!
+      alert(`🚚 Vendor pickup scheduled successfully!
         
 Client: ${this.selectedClient.clientName}
 Service: ${this.selectedCarrier.name}
 Fee: ₹${this.selectedCarrier.price}
 Estimated Pickup: ${this.selectedCarrier.estimatedPickup}
+Pickup Staff: ${this.selectedEmployee.name}
         
 Pickup ID: ${pickupData.pickupId}`);
       
       // Reset form for next pickup
       this.resetForm();
     } else {
-      alert('❌ Please fill all required fields and select a pickup service.');
+      alert('❌ Please fill all required fields, select a pickup service, and assign pickup staff.');
     }
   }
 
   resetForm() {
-    this.pickupForm.reset();
+    this.pickupForm.reset({
+      itemCount: '1',
+      isVendorType: true // Reset to default vendor pickup
+    });
     this.selectedClient = null;
     this.selectedCarrier = null;
+    this.selectedEmployee = null;
     this.serviceabilityChecked = false;
     this.stepper.reset();
   }
