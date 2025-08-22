@@ -11,7 +11,7 @@ echo "🚀 Starting FleetOps Frontend deployment to server droplet..."
 IMAGE_NAME="fleetops-frontend"
 TAG="latest"
 CONTAINER_NAME="fleetops-frontend"
-PORT="5000"
+PORT="5001"
 # Optional: set REMOTE_IMAGE to pull instead of building locally, e.g.
 # REMOTE_IMAGE="macubex/fleetbase-app:latest"
 REMOTE_IMAGE="${REMOTE_IMAGE:-}"

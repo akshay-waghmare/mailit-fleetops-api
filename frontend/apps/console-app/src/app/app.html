@@ -29,6 +29,10 @@
           <span class="nav-icon">📦</span>
           New Order
         </a>
+        <a routerLink="/pickup" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">🚚</span>
+          Schedule Pickup
+        </a>
         <a routerLink="/organizations" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">🏢</span>
           Organizations
@@ -85,6 +89,11 @@
           <a routerLink="/orders" routerLinkActive="active" class="nav-link">
             <span class="nav-icon">📦</span>
             <span class="nav-text">New Order</span>
+          </a>
+          
+          <a routerLink="/pickup" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">🚚</span>
+            <span class="nav-text">Schedule Pickup</span>
           </a>
           
           <a routerLink="/organizations" routerLinkActive="active" class="nav-link">
