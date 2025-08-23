@@ -2,7 +2,7 @@
 
 A comprehensive Spring Boot 3.3.5 backend for logistics and fleet management operations, built with Java 21 and designed as a modular monolith for future microservices extraction.
 
-## íº€ Features
+## ï¿½ï¿½ï¿½ Features
 
 - **Modern Stack**: Spring Boot 3.3.5 with Java 21
 - **Spatial Data**: PostgreSQL + PostGIS for geographical operations
@@ -13,7 +13,7 @@ A comprehensive Spring Boot 3.3.5 backend for logistics and fleet management ope
 - **Monitoring**: Spring Actuator for health checks and metrics
 - **Containerization**: Docker support with docker-compose
 
-## í¿—ï¸ Architecture
+## ï¿½ï¿½ï¿½ï¸ Architecture
 
 ### Modular Design
 The application is structured as a modular monolith with clear package boundaries:
@@ -26,7 +26,7 @@ The application is structured as a modular monolith with clear package boundarie
 - **routing**: OSRM/Valhalla integration, ETA calculations
 - **tracking**: Event logging and telemetry
 
-## í» ï¸ Technology Stack
+## ï¿½ï¿½ï¿½ï¸ Technology Stack
 
 - **Framework**: Spring Boot 3.3.5
 - **Language**: Java 21 (Amazon Corretto)
@@ -38,7 +38,7 @@ The application is structured as a modular monolith with clear package boundarie
 - **Spatial**: Hibernate Spatial, JTS
 - **Scheduling**: Spring Quartz
 
-## íº¦ Getting Started
+## ï¿½ï¿½ï¿½ Getting Started
 
 ### Prerequisites
 
@@ -94,7 +94,7 @@ Use VS Code Command Palette (`Ctrl+Shift+P`) and run:
 - `Tasks: Run Task` â†’ `FleetOps: Build`
 - `Tasks: Run Task` â†’ `FleetOps: Test`
 
-## í·„ï¸ Database Setup
+## ï¿½ï¿½ï¿½ï¸ Database Setup
 
 ### Environment Variables
 Configure the following environment variables:
@@ -122,7 +122,7 @@ Database migrations are automatically applied on startup. Manual migration:
 ./gradlew flywayMigrate
 ```
 
-## í´§ Configuration
+## ï¿½ï¿½ï¿½ Configuration
 
 ### Application Profiles
 
@@ -139,7 +139,7 @@ Configuration files are located in `src/main/resources/`:
 - `application-staging.properties` - Staging settings
 - `application-prod.properties` - Production settings
 
-## í·ª Testing
+## ï¿½ï¿½ï¿½ Testing
 
 The project includes comprehensive testing:
 
@@ -154,7 +154,7 @@ The project includes comprehensive testing:
 ./gradlew integrationTest
 ```
 
-## í³Š Monitoring
+## ï¿½ï¿½ï¿½ Monitoring
 
 Access application health and metrics:
 
@@ -162,7 +162,7 @@ Access application health and metrics:
 - Metrics: `http://localhost:8080/actuator/metrics`
 - Info: `http://localhost:8080/actuator/info`
 
-## í°³ Docker Support
+## ï¿½ï¿½ï¿½ Docker Support
 
 ### Development
 ```bash
@@ -179,7 +179,7 @@ docker-compose up
 docker build --target production -t fleetops-backend:prod .
 ```
 
-## í»£ï¸ Roadmap
+## ï¿½ï¿½ï¿½ï¸ Roadmap
 
 ### Sprint 1: Foundation âœ…
 - [x] Backend scaffold with Spring Boot 3.3.5
@@ -200,7 +200,7 @@ docker build --target production -t fleetops-backend:prod .
 - [ ] Job scheduling and background tasks
 - [ ] Advanced spatial operations
 
-## í´ Contributing
+## ï¿½ï¿½ï¿½ Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -208,11 +208,11 @@ docker build --target production -t fleetops-backend:prod .
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## í³ License
+## ï¿½ï¿½ï¿½ License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## í¶˜ Support
+## ï¿½ï¿½ï¿½ Support
 
 For support and questions:
 - Create an issue in the repository

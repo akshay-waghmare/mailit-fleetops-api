@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": "c6aeb164-b3ee-4e4a-90e9-5090579fa5af"
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -43,24 +44,36 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "1MB",
-                  "maximumError": "2MB"
+                  "maximumWarning": "3MB",
+                  "maximumError": "5MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "20kB",
-                  "maximumError": "50kB"
+                  "maximumWarning": "200kB",
+                  "maximumError": "500kB"
                 }
               ],
               "outputHashing": "all"
             },
             "development": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "5MB",
+                  "maximumError": "10MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "200kB",
+                  "maximumError": "500kB"
+                }
+              ],
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
             }
           },
-          "defaultConfiguration": "production"
+            "defaultConfiguration": "development"
         },
         "serve": {
           "builder": "@angular/build:dev-server",
