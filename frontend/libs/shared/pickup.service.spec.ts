@@ -1,19 +1,22 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { PickupService } from './pickup.service';
+import { ConfigService } from './config.service';
 import { PickupRecord } from './pickup.interface';
 
 describe('PickupService', () => {
   let service: PickupService;
   let httpMock: HttpTestingController;
+  let configService: ConfigService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [PickupService]
+      providers: [PickupService, ConfigService]
     });
     service = TestBed.inject(PickupService);
     httpMock = TestBed.inject(HttpTestingController);
+    configService = TestBed.inject(ConfigService);
   });
 
   afterEach(() => {
@@ -36,7 +39,8 @@ describe('PickupService', () => {
       expect(res.content[0].pickupId).toBe('PKP1');
     });
 
-    const req = httpMock.expectOne(r => r.url.endsWith('/pickups'));
+    const expectedUrl = `${configService.apiBaseUrl}/pickups`;
+    const req = httpMock.expectOne(r => r.url === expectedUrl);
     expect(req.request.method).toBe('GET');
     req.flush(mockResponse);
   });

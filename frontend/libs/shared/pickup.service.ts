@@ -2,14 +2,20 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { PickupRecord, PickupQueryParams, PaginatedResponse } from './pickup.interface';
+import { ConfigService } from './config.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PickupService {
-  private readonly baseUrl = 'http://localhost:8081/api';
+  private readonly baseUrl: string;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private configService: ConfigService
+  ) {
+    this.baseUrl = this.configService.apiBaseUrl;
+  }
 
   getPickups(params: PickupQueryParams = {}): Observable<PaginatedResponse<PickupRecord>> {
     let httpParams = new HttpParams();

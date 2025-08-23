@@ -22,10 +22,10 @@ import { PickupRecord } from '@libs/shared/pickup.interface';
     MatSortModule,
     MatIconModule,
     MatButtonModule,
-  MatFormFieldModule,
-  MatInputModule,
-  MatDatepickerModule,
-  MatNativeDateModule
+    MatFormFieldModule,
+    MatInputModule,
+    MatDatepickerModule,
+    MatNativeDateModule
   ],
   template: `
     <div class="p-6">
@@ -172,9 +172,9 @@ export class PickupListComponent implements OnInit, AfterViewInit {
             const hay = [data.clientName, data.clientCompany].filter(Boolean).join(' ').toLowerCase();
             if (!hay.includes(val)) return false;
           } else if (k === 'schedule') {
-              // Compare date-only strings (YYYY-MM-DD)
+              // Compare date-only strings (YYYY-MM-DD) - exact match
               const pickDate = data.pickupDate ? new Date(data.pickupDate).toISOString().slice(0, 10) : '';
-              if (!pickDate.includes(val)) return false;
+              if (pickDate !== val) return false;
             } else if (k === 'status') {
             if (!data.status?.toLowerCase().includes(val)) return false;
           } else {
