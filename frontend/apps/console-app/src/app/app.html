@@ -33,6 +33,14 @@
           <span class="nav-icon">🚚</span>
           Schedule Pickup
         </a>
+        <a routerLink="/pickup-list" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">📋</span>
+          Pickup Management
+        </a>
+        <a routerLink="/pickup-analytics" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">📈</span>
+          Pickup Analytics
+        </a>
         <a routerLink="/organizations" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">🏢</span>
           Organizations
@@ -98,12 +106,22 @@
           
           <a routerLink="/organizations" routerLinkActive="active" class="nav-link">
             <span class="nav-icon">🏢</span>
-            <span class="nav-text">View / Track Shipment</span>
+            <span class="nav-text">Organizations</span>
+          </a>
+          
+          <a routerLink="/pickup-list" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">📋</span>
+            <span class="nav-text">Pickup Management</span>
+          </a>
+          
+          <a routerLink="/pickup-analytics" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">📈</span>
+            <span class="nav-text">Pickup Analytics</span>
           </a>
           
           <a routerLink="/places" routerLinkActive="active" class="nav-link">
             <span class="nav-icon">📍</span>
-            <span class="nav-text">Pickup Management</span>
+            <span class="nav-text">Places</span>
           </a>
           
           <a routerLink="/billing" routerLinkActive="active" class="nav-link">
