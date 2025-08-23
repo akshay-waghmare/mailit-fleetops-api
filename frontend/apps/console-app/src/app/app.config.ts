@@ -1,5 +1,5 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withPreloading, NoPreloading } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 
 import { routes } from './app.routes';
@@ -9,8 +9,9 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-  provideRouter(routes), 
-  provideClientHydration(),
-  provideHttpClient()
+    // Explicitly disable preloading to avoid eager loading of lazy routes
+    provideRouter(routes, withPreloading(NoPreloading)),
+    provideClientHydration(),
+    provideHttpClient()
   ]
 };
