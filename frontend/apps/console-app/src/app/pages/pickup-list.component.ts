@@ -1,5 +1,6 @@
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -9,8 +10,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { PickupService } from '@libs/shared/pickup.service';
-import { PickupRecord } from '@libs/shared/pickup.interface';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subscription } from 'rxjs';
+import { PickupService } from '../../../../../libs/shared/pickup.service';
+import { PickupRecord } from '../../../../../libs/shared/pickup.interface';
 
 @Component({
   selector: 'app-pickup-list',
@@ -25,203 +29,185 @@ import { PickupRecord } from '@libs/shared/pickup.interface';
     MatFormFieldModule,
     MatInputModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatChipsModule,
+    MatTooltipModule
   ],
   template: `
     <div class="p-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-2xl font-semibold">Pickup Management</h2>
+        <div>
+          <h2 class="text-2xl font-semibold">Pickup Management</h2>
+          <p class="text-sm text-gray-600 mt-1">Real-time pickup tracking and management</p>
+        </div>
         <div class="flex items-center gap-2">
-          <button mat-raised-button color="primary" (click)="loadPickups(true)">Load Demo Data</button>
+          <button mat-button [color]="autoRefresh ? 'accent' : 'primary'" 
+                  (click)="toggleAutoRefresh()" 
+                  matTooltip="Toggle auto-refresh every 30 seconds">
+            <mat-icon>{{autoRefresh ? 'pause' : 'play_arrow'}}</mat-icon>
+            Auto-refresh {{autoRefresh ? 'ON' : 'OFF'}}
+          </button>
+          <button mat-raised-button color="primary" (click)="refreshPickups()" matTooltip="Refresh now">
+            Refresh
+          </button>
+          <button mat-raised-button color="accent" (click)="navigateToSchedule()" matTooltip="Create new pickup">
+            Schedule Pickup
+          </button>
         </div>
       </div>
 
-      <div class="mb-4 p-3 bg-white rounded shadow-sm text-sm text-slate-700" *ngIf="usingDemo">
-        Showing demo data — backend unavailable or demo mode enabled.
+      <!-- Real-time status indicator -->
+      <div class="mb-4 p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+            <span class="text-sm font-medium text-gray-700">
+              Live updates {{autoRefresh ? 'enabled' : 'disabled'}} | Last refreshed: {{lastRefresh | date:'HH:mm:ss'}}
+            </span>
+          </div>
+          <div class="flex items-center gap-4 text-sm">
+            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">Total: {{totalPickups}}</span>
+            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded">Scheduled: {{scheduledCount}}</span>
+            <span class="px-2 py-1 bg-green-100 text-green-800 rounded">In Progress: {{inProgressCount}}</span>
+          </div>
+        </div>
       </div>
 
       <div class="mb-4 grid grid-cols-4 gap-4">
         <mat-form-field appearance="outline">
           <mat-label>Pickup ID</mat-label>
-          <input matInput (keyup)="applyColumnFilter($event, 'pickupId')" placeholder="Filter pickup id" />
+          <input matInput (keyup)="applyFilter($event, 'pickupId')" placeholder="Filter pickup id" />
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Client</mat-label>
-          <input matInput (keyup)="applyColumnFilter($event, 'client')" placeholder="Filter client" />
+          <input matInput (keyup)="applyFilter($event, 'clientName')" placeholder="Filter client" />
         </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Schedule</mat-label>
-            <input matInput [matDatepicker]="picker" (dateChange)="applyDateFilter($event.value)" placeholder="Filter date" />
-            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-            <mat-datepicker #picker></mat-datepicker>
-          </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Status</mat-label>
-          <input matInput (keyup)="applyColumnFilter($event, 'status')" placeholder="Filter status" />
+          <input matInput (keyup)="applyFilter($event, 'status')" placeholder="Filter status" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Type</mat-label>
+          <input matInput (keyup)="applyFilter($event, 'pickupType')" placeholder="Filter type" />
         </mat-form-field>
       </div>
 
-      <table mat-table [dataSource]="dataSource" matSort class="w-full"> 
+      <table mat-table [dataSource]="dataSource" matSort class="w-full shadow-sm rounded-lg overflow-hidden"> 
         <ng-container matColumnDef="pickupId">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Pickup ID</th>
-          <td mat-cell *matCellDef="let row">{{row.pickupId}}</td>
+          <td mat-cell *matCellDef="let row">
+            <span class="font-mono text-sm">{{row.pickupId}}</span>
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="client">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Client</th>
-          <td mat-cell *matCellDef="let row">{{row.clientName}} — {{row.clientCompany}}</td>
+          <td mat-cell *matCellDef="let row">
+            <div>
+              <div class="font-medium">{{row.clientName}}</div>
+              <div class="text-sm text-gray-500">{{row.clientCompany}}</div>
+            </div>
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="schedule">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Schedule</th>
-          <td mat-cell *matCellDef="let row">{{row.pickupDate | date}} {{row.pickupTime}}</td>
+          <td mat-cell *matCellDef="let row">
+            <div>
+              <div class="text-sm">{{row.pickupDate | date:'MMM d, y'}}</div>
+              <div class="text-xs text-gray-500">{{row.pickupTime}}</div>
+            </div>
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-          <td mat-cell *matCellDef="let row">{{row.status}}</td>
+          <td mat-cell *matCellDef="let row">
+            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                  [ngClass]="getStatusClass(row.status)">
+              {{row.status | titlecase}}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="px-2 py-1 text-xs rounded-full" 
+                  [class]="row.pickupType === 'vendor' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'">
+              {{row.pickupType | titlecase}}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="staff">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Staff</th>
+          <td mat-cell *matCellDef="let row">
+            <div>
+              <div class="text-sm">{{row.assignedStaff}}</div>
+              <div class="text-xs text-gray-500">{{row.staffDepartment}}</div>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let row" class="flex items-center gap-2">
+            <button mat-flat-button color="primary" (click)="openDetails(row)" aria-label="View details" matTooltip="View Details">
+              <span class="ml-2 text-sm">View</span>
+            </button>
+            <button mat-stroked-button color="accent" *ngIf="row.status === 'scheduled'" (click)="editPickup(row)" aria-label="Edit pickup" matTooltip="Edit pickup">
+              <span class="ml-2 text-sm">Edit</span>
+            </button>
+          </td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        <!-- Highlight row if it's the newly created pickup -->
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+            [class.bg-green-50]="highlightedPickupId === row.id"
+            [class.border-l-4]="highlightedPickupId === row.id"
+            [class.border-green-400]="highlightedPickupId === row.id"
+            [class.animate-pulse]="highlightedPickupId === row.id"></tr>
       </table>
 
       <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
     </div>
   `
 })
-export class PickupListComponent implements OnInit, AfterViewInit {
+export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
   dataSource = new MatTableDataSource<PickupRecord>([]);
-  displayedColumns = ['pickupId', 'client', 'schedule', 'status'];
-  usingDemo = true;
+  displayedColumns = ['pickupId', 'client', 'schedule', 'status', 'type', 'staff', 'actions'];
+  
+  // Real-time features
+  autoRefresh = true;
+  lastRefresh: Date = new Date();
+  highlightedPickupId: string | null = null;
+  private refreshInterval?: number | undefined;
+  private pickupSubscription?: Subscription;
+  
+  // Stats
+  totalPickups = 0;
+  scheduledCount = 0;
+  inProgressCount = 0;
 
   @ViewChild(MatPaginator) paginator: MatPaginator | null = null;
   @ViewChild(MatSort) sort: MatSort | null = null;
 
-  demoData: PickupRecord[] = [
-    {
-      id: 'demo-1',
-      pickupId: 'PKP00001',
-      clientName: 'Acme Corp',
-      clientCompany: 'Acme Corporation',
-      clientId: 'c_demo_1',
-      pickupAddress: '12 Demo Street, Springfield',
-      contactNumber: '+1-555-0100',
-      itemCount: 2,
-      totalWeight: 5.5,
-      itemDescription: 'Documents and small parcels',
-      pickupType: 'direct',
-      assignedStaff: 'John Doe',
-      staffId: 's_demo_1',
-      staffDepartment: 'Operations',
-      pickupDate: new Date().toISOString(),
-      pickupTime: '10:00',
-      status: 'scheduled',
-      statusUpdatedAt: new Date().toISOString(),
-      statusUpdatedBy: 'system',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: 'demo'
-    },
-    {
-      id: 'demo-2',
-      pickupId: 'PKP00002',
-      clientName: 'Beta LLC',
-      clientCompany: 'Beta Logistics',
-      clientId: 'c_demo_2',
-      pickupAddress: '99 Example Ave, Metropolis',
-      contactNumber: '+1-555-0200',
-      itemCount: 5,
-      totalWeight: 12.3,
-      itemDescription: 'Boxes - fragile',
-      pickupType: 'vendor',
-      carrierName: 'FastShip',
-      assignedStaff: 'Jane Smith',
-      staffId: 's_demo_2',
-      staffDepartment: 'Field Ops',
-      pickupDate: new Date().toISOString(),
-      pickupTime: '14:30',
-      status: 'in-progress',
-      statusUpdatedAt: new Date().toISOString(),
-      statusUpdatedBy: 'jane',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: 'demo'
-    }
-  ];
+  constructor(
+    private pickupService: PickupService,
+    private route: ActivatedRoute,
+    private router: Router
+  ) {}
 
-  constructor(private pickupService: PickupService) {}
-
-  ngOnInit(): void {
-    // Initialize with demo data for SSR-stable render, then attempt backend load
-    this.dataSource.data = this.demoData;
-    // Custom filterPredicate that supports either a plain string (global search)
-    // or a JSON-encoded object for per-column filters.
-    this.dataSource.filterPredicate = (data: PickupRecord, filter: string) => {
-      if (!filter) return true;
-      // Try parse JSON for column filters
-      try {
-        const fobj = JSON.parse(filter);
-        // For each key in fobj, if value is truthy, ensure data matches
-        for (const k of Object.keys(fobj)) {
-          const val = (fobj as any)[k]?.toString().trim().toLowerCase();
-          if (!val) continue;
-          if (k === 'pickupId') {
-            if (!data.pickupId?.toLowerCase().includes(val)) return false;
-          } else if (k === 'client') {
-            const hay = [data.clientName, data.clientCompany].filter(Boolean).join(' ').toLowerCase();
-            if (!hay.includes(val)) return false;
-          } else if (k === 'schedule') {
-              // Compare date-only strings (YYYY-MM-DD) - exact match
-              const pickDate = data.pickupDate ? new Date(data.pickupDate).toISOString().slice(0, 10) : '';
-              if (pickDate !== val) return false;
-            } else if (k === 'status') {
-            if (!data.status?.toLowerCase().includes(val)) return false;
-          } else {
-            // fallback: check any field
-            const hay = [
-              data.pickupId,
-              data.clientName,
-              data.clientCompany,
-              data.status,
-              data.pickupTime,
-              data.pickupAddress,
-              data.itemDescription
-            ]
-              .filter(Boolean)
-              .join(' ')
-              .toLowerCase();
-            if (!hay.includes(val)) return false;
-          }
-        }
-        return true;
-      } catch (e) {
-        // fallback: global substring search
-        const s = filter.trim().toLowerCase();
-        const haystack = [
-          data.pickupId,
-          data.clientName,
-          data.clientCompany,
-          data.status,
-          data.pickupTime,
-          data.pickupAddress,
-          data.itemDescription
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        return haystack.indexOf(s) !== -1;
-      }
-    };
-    // Initialize empty column filters map
-    this.columnFilters = {};
-    setTimeout(() => this.loadPickups(), 0);
+  ngOnInit() {
+    this.loadPickups();
+    this.setupAutoRefresh();
+    this.subscribeToPickupUpdates();
+    this.checkForHighlight();
   }
 
-  // Per-column filter state
-  columnFilters: { [key: string]: string } = {};
-
-  ngAfterViewInit(): void {
+  ngAfterViewInit() {
     if (this.paginator) {
       this.dataSource.paginator = this.paginator;
     }
@@ -230,60 +216,127 @@ export class PickupListComponent implements OnInit, AfterViewInit {
     }
   }
 
-  loadPickups(forceDemo = false): void {
-    if (forceDemo) {
-      this.useDemoData();
-      return;
+  ngOnDestroy() {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
     }
+    if (this.pickupSubscription) {
+      this.pickupSubscription.unsubscribe();
+    }
+  }
 
-    this.pickupService.getPickups({ page: 0, limit: 20 }).subscribe(
-      (res: { content: PickupRecord[] }) => {
-        const items = res.content || [];
-        this.dataSource.data = items;
-        this.usingDemo = items.length === 0;
-        if (!items || items.length === 0) {
-          this.useDemoData();
-        }
-      },
-      () => {
-        this.useDemoData();
+  // Check for highlight parameter from navigation
+  private checkForHighlight() {
+    this.route.queryParams.subscribe(params => {
+      if (params['highlight']) {
+        this.highlightedPickupId = params['highlight'];
+        // Remove highlight after 5 seconds
+        setTimeout(() => {
+          this.highlightedPickupId = null;
+          // Remove query param
+          this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { highlight: null },
+            queryParamsHandling: 'merge'
+          });
+        }, 5000);
       }
-    );
+    });
   }
 
-  private useDemoData(): void {
-    this.dataSource.data = this.demoData;
-    this.usingDemo = true;
+  // Subscribe to real-time pickup updates
+  private subscribeToPickupUpdates() {
+    this.pickupSubscription = this.pickupService.pickupsUpdated$.subscribe(pickups => {
+      this.updateDataSource(pickups);
+      this.updateStats();
+      this.lastRefresh = new Date();
+    });
   }
 
-  applyFilter(event: Event): void {
+  // Setup auto-refresh timer
+  private setupAutoRefresh() {
+    if (this.autoRefresh) {
+      this.refreshInterval = (setInterval(() => {
+        this.refreshPickups();
+      }, 30000) as unknown) as number; // Refresh every 30 seconds
+    }
+  }
+
+  toggleAutoRefresh() {
+    this.autoRefresh = !this.autoRefresh;
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = undefined;
+    }
+    if (this.autoRefresh) {
+      this.setupAutoRefresh();
+    }
+  }
+
+  refreshPickups() {
+    this.loadPickups();
+  }
+
+  loadPickups() {
+    this.pickupService.getPickups().subscribe({
+      next: (response) => {
+        this.updateDataSource(response.content);
+        this.updateStats();
+        this.lastRefresh = new Date();
+      },
+      error: (error) => {
+        console.error('Error loading pickups:', error);
+      }
+    });
+  }
+
+  private updateDataSource(pickups: PickupRecord[]) {
+    this.dataSource.data = pickups;
+    this.totalPickups = pickups.length;
+  }
+
+  private updateStats() {
+    const data = this.dataSource.data;
+    this.scheduledCount = data.filter(p => p.status === 'scheduled').length;
+    this.inProgressCount = data.filter(p => p.status === 'in-progress').length;
+  }
+
+  navigateToSchedule() {
+    this.router.navigate(['/pickup']);
+  }
+
+  // Open details for a pickup (demo: route with view param)
+  openDetails(row: PickupRecord) {
+    // Navigate to same list with a view flag so UI can open a modal or scroll
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { highlight: row.id, view: 'true' },
+      queryParamsHandling: 'merge'
+    });
+  }
+
+  // Edit a scheduled pickup: navigate to schedule page with edit param
+  editPickup(row: PickupRecord) {
+    this.router.navigate(['/pickup'], { queryParams: { edit: row.id } });
+  }
+
+  applyFilter(event: Event, column: string) {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSource.filter = filterValue.trim().toLowerCase();
+
     if (this.dataSource.paginator) {
       this.dataSource.paginator.firstPage();
     }
   }
 
-  applyColumnFilter(event: Event, column: string): void {
-    const value = (event.target as HTMLInputElement).value || '';
-    this.columnFilters[column] = value.trim().toLowerCase();
-    // Create a JSON-encoded filter object consumed by filterPredicate
-    this.dataSource.filter = JSON.stringify(this.columnFilters);
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
-  }
-
-  applyDateFilter(date: Date | null): void {
-    if (!date) {
-      delete this.columnFilters['schedule'];
-    } else {
-      const iso = date.toISOString().slice(0, 10); // YYYY-MM-DD
-      this.columnFilters['schedule'] = iso;
-    }
-    this.dataSource.filter = JSON.stringify(this.columnFilters);
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'scheduled': return 'bg-yellow-100 text-yellow-800';
+      case 'in-progress': return 'bg-blue-100 text-blue-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'delayed': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   }
 }

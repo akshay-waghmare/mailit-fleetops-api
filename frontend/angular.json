@@ -154,5 +154,8 @@
     "@angular/cli:pipe": {
       "standalone": true
     }
+  },
+  "cli": {
+    "analytics": "991cf15e-05cf-40f1-b58b-1ebbee3be545"
   }
 }

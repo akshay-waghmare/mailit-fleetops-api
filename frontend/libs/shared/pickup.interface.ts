@@ -33,6 +33,36 @@ export interface PickupRecord {
   rating?: number;
 }
 
+// Interface for data coming from Schedule Pickup component
+export interface SchedulePickupData {
+  client: {
+    id: string;
+    clientName: string;
+    clientCompany?: string;
+    address: string;
+    contactNumber?: string;
+  };
+  itemCount: number;
+  totalWeight: number;
+  itemDescription?: string;
+  specialInstructions?: string;
+  pickupType: 'vendor' | 'direct';
+  carrier?: {
+    id: string;
+    name: string;
+    price: number;
+    estimatedPickup: string;
+  };
+  employee: {
+    id: string;
+    name: string;
+    employeeId: string;
+    department?: string;
+  };
+  pickupDate?: string;
+  pickupTime?: string;
+}
+
 export interface PickupQueryParams {
   page?: number;
   limit?: number;
