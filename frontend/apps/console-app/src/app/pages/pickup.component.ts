@@ -1268,17 +1268,23 @@ export class PickupComponent implements OnInit {
             });
           });
           
-          // Also show detailed alert
-          alert(`✅ Internal pickup confirmed successfully!
-            
-Client: ${this.selectedClient!.clientName}
-Pickup Staff: ${this.selectedEmployee!.name}
-Pickup Type: Direct/Internal
-Items: ${this.pickupForm.get('itemCount')?.value} (${this.pickupForm.get('weight')?.value}kg)
-            
-Pickup ID: ${createdPickup.pickupId}
-
-✨ The pickup has been added to your management list!`);
+          // Show additional detailed notification with better UX
+          setTimeout(() => {
+            this.snackBar.open(
+              `Pickup assigned to ${this.selectedEmployee!.name} • ${this.pickupForm.get('itemCount')?.value} items (${this.pickupForm.get('weight')?.value}kg) • Type: Direct/Internal`,
+              'View List',
+              {
+                duration: 6000,
+                panelClass: ['info-snackbar'],
+                horizontalPosition: 'right',
+                verticalPosition: 'top'
+              }
+            ).onAction().subscribe(() => {
+              this.router.navigate(['/pickup-list'], { 
+                queryParams: { highlight: createdPickup.id } 
+              });
+            });
+          }, 1500);
           
           // Reset form for next pickup
           this.resetForm();
@@ -1408,18 +1414,23 @@ Pickup ID: ${createdPickup.pickupId}
             });
           });
           
-          // Also show detailed alert
-          alert(`🚚 Pickup scheduled successfully!
-            
-Client: ${this.selectedClient!.clientName}
-Service: ${this.selectedCarrier!.name}
-Fee: ₹${this.selectedCarrier!.price}
-Estimated Pickup: ${this.selectedCarrier!.estimatedPickup}
-Pickup Staff: ${this.selectedEmployee!.name}
-            
-Pickup ID: ${createdPickup.pickupId}
-
-✨ The pickup has been added to your management list!`);
+          // Show additional detailed notification with service information
+          setTimeout(() => {
+            this.snackBar.open(
+              `Service: ${this.selectedCarrier!.name} • Fee: ₹${this.selectedCarrier!.price} • Staff: ${this.selectedEmployee!.name}`,
+              'View Details',
+              {
+                duration: 8000,
+                panelClass: ['info-snackbar'],
+                horizontalPosition: 'right',
+                verticalPosition: 'top'
+              }
+            ).onAction().subscribe(() => {
+              this.router.navigate(['/pickup-list'], { 
+                queryParams: { highlight: createdPickup.id } 
+              });
+            });
+          }, 1500);
           
           // Reset form for next pickup
           this.resetForm();

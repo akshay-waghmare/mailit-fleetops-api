@@ -6,6 +6,10 @@
 @use 'tailwindcss/components';
 @use 'tailwindcss/utilities';
 
+/* Material Icons font - using @import after @use rules */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap');
+
 @include mat.core();
 
 // Define FleetOps color palette

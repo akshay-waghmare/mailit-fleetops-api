@@ -128,9 +128,16 @@ export class PickupService {
       // Apply sorting
       if (params.sortBy) {
         filteredPickups.sort((a, b) => {
-          const aVal = (a as any)[params.sortBy!];
-          const bVal = (b as any)[params.sortBy!];
+          const sortKey = params.sortBy as keyof PickupRecord;
+          const aVal = a[sortKey];
+          const bVal = b[sortKey];
           const order = params.sortOrder === 'desc' ? -1 : 1;
+          
+          // Handle undefined values - treat them as lowest priority
+          if (aVal == null && bVal == null) return 0;
+          if (aVal == null) return order; // null values go to end
+          if (bVal == null) return -order;
+          
           return aVal < bVal ? -order : aVal > bVal ? order : 0;
         });
       }
@@ -278,8 +285,15 @@ export class PickupService {
 
   // Check if running in demo mode (frontend-only)
   private isDemoMode(): boolean {
-    // Check if we're in development or if API is not available
-    return true; // Always use demo mode for frontend-only testing
+    // Use configuration service to determine demo mode based on environment
+    // Demo mode is enabled in development environment
+    try {
+      return this.configService?.isDevelopment ?? true;
+    } catch (e) {
+      // If ConfigService access fails, default to demo mode for safety
+      console.warn('Failed to read environment from ConfigService, defaulting to demo mode:', e);
+      return true;
+    }
   }
 
 }
