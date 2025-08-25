@@ -7,6 +7,8 @@ export const routes: Routes = [
   { path: 'places', loadComponent: () => import('./pages/places.component').then(m => m.PlacesComponent) },
   { path: 'geofences', loadComponent: () => import('./pages/geofences.component').then(m => m.GeofencesComponent) },
   { path: 'orders', loadComponent: () => import('./pages/orders.component').then(m => m.OrdersComponent) },
+  { path: 'order-list', loadComponent: () => import('./pages/order-list.component').then(m => m.OrderListComponent) },
+  { path: 'order-analytics', loadComponent: () => import('./pages/order-analytics.component').then(m => m.OrderAnalyticsComponent) },
   { path: 'pickup', loadComponent: () => import('./pages/pickup.component').then(m => m.PickupComponent) },
   { path: 'pickup-list', loadComponent: () => import('./pages/pickup-list.component').then(m => m.PickupListComponent) },
   // If your file lives in a pickup-analytics folder, point to that file:
