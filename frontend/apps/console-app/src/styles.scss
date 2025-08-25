@@ -6,6 +6,10 @@
 @use 'tailwindcss/components';
 @use 'tailwindcss/utilities';
 
+/* Material Icons font - using @import after @use rules */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap');
+
 @include mat.core();
 
 // Define FleetOps color palette
@@ -26,6 +30,25 @@ $fleet-theme: mat.m2-define-light-theme((
 
 // Include theme styles for core and each component used
 @include mat.all-component-themes($fleet-theme);
+
+/* Custom Snackbar Styles for Pickup Integration */
+.success-snackbar {
+  --mdc-snackbar-container-color: #10b981 !important;
+  --mdc-snackbar-supporting-text-color: #ffffff !important;
+  --mat-snack-bar-button-color: #ffffff !important;
+}
+
+.error-snackbar {
+  --mdc-snackbar-container-color: #ef4444 !important;
+  --mdc-snackbar-supporting-text-color: #ffffff !important;
+  --mat-snack-bar-button-color: #ffffff !important;
+}
+
+.warning-snackbar {
+  --mdc-snackbar-container-color: #f59e0b !important;
+  --mdc-snackbar-supporting-text-color: #ffffff !important;
+  --mat-snack-bar-button-color: #ffffff !important;
+}
 
 /* MapLibre GL JS CSS */
 @import 'maplibre-gl/dist/maplibre-gl.css';

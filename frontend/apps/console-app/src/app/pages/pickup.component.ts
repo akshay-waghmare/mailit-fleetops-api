@@ -2,6 +2,7 @@ import { Component, OnInit, ViewChild, ChangeDetectorRef, NgZone } from '@angula
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 // Angular Material imports
 import { MatStepperModule, MatStepper } from '@angular/material/stepper';
@@ -14,6 +15,11 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+
+// Services
+import { PickupService } from '../../../../../libs/shared/pickup.service';
+import { SchedulePickupData } from '../../../../../libs/shared/pickup.interface';
 
 interface PickupCarrierOption {
   id: string;
@@ -70,7 +76,8 @@ interface Employee {
     MatChipsModule,
     MatProgressSpinnerModule,
     MatIconModule,
-    MatRadioModule
+    MatRadioModule,
+    MatSnackBarModule
   ],
   template: `
     <!-- Modern Layout with Tailwind + Material -->
@@ -1020,7 +1027,10 @@ export class PickupComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private pickupService: PickupService,
+    private router: Router,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit() {
@@ -1211,29 +1221,99 @@ export class PickupComponent implements OnInit {
 
   confirmDirectPickup() {
     if (this.pickupForm.valid && this.selectedClient && this.selectedEmployee) {
-      const pickupData = {
-        ...this.pickupForm.value,
-        client: this.selectedClient,
-        employee: this.selectedEmployee,
-        pickupId: this.generatePickupId(),
-        pickupType: 'Direct/Internal'
+      const scheduleData: SchedulePickupData = {
+        client: {
+          id: this.selectedClient.id,
+          clientName: this.selectedClient.clientName,
+          clientCompany: this.selectedClient.subContractCode,
+          address: this.selectedClient.address,
+          contactNumber: this.selectedClient.contactPerson
+        },
+        itemCount: parseInt(this.pickupForm.value.itemCount) || 1,
+        totalWeight: parseFloat(this.pickupForm.value.weight) || 0,
+        itemDescription: this.pickupForm.value.itemDescription || '',
+        specialInstructions: this.pickupForm.value.specialInstructions || '',
+        pickupType: 'direct',
+        employee: {
+          id: this.selectedEmployee.id,
+          name: this.selectedEmployee.name,
+          employeeId: this.selectedEmployee.employeeId,
+          department: 'Operations'
+        },
+        pickupDate: new Date().toISOString().split('T')[0],
+        pickupTime: '10:00 AM'
       };
       
-      console.log('Direct pickup confirmed:', pickupData);
-      
-      alert(`✅ Internal pickup confirmed successfully!
-        
-Client: ${this.selectedClient.clientName}
-Pickup Staff: ${this.selectedEmployee.name}
-Pickup Type: Direct/Internal
-Items: ${this.pickupForm.get('itemCount')?.value} (${this.pickupForm.get('weight')?.value}kg)
-        
-Pickup ID: ${pickupData.pickupId}`);
-      
-      // Reset form for next pickup
-      this.resetForm();
+      // Call the pickup service to create the pickup
+      this.pickupService.createPickup(scheduleData).subscribe({
+        next: (createdPickup) => {
+          console.log('Direct pickup created successfully:', createdPickup);
+          
+          // Show success notification with navigation option
+          const snackBarRef = this.snackBar.open(
+            `✅ Direct pickup ${createdPickup.pickupId} confirmed successfully!`, 
+            'View All Pickups', 
+            {
+              duration: 10000,
+              horizontalPosition: 'right',
+              verticalPosition: 'top',
+              panelClass: ['success-snackbar']
+            }
+          );
+          
+          // Navigate to pickup list when user clicks the action button
+          snackBarRef.onAction().subscribe(() => {
+            this.router.navigate(['/pickup-list'], { 
+              queryParams: { highlight: createdPickup.id } 
+            });
+          });
+          
+          // Show additional detailed notification with better UX
+          setTimeout(() => {
+            this.snackBar.open(
+              `Pickup assigned to ${this.selectedEmployee!.name} • ${this.pickupForm.get('itemCount')?.value} items (${this.pickupForm.get('weight')?.value}kg) • Type: Direct/Internal`,
+              'View List',
+              {
+                duration: 6000,
+                panelClass: ['info-snackbar'],
+                horizontalPosition: 'right',
+                verticalPosition: 'top'
+              }
+            ).onAction().subscribe(() => {
+              this.router.navigate(['/pickup-list'], { 
+                queryParams: { highlight: createdPickup.id } 
+              });
+            });
+          }, 1500);
+          
+          // Reset form for next pickup
+          this.resetForm();
+        },
+        error: (error) => {
+          console.error('Error creating direct pickup:', error);
+          this.snackBar.open(
+            '❌ Failed to confirm direct pickup. Please try again.', 
+            'Close', 
+            {
+              duration: 5000,
+              horizontalPosition: 'right',
+              verticalPosition: 'top',
+              panelClass: ['error-snackbar']
+            }
+          );
+        }
+      });
     } else {
-      alert('❌ Please fill all required fields and select pickup staff.');
+      this.snackBar.open(
+        '❌ Please fill all required fields and select pickup staff.', 
+        'Close', 
+        {
+          duration: 5000,
+          horizontalPosition: 'right',
+          verticalPosition: 'top',
+          panelClass: ['warning-snackbar']
+        }
+      );
     }
   }
 
@@ -1281,31 +1361,105 @@ Pickup ID: ${pickupData.pickupId}`);
 
   confirmPickup() {
     if (this.pickupForm.valid && this.selectedClient && this.selectedCarrier && this.selectedEmployee) {
-      const pickupData = {
-        ...this.pickupForm.value,
-        client: this.selectedClient,
-        carrier: this.selectedCarrier,
-        employee: this.selectedEmployee,
-        pickupId: this.generatePickupId(),
-        pickupType: 'Vendor'
+      const scheduleData: SchedulePickupData = {
+        client: {
+          id: this.selectedClient.id,
+          clientName: this.selectedClient.clientName,
+          clientCompany: this.selectedClient.subContractCode,
+          address: this.selectedClient.address,
+          contactNumber: this.selectedClient.contactPerson
+        },
+        itemCount: parseInt(this.pickupForm.value.itemCount) || 1,
+        totalWeight: parseFloat(this.pickupForm.value.weight) || 0,
+        itemDescription: this.pickupForm.value.itemDescription || '',
+        specialInstructions: this.pickupForm.value.specialInstructions || '',
+        pickupType: this.pickupForm.value.isVendorType ? 'vendor' : 'direct',
+        carrier: {
+          id: this.selectedCarrier.id,
+          name: this.selectedCarrier.name,
+          price: this.selectedCarrier.price,
+          estimatedPickup: this.selectedCarrier.estimatedPickup
+        },
+        employee: {
+          id: this.selectedEmployee.id,
+          name: this.selectedEmployee.name,
+          employeeId: this.selectedEmployee.employeeId,
+          department: 'Operations'
+        },
+        pickupDate: new Date().toISOString().split('T')[0],
+        pickupTime: this.selectedCarrier.estimatedPickup
       };
       
-      console.log('Vendor pickup scheduled:', pickupData);
-      
-      alert(`🚚 Vendor pickup scheduled successfully!
-        
-Client: ${this.selectedClient.clientName}
-Service: ${this.selectedCarrier.name}
-Fee: ₹${this.selectedCarrier.price}
-Estimated Pickup: ${this.selectedCarrier.estimatedPickup}
-Pickup Staff: ${this.selectedEmployee.name}
-        
-Pickup ID: ${pickupData.pickupId}`);
-      
-      // Reset form for next pickup
-      this.resetForm();
+      // Call the pickup service to create the pickup
+      this.pickupService.createPickup(scheduleData).subscribe({
+        next: (createdPickup) => {
+          console.log('Pickup created successfully:', createdPickup);
+          
+          // Show success notification with navigation option
+          const snackBarRef = this.snackBar.open(
+            `🚚 Pickup ${createdPickup.pickupId} scheduled successfully!`, 
+            'View All Pickups', 
+            {
+              duration: 10000,
+              horizontalPosition: 'right',
+              verticalPosition: 'top',
+              panelClass: ['success-snackbar']
+            }
+          );
+          
+          // Navigate to pickup list when user clicks the action button
+          snackBarRef.onAction().subscribe(() => {
+            this.router.navigate(['/pickup-list'], { 
+              queryParams: { highlight: createdPickup.id } 
+            });
+          });
+          
+          // Show additional detailed notification with service information
+          setTimeout(() => {
+            this.snackBar.open(
+              `Service: ${this.selectedCarrier!.name} • Fee: ₹${this.selectedCarrier!.price} • Staff: ${this.selectedEmployee!.name}`,
+              'View Details',
+              {
+                duration: 8000,
+                panelClass: ['info-snackbar'],
+                horizontalPosition: 'right',
+                verticalPosition: 'top'
+              }
+            ).onAction().subscribe(() => {
+              this.router.navigate(['/pickup-list'], { 
+                queryParams: { highlight: createdPickup.id } 
+              });
+            });
+          }, 1500);
+          
+          // Reset form for next pickup
+          this.resetForm();
+        },
+        error: (error) => {
+          console.error('Error creating pickup:', error);
+          this.snackBar.open(
+            '❌ Failed to schedule pickup. Please try again.', 
+            'Close', 
+            {
+              duration: 5000,
+              horizontalPosition: 'right',
+              verticalPosition: 'top',
+              panelClass: ['error-snackbar']
+            }
+          );
+        }
+      });
     } else {
-      alert('❌ Please fill all required fields, select a pickup service, and assign pickup staff.');
+      this.snackBar.open(
+        '❌ Please fill all required fields, select a pickup service, and assign pickup staff.', 
+        'Close', 
+        {
+          duration: 5000,
+          horizontalPosition: 'right',
+          verticalPosition: 'top',
+          panelClass: ['warning-snackbar']
+        }
+      );
     }
   }
 
