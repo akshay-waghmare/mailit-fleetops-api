@@ -2,6 +2,7 @@ import { Component, OnInit, ViewChild, ChangeDetectorRef, NgZone } from '@angula
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 // Angular Material imports
 import { MatStepperModule, MatStepper } from '@angular/material/stepper';
@@ -13,6 +14,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+
+// Order Management imports
+import { OrderService, CreateOrderData } from '../../../../../libs/shared';
 
 interface CarrierOption {
   id: string;
@@ -58,7 +63,8 @@ interface Client {
     MatButtonModule,
     MatChipsModule,
     MatProgressSpinnerModule,
-    MatIconModule
+    MatIconModule,
+    MatSnackBarModule
   ],
   template: `
     <!-- Modern Layout with Tailwind + Material -->
@@ -876,7 +882,14 @@ export class OrdersComponent implements OnInit {
     }
   ];
 
-  constructor(private fb: FormBuilder, private cdr: ChangeDetectorRef, private ngZone: NgZone) {}
+  constructor(
+    private fb: FormBuilder, 
+    private cdr: ChangeDetectorRef, 
+    private ngZone: NgZone,
+    private router: Router,
+    private snackBar: MatSnackBar,
+    private orderService: OrderService
+  ) {}
 
   ngOnInit() {
     this.initializeForm();
@@ -1301,21 +1314,123 @@ export class OrdersComponent implements OnInit {
   }
 
   bookShipment() {
-    if (this.orderForm.valid && this.selectedCarrier?.serviceable) {
+    if (this.orderForm.valid && this.selectedCarrier?.serviceable && this.selectedClient) {
       const formData = this.orderForm.value;
-      console.log('Booking shipment:', {
-        ...formData,
-        client: this.selectedClient,
-        carrier: this.selectedCarrier,
-        trackingId: this.trackingId
+      
+      // Create order data for the OrderService
+      const orderData: CreateOrderData = {
+        client: {
+          id: this.selectedClient.id,
+          clientName: this.selectedClient.clientName,
+          clientCompany: this.selectedClient.clientName, // Using clientName as company for demo
+          contactNumber: this.selectedClient.contactPerson
+        },
+        sender: {
+          name: formData.senderName || this.selectedClient.contactPerson,
+          address: formData.senderAddress || this.selectedClient.address,
+          contact: formData.senderContact || this.selectedClient.contactPerson
+        },
+        receiver: {
+          name: formData.receiverName,
+          address: formData.receiverAddress,
+          contact: formData.receiverContact,
+          pincode: formData.receiverPincode,
+          city: formData.receiverCity
+        },
+        package: {
+          itemCount: parseInt(formData.itemCount) || 1,
+          totalWeight: parseFloat(formData.actualWeight) || 1,
+          dimensions: formData.length && formData.width && formData.height ? {
+            length: parseFloat(formData.length),
+            width: parseFloat(formData.width),
+            height: parseFloat(formData.height)
+          } : undefined,
+          itemDescription: formData.itemDescription,
+          declaredValue: parseFloat(formData.declaredValue) || undefined
+        },
+        service: {
+          serviceType: this.getServiceType(this.selectedCarrier.type || 'standard'),
+          carrier: {
+            id: this.selectedCarrier.id,
+            name: this.selectedCarrier.name,
+            price: this.selectedCarrier.price
+          }
+        },
+        specialInstructions: formData.specialInstructions,
+        codAmount: formData.codAmount ? parseFloat(formData.codAmount) : undefined
+      };
+
+      // Create the order using OrderService
+      this.orderService.createOrder(orderData).subscribe({
+        next: (createdOrder) => {
+          console.log('Order created successfully:', createdOrder);
+          
+          // Show success message with navigation options
+          const snackBarRef = this.snackBar.open(
+            `🚀 Order ${createdOrder.orderId} created successfully!`,
+            'View Orders',
+            {
+              duration: 5000,
+              horizontalPosition: 'right',
+              verticalPosition: 'top',
+              panelClass: ['success-snackbar']
+            }
+          );
+
+          // Handle navigation to order management
+          snackBarRef.onAction().subscribe(() => {
+            this.router.navigate(['/order-list'], { 
+              queryParams: { highlight: createdOrder.id } 
+            });
+          });
+
+          // Reset form after successful creation
+          this.resetForm();
+          
+          // Generate new tracking ID for next order
+          this.generateTrackingId();
+        },
+        error: (error) => {
+          console.error('Error creating order:', error);
+          this.snackBar.open(
+            '❌ Failed to create order. Please try again.',
+            'Close',
+            {
+              duration: 3000,
+              horizontalPosition: 'right',
+              verticalPosition: 'top',
+              panelClass: ['error-snackbar']
+            }
+          );
+        }
       });
-      
-      alert(`🚀 Shipment booked successfully!\nClient: ${this.selectedClient?.clientName}\nTracking ID: ${this.trackingId}\nCarrier: ${this.selectedCarrier.name}\nEstimated Delivery: ${this.selectedCarrier.estimatedDelivery}`);
-      
-      this.generateTrackingId();
     } else {
-      alert('❌ Please fill all required fields, select a client, and choose a serviceable carrier.');
+      this.snackBar.open(
+        '❌ Please fill all required fields, select a client, and choose a serviceable carrier.',
+        'Close',
+        {
+          duration: 3000,
+          horizontalPosition: 'right',
+          verticalPosition: 'top',
+          panelClass: ['warning-snackbar']
+        }
+      );
     }
+  }
+
+  private getServiceType(carrierType: string): 'express' | 'standard' | 'economy' {
+    const type = carrierType.toLowerCase();
+    if (type.includes('express')) return 'express';
+    if (type.includes('economy')) return 'economy';
+    return 'standard';
+  }
+
+  private resetForm(): void {
+    this.orderForm.reset();
+    this.selectedCarrier = null;
+    this.selectedClient = null;
+    this.resetServiceability();
+    this.initializeForm();
   }
 
   saveAsDraft() {

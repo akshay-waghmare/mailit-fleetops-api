@@ -33,7 +33,7 @@ export interface Geofence {
   organizationId: string;
   name: string;
   description?: string;
-  geometry: GeoJSON.Polygon | GeoJSON.Circle;
+  geometry: GeoJSON.Polygon;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
