@@ -28,6 +28,8 @@ public class PickupServiceImpl implements PickupService {
         p.setClientName(dto.clientId != null ? String.valueOf(dto.clientId) : null);
         if (dto.pickupDate != null) p.setPickupDate(LocalDate.parse(dto.pickupDate));
         p.setPickupAddress(dto.pickupAddress);
+    if (dto.assignedStaffId != null) p.setAssignedStaffId(dto.assignedStaffId);
+    if (dto.assignedStaffName != null) p.setAssignedStaffName(dto.assignedStaffName);
         p.setStatus("scheduled");
         p.setCreatedAt(Instant.now());
         p.setUpdatedAt(Instant.now());
@@ -52,6 +54,7 @@ public class PickupServiceImpl implements PickupService {
         d.pickupAddress = p.getPickupAddress();
         d.pickupDate = p.getPickupDate() != null ? p.getPickupDate().toString() : null;
         d.pickupTime = p.getPickupTime() != null ? p.getPickupTime().toString() : null;
+    d.assignedStaff = p.getAssignedStaffName();
         return d;
     }
 }

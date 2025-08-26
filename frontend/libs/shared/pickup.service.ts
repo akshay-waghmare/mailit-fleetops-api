@@ -84,7 +84,8 @@ export class PickupService {
       totalWeight: scheduleData.totalWeight,
       itemsDescription: scheduleData.itemDescription || '',
       carrierId: scheduleData.carrier?.id || null,
-      assignedStaffId: parseInt(scheduleData.employee.id) || null
+  assignedStaffId: parseInt(scheduleData.employee.id) || null,
+  assignedStaffName: scheduleData.employee.name
     };
 
     return this.http.post<any>(`${this.baseUrl}/v1/pickups`, createPickupDto, {
@@ -294,6 +295,20 @@ export class PickupService {
 
   // Map a single backend pickup to frontend format (for list view)
   private mapBackendPickupToFrontend(backendPickup: any): PickupRecord {
+    // Normalize assigned staff: backend may return a string or an object.
+    const assignedStaffName = (() => {
+      const s = backendPickup.assignedStaff;
+      if (!s) {
+        // Try common alternative fields that some APIs use
+        return backendPickup.assignedStaffName || backendPickup.assignedStaffFullName || 'Unassigned';
+      }
+      if (typeof s === 'string') return s;
+      if (typeof s === 'object') {
+        return s.name || s.fullName || `${s.firstName || ''} ${s.lastName || ''}`.trim() || backendPickup.assignedStaffName || 'Unassigned';
+      }
+      return 'Unassigned';
+    })();
+
     return {
       id: String(backendPickup.id),
       pickupId: backendPickup.pickupId,
@@ -309,7 +324,7 @@ export class PickupService {
       pickupType: backendPickup.pickupType || 'vendor',
       carrierName: '',
       carrierId: backendPickup.carrierId || '',
-      assignedStaff: backendPickup.assignedStaff || 'Unassigned',
+      assignedStaff: assignedStaffName,
       staffId: String(backendPickup.assignedStaffId || ''),
       staffDepartment: 'Operations',
       pickupDate: backendPickup.pickupDate,

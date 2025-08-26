@@ -28,6 +28,7 @@ public class Pickup {
     private LocalTime pickupTime;
     private String status;
     private Long assignedStaffId;
+    private String assignedStaffName;
     private Integer itemsCount;
     private BigDecimal totalWeight;
     private String carrierId;
@@ -57,6 +58,8 @@ public class Pickup {
     public void setStatus(String status) { this.status = status; }
     public Long getAssignedStaffId() { return assignedStaffId; }
     public void setAssignedStaffId(Long assignedStaffId) { this.assignedStaffId = assignedStaffId; }
+    public String getAssignedStaffName() { return assignedStaffName; }
+    public void setAssignedStaffName(String assignedStaffName) { this.assignedStaffName = assignedStaffName; }
     public Integer getItemsCount() { return itemsCount; }
     public void setItemsCount(Integer itemsCount) { this.itemsCount = itemsCount; }
     public BigDecimal getTotalWeight() { return totalWeight; }

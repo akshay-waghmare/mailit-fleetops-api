@@ -14,6 +14,7 @@ public class PickupDto {
     public String pickupDate;
     public String pickupTime;
     public String assignedStaff;
+    public String assignedStaffName;
     public BigDecimal estimatedCost;
     // getters/setters omitted for brevity
 }

@@ -13,5 +13,6 @@ public class CreatePickupDto {
     public String itemsDescription;
     public String carrierId;
     public Long assignedStaffId;
+    public String assignedStaffName;
     // getters/setters omitted for brevity
 }
