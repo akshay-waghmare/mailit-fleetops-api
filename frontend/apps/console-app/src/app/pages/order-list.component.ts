@@ -9,12 +9,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCardModule } from '@angular/material/card';
-import { MatSelectModule } from '@angular/material/select';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { Subscription } from 'rxjs';
@@ -33,12 +32,11 @@ import { OrderService, OrderRecord, OrderQueryParams } from '../../../../../libs
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatChipsModule,
     MatTooltipModule,
     MatCardModule,
-    MatSelectModule,
     MatMenuModule,
     MatDividerModule
   ],
@@ -306,17 +304,11 @@ import { OrderService, OrderRecord, OrderQueryParams } from '../../../../../libs
                     <th mat-header-cell *matHeaderCellDef mat-sort-header class="font-semibold text-slate-700">Service</th>
                     <td mat-cell *matCellDef="let order" class="py-4">
                       <div>
-                        <mat-chip-listbox>
-                          <mat-chip-option 
-                            [ngClass]="{
-                              'bg-red-100 text-red-800': order.serviceType === 'express',
-                              'bg-blue-100 text-blue-800': order.serviceType === 'standard',
-                              'bg-green-100 text-green-800': order.serviceType === 'economy'
-                            }" 
-                            class="text-xs font-medium">
-                            {{order.serviceType | titlecase}}
-                          </mat-chip-option>
-                        </mat-chip-listbox>
+                        <span class="inline-flex items-center px-3 py-1 text-sm rounded-full font-medium" 
+                              [ngClass]="getServiceClass(order.serviceType)">
+                          <mat-icon class="mr-1" style="font-size: 16px;">{{getServiceIcon(order.serviceType)}}</mat-icon>
+                          {{order.serviceType | titlecase}}
+                        </span>
                         <div class="text-sm text-slate-500 mt-1">{{order.carrierName}}</div>
                         <div class="text-xs text-slate-400" *ngIf="order.trackingNumber">{{order.trackingNumber}}</div>
                       </div>
@@ -327,21 +319,11 @@ import { OrderService, OrderRecord, OrderQueryParams } from '../../../../../libs
                   <ng-container matColumnDef="status">
                     <th mat-header-cell *matHeaderCellDef mat-sort-header class="font-semibold text-slate-700">Status</th>
                     <td mat-cell *matCellDef="let order" class="py-4">
-                      <mat-chip-listbox>
-                        <mat-chip-option 
-                          [ngClass]="{
-                            'bg-yellow-100 text-yellow-800': order.status === 'pending',
-                            'bg-blue-100 text-blue-800': order.status === 'confirmed',
-                            'bg-purple-100 text-purple-800': order.status === 'picked-up',
-                            'bg-cyan-100 text-cyan-800': order.status === 'in-transit',
-                            'bg-green-100 text-green-800': order.status === 'delivered',
-                            'bg-red-100 text-red-800': order.status === 'cancelled',
-                            'bg-orange-100 text-orange-800': order.status === 'returned'
-                          }" 
-                          class="text-xs font-medium">
-                          {{order.status | titlecase}}
-                        </mat-chip-option>
-                      </mat-chip-listbox>
+                      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                            [ngClass]="getStatusClass(order.status)">
+                        <span class="w-2 h-2 rounded-full mr-2" [ngClass]="getStatusDotClass(order.status)"></span>
+                        {{order.status | titlecase}}
+                      </span>
                       <div class="text-xs text-slate-500 mt-1">{{order.statusUpdatedAt | date:'MMM dd, HH:mm'}}</div>
                     </td>
                   </ng-container>
@@ -371,18 +353,10 @@ import { OrderService, OrderRecord, OrderQueryParams } from '../../../../../libs
                       <div>
                         <div class="font-medium text-slate-900">₹{{order.estimatedCost}}</div>
                         <div class="text-sm text-slate-500" *ngIf="order.codAmount">COD: ₹{{order.codAmount}}</div>
-                        <mat-chip-listbox class="mt-1">
-                          <mat-chip-option 
-                            [ngClass]="{
-                              'bg-yellow-100 text-yellow-800': order.paymentStatus === 'pending',
-                              'bg-green-100 text-green-800': order.paymentStatus === 'paid',
-                              'bg-blue-100 text-blue-800': order.paymentStatus === 'cod',
-                              'bg-red-100 text-red-800': order.paymentStatus === 'failed'
-                            }" 
-                            class="text-xs">
-                            {{order.paymentStatus | titlecase}}
-                          </mat-chip-option>
-                        </mat-chip-listbox>
+                        <span class="inline-flex items-center px-2 py-1 text-xs rounded-full font-medium mt-1" 
+                              [ngClass]="getPaymentStatusClass(order.paymentStatus)">
+                          {{order.paymentStatus | titlecase}}
+                        </span>
                       </div>
                     </td>
                   </ng-container>
@@ -490,7 +464,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   dataSource = new MatTableDataSource<OrderRecord>([]);
   
   loading = false;
-  autoRefresh = false;
+  autoRefresh = true; // Enable auto-refresh by default like pickup-list
   lastRefresh = new Date();
   highlightedOrderId: string | null = null;
   
@@ -508,7 +482,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Subscriptions
   private subscriptions: Subscription[] = [];
-  private refreshInterval: any;
+  private refreshInterval?: ReturnType<typeof setInterval>;
 
   constructor(
     private orderService: OrderService,
@@ -517,24 +491,23 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.loadOrders();
     this.loadAnalytics();
+    this.setupAutoRefresh();
     this.checkForHighlightedOrder();
   }
 
   ngAfterViewInit(): void {
-    if (this.paginator && this.sort) {
+    if (this.paginator) {
       this.dataSource.paginator = this.paginator;
+    }
+    if (this.sort) {
       this.dataSource.sort = this.sort;
+    }
+    
+    // Ensure data is loaded if not already done in ngOnInit
+    if (this.dataSource.data.length === 0) {
       this.loadOrders();
-    } else {
-      // Retry after a delay if elements aren't ready
-      setTimeout(() => {
-        if (this.paginator && this.sort) {
-          this.dataSource.paginator = this.paginator;
-          this.dataSource.sort = this.sort;
-          this.loadOrders();
-        }
-      }, 100);
     }
   }
 
@@ -542,6 +515,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
+      this.refreshInterval = undefined;
     }
   }
 
@@ -616,17 +590,25 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadAnalytics();
   }
 
-  toggleAutoRefresh(): void {
-    this.autoRefresh = !this.autoRefresh;
-    
+  // Setup auto-refresh timer
+  private setupAutoRefresh(): void {
     if (this.autoRefresh) {
       this.refreshInterval = setInterval(() => {
         this.refreshOrders();
       }, 30000); // Refresh every 30 seconds
-    } else {
-      if (this.refreshInterval) {
-        clearInterval(this.refreshInterval);
-      }
+    }
+  }
+
+  toggleAutoRefresh(): void {
+    this.autoRefresh = !this.autoRefresh;
+    
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = undefined;
+    }
+    
+    if (this.autoRefresh) {
+      this.setupAutoRefresh();
     }
   }
 
@@ -674,5 +656,60 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   cancelOrder(order: OrderRecord): void {
     // TODO: Confirm and cancel order
+  }
+
+  // Helper methods for chip styling
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'confirmed': return 'bg-blue-100 text-blue-800';
+      case 'picked-up': return 'bg-purple-100 text-purple-800';
+      case 'in-transit': return 'bg-cyan-100 text-cyan-800';
+      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'returned': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  getStatusDotClass(status: string): string {
+    switch (status) {
+      case 'pending': return 'bg-yellow-400';
+      case 'confirmed': return 'bg-blue-400';
+      case 'picked-up': return 'bg-purple-400';
+      case 'in-transit': return 'bg-cyan-400';
+      case 'delivered': return 'bg-green-400';
+      case 'cancelled': return 'bg-red-400';
+      case 'returned': return 'bg-orange-400';
+      default: return 'bg-gray-400';
+    }
+  }
+
+  getServiceClass(serviceType: string): string {
+    switch (serviceType) {
+      case 'express': return 'bg-red-100 text-red-800';
+      case 'standard': return 'bg-blue-100 text-blue-800';
+      case 'economy': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  getServiceIcon(serviceType: string): string {
+    switch (serviceType) {
+      case 'express': return 'flash_on';
+      case 'standard': return 'local_shipping';
+      case 'economy': return 'eco';
+      default: return 'local_shipping';
+    }
+  }
+
+  getPaymentStatusClass(paymentStatus: string): string {
+    switch (paymentStatus) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'paid': return 'bg-green-100 text-green-800';
+      case 'cod': return 'bg-blue-100 text-blue-800';
+      case 'failed': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   }
 }
