@@ -14,7 +14,7 @@ export interface AppConfig {
 })
 export class ConfigService {
   private config: AppConfig = {
-    apiBaseUrl: 'http://localhost:8081/api',
+  apiBaseUrl: 'http://localhost:8080/api',
     mapStyle: 'https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
     defaultMapCenter: [-74.0059, 40.7128], // New York City
     defaultMapZoom: 12,
