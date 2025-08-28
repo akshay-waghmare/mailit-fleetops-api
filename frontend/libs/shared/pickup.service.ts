@@ -11,10 +11,6 @@ import { ConfigService } from './config.service';
 export class PickupService {
   private readonly baseUrl: string;
   
-  // Demo data storage for frontend-only testing
-  private demoPickups: PickupRecord[] = [];
-  private pickupCounter = 1;
-  
   // Subject for real-time updates
   private pickupsUpdatedSubject = new BehaviorSubject<PickupRecord[]>([]);
   public pickupsUpdated$ = this.pickupsUpdatedSubject.asObservable();
@@ -24,10 +20,6 @@ export class PickupService {
     private configService: ConfigService
   ) {
     this.baseUrl = this.configService.apiBaseUrl;
-    // Initialize demo data only when running in demo mode
-    if (this.isDemoMode()) {
-      this.initializeDemoData();
-    }
   }
 
   getPickupById(id: string): Observable<PickupRecord> {
@@ -128,116 +120,9 @@ export class PickupService {
     );
   }
 
-  // Initialize demo data for testing
-  private initializeDemoData(): void {
-    const now = new Date();
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    
-    this.demoPickups = [
-      {
-        id: 'demo_pickup_1',
-        pickupId: 'PU000001',
-        clientName: 'TechCorp Industries',
-        clientCompany: 'TechCorp Industries Pvt Ltd',
-        clientId: 'client_1',
-        pickupAddress: 'Plot 123, Tech Park, Bangalore 560001',
-        contactNumber: '+91 9876543210',
-        itemCount: 3,
-        totalWeight: 15.5,
-        itemDescription: 'Electronic components, laptops',
-        specialInstructions: 'Handle with care - fragile items',
-        pickupType: 'vendor',
-        carrierName: 'FleetOps Express',
-        carrierId: 'carrier_1',
-        assignedStaff: 'Rajesh Kumar',
-        staffId: 'EMP001',
-        staffDepartment: 'Operations',
-        pickupDate: yesterday.toISOString().split('T')[0],
-        pickupTime: '2:30 PM',
-        estimatedDuration: 45,
-        status: 'completed',
-        statusUpdatedAt: yesterday,
-        statusUpdatedBy: 'Rajesh Kumar',
-        estimatedCost: 250,
-        actualCost: 250,
-        createdAt: yesterday,
-        updatedAt: yesterday,
-        createdBy: 'Demo User',
-        notes: 'Pickup completed successfully',
-        customerFeedback: 'Excellent service',
-        rating: 5
-      },
-      {
-        id: 'demo_pickup_2',
-        pickupId: 'PU000002',
-        clientName: 'Fashion Hub',
-        clientCompany: 'Fashion Hub Retail',
-        clientId: 'client_2',
-        pickupAddress: 'Shop 45, Commercial Street, Mumbai 400001',
-        contactNumber: '+91 9876543211',
-        itemCount: 8,
-        totalWeight: 32.0,
-        itemDescription: 'Clothing items, accessories',
-        specialInstructions: 'Multiple packages - count carefully',
-        pickupType: 'direct',
-        carrierName: 'Standard Delivery',
-        carrierId: 'carrier_2',
-        assignedStaff: 'Priya Sharma',
-        staffId: 'EMP002',
-        staffDepartment: 'Logistics',
-        pickupDate: now.toISOString().split('T')[0],
-        pickupTime: '11:00 AM',
-        estimatedDuration: 30,
-        status: 'in-progress',
-        statusUpdatedAt: now,
-        statusUpdatedBy: 'Priya Sharma',
-        estimatedCost: 180,
-        actualCost: 0,
-        createdAt: now,
-        updatedAt: now,
-        createdBy: 'Demo User',
-        notes: 'Pickup in progress'
-      },
-      {
-        id: 'demo_pickup_3',
-        pickupId: 'PU000003',
-        clientName: 'MedSupply Co',
-        clientCompany: 'MedSupply Corporation',
-        clientId: 'client_3',
-        pickupAddress: 'Building A1, Medical District, Delhi 110001',
-        contactNumber: '+91 9876543212',
-        itemCount: 5,
-        totalWeight: 8.2,
-        itemDescription: 'Medical supplies, equipment',
-        specialInstructions: 'Temperature sensitive - keep cool',
-        pickupType: 'vendor',
-        carrierName: 'Priority Express',
-        carrierId: 'carrier_3',
-        assignedStaff: 'Amit Patel',
-        staffId: 'EMP003',
-        staffDepartment: 'Special Handling',
-        pickupDate: now.toISOString().split('T')[0],
-        pickupTime: '3:00 PM',
-        estimatedDuration: 60,
-        status: 'scheduled',
-        statusUpdatedAt: now,
-        statusUpdatedBy: 'System',
-        estimatedCost: 320,
-        actualCost: 0,
-        createdAt: now,
-        updatedAt: now,
-        createdBy: 'Demo User',
-        notes: 'Scheduled for today afternoon'
-      }
-    ];
-    
-    this.pickupCounter = 4; // Next pickup will be PU000004
-    this.pickupsUpdatedSubject.next([...this.demoPickups]);
-  }
-
   // Check if running in demo mode (frontend-only)
   private isDemoMode(): boolean {
-    // Disable demo mode to use real backend
+    // Demo mode is now disabled - always use backend integration
     return false;
   }
 

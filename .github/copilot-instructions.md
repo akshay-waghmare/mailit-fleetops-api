@@ -1,19 +1,17 @@
-# Copilot instructions — Schedule Pickup + Pickup Management Integration
+# Copilot instructions — Order Management Dashboard Implementation
 Purpose
 -------
-Implement the integration between Schedule Pickup and Pickup Management components as described in `SCHEDULE-PICKUP-INTEGRATION-PLAN.md`. This creates a complete pickup workflow from scheduling to tracking and analytics.
+Implement a comprehensive Order Management system that mirrors the enhanced Pickup Management interface, providing consistent and professional user experience for managing delivery orders across the FleetOps platform.
 
 Quick Demo / Current Status
 ---------------------------
-**Phase 1 Complete** ✅ - Basic components implemented:
-- Schedule Pickup: http://localhost:4200/pickup (3-step stepper workflow)
-- Pickup Management: http://localhost:4200/pickup-list (Material table with filters)
-- Pickup Analytics: http://localhost:4200/pickup-analytics (basic stub)
+**Current State** ✅ - Basic order creation exists:
+- Order Creation: http://localhost:4200/orders (existing order scheduling component)
 
-**Next Phase** 🔄 - Integration implementation:
-- Link pickup creation to management list
-- Real-time updates and notifications  
-- Enhanced tracking and analytics
+**Target Implementation** 🎯 - Complete Order Management system:
+- Order Management List: http://localhost:4200/order-list (new management dashboard)
+- Order Analytics: http://localhost:4200/order-analytics (new analytics dashboard)
+- Order Detail Modal: Enhanced order viewing and editing capabilities
 
 Quick run steps (from repo root):
 ```bash
