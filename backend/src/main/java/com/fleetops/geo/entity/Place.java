@@ -31,7 +31,7 @@ public class Place {
     private String description;
 
     @NotNull
-    @Column(columnDefinition = "geometry(Point,4326)")
+    @Column(columnDefinition = "BLOB", nullable = false)
     private Point location;
 
     private String address;
