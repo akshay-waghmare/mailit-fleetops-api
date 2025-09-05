@@ -3,9 +3,15 @@ FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 
+# Install required packages for build stage
+RUN apk add --no-cache dos2unix
+
 # Copy gradle files
 COPY gradle gradle
 COPY gradlew build.gradle settings.gradle gradle.properties ./
+
+# Make gradle executable and fix line endings
+RUN chmod +x gradlew && dos2unix gradlew
 
 # Download dependencies
 RUN ./gradlew dependencies --no-daemon
@@ -20,6 +26,9 @@ RUN ./gradlew bootJar --no-daemon
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
+
+# Install wget for health check
+RUN apk add --no-cache wget
 
 # Add non-root user
 RUN addgroup -g 1001 -S spring && \

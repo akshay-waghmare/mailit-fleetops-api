@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: fleetops-postgres
+    environment:
+      POSTGRES_DB: fleetops_dev
+      POSTGRES_USER: ${POSTGRES_USER:-fleetops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./backend/docker/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fleetops} -d fleetops_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fleetops-network
+    restart: unless-stopped
+
+  # Backend Application
+  backend:
+    image: macubex/fleetops-backend:latest  # Pull from Docker Hub
+    container_name: fleetops-backend-prod
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: fleetops_prod
+      DB_USERNAME: ${POSTGRES_USER:-fleetops}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fleetops-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # Frontend Application
+  frontend:
+    image: macubex/fleetops-frontend:latest  # Pull from Docker Hub
+    container_name: fleetops-frontend
+    ports:
+      - "5001:80"  # Changed to standard port 5001 for production
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - fleetops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  # Production Database Admin (Optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: fleetops-pgadmin-prod
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@fleetops.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: 'True'  # Server mode for production
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - fleetops-network
+    restart: unless-stopped
+    profiles:
+      - admin
+
+volumes:
+  postgres_data:
+
+networks:
+  fleetops-network:
+    driver: bridge
