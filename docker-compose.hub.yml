@@ -53,7 +53,7 @@ services:
     image: macubex/fleetops-frontend:latest  # Pull from Docker Hub (no build)
     container_name: fleetops-frontend
     ports:
-      - "4200:80"  # Same as dev
+      - "5001:80"  # Same as dev
     depends_on:
       backend:
         condition: service_healthy
