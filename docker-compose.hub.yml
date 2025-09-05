@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: fleetops-postgres
+    environment:
+      POSTGRES_DB: fleetops_dev  # Keep dev database name
+      POSTGRES_USER: fleetops
+      POSTGRES_PASSWORD: fleetops
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/docker/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fleetops -d fleetops_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fleetops-network
+
+  # Backend Application - FROM DOCKER HUB
+  backend:
+    image: macubex/fleetops-backend:latest  # Pull from Docker Hub (no build)
+    container_name: fleetops-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: docker  # Use docker profile like dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: fleetops_dev
+      DB_USERNAME: fleetops
+      DB_PASSWORD: fleetops
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fleetops-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Application - FROM DOCKER HUB
+  frontend:
+    image: macubex/fleetops-frontend:latest  # Pull from Docker Hub (no build)
+    container_name: fleetops-frontend
+    ports:
+      - "4200:80"  # Same as dev
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - fleetops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Development Database Admin
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: fleetops-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@fleetops.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'  # Development mode
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - fleetops-network
+    profiles:
+      - admin
+
+volumes:
+  postgres_data:
+
+networks:
+  fleetops-network:
+    driver: bridge
