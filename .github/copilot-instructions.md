@@ -1,269 +1,105 @@
-# Copilot instructions — Order Management Dashboard Implementation
-Purpose
--------
-Implement a comprehensive Order Management system that mirrors the enhanced Pickup Management interface, providing consistent and professional user experience for managing delivery orders across the FleetOps platform.
+# Copilot Instructions — Places Backend Implementation
 
-Quick Demo / Current Status
----------------------------
-**Current State** ✅ - Basic order creation exists:
-- Order Creation: http://localhost:4200/orders (existing order scheduling component)
+## Current Analysis
+**Backend Status**: 
+- ✅ Place entity exists: `backend/src/main/java/com/fleetops/geo/entity/Place.java`
+- ✅ Database schema exists: places table with PostGIS spatial support  
+- ✅ Frontend API service exists: `frontend/libs/shared/api.service.ts` has place methods
+- ❌ **Missing**: Repository, Service, Controller, DTOs for Places backend
 
-**Target Implementation** 🎯 - Complete Order Management system:
-- Order Management List: http://localhost:4200/order-list (new management dashboard)
-- Order Analytics: http://localhost:4200/order-analytics (new analytics dashboard)
-- Order Detail Modal: Enhanced order viewing and editing capabilities
+**Goal**: Complete the backend implementation for Places CRUD operations with spatial support.
 
-Quick run steps (from repo root):
-```bash
-cd frontend
-Pickup Integration Plan
+## Implementation Plan
 
-Purpose
--------
-Provide a concise, actionable plan to connect the Schedule Pickup UI with a persistent backend store and Pickup Management. This document contains data contracts, database schema options (MySQL & MongoDB), REST API definitions, Spring Boot implementation sketches, frontend wiring notes, migration and testing guidance, and rollout steps.
+### Phase 1: Core Backend Components (Day 1)
+**Repository Layer**
+- Create `PlaceRepository` with JpaRepository + spatial queries
+- Add custom methods: `findByOrganizationId`, `findNearby`, `findByType`
 
-Checklist
----------
-- [ ] Define DTOs / contracts (frontend & backend)
-- [ ] Add DB migration (Flyway / Liquibase) for pickups table/collection
-- [ ] Implement Spring Boot endpoints (create, list, get, update status, delete)
-- [ ] Implement service layer + repository + mapping
-- [ ] Add real-time notification (SSE/WebSocket) or polling
-- [ ] Replace frontend demo store with backend HTTP calls and subscribe to real-time updates
-- [ ] Add unit + integration tests and run migrations in CI
+**Service Layer** 
+- Create `PlaceService` interface and implementation
+- Handle CRUD operations + coordinate conversion (lat/lng ↔ JTS Point)
+- Add validation and business logic
 
-1) Minimal data contracts
--------------------------
-- CreatePickupDto (request):
-  - clientId (Long) or embedded client fields
-  - pickupAddress (String)
-  - pickupDate (ISO date yyyy-MM-dd)
-  - pickupTime (optional string or time-slot id)
-  - pickupType (vendor|direct)
-  - itemCount, totalWeight, items description
-  - carrierId (optional)
-  - assignedStaffId (optional)
-  - idempotencyKey (optional header)
+**DTO Layer**
+- Create `PlaceRequest` DTO for create/update operations
+- Create `PlaceResponse` DTO for API responses  
+- Handle coordinate serialization (JTS Point → lat/lng JSON)
 
-- PickupDto (response):
-  - id (Long), pickupId (PU000123), status, createdAt, updatedAt
-  - clientName, pickupAddress, pickupDate, pickupTime, assignedStaff, estimatedCost
+### Phase 2: REST Controller (Day 2)
+**PlaceController**
+- Implement REST endpoints: GET, POST, PUT, DELETE
+- Add pagination, filtering (by organizationId, type)
+- Add spatial endpoint: GET `/places/nearby`
+- Handle proper HTTP status codes and error responses
 
-2) Database schema options
---------------------------
+### Phase 3: Testing & Validation (Day 3)
+**Unit Tests**
+- Repository tests with spatial data
+- Service tests with coordinate conversion
+- Controller tests with MockMvc
 
-A. PostgreSQL (recommended for relational queries)
+**Integration Testing**  
+- End-to-end API tests with real PostGIS data
+- Validate frontend integration
 
--- pickups table (essential columns)
--- PostgreSQL variant with JSONB for flexible fields and timezone-aware timestamps
-CREATE TABLE pickups (
-  id BIGSERIAL PRIMARY KEY,
-  pickup_id VARCHAR(50) NOT NULL UNIQUE,
-  client_id BIGINT,
-  client_name VARCHAR(255),
-  pickup_address TEXT,
-  pickup_type VARCHAR(32),
-  pickup_date DATE,
-  pickup_time TIME NULL,
-  status VARCHAR(32) NOT NULL DEFAULT 'scheduled',
-  assigned_staff_id BIGINT NULL,
-  items_count INT DEFAULT 1,
-  total_weight NUMERIC(10,2) DEFAULT 0,
-  carrier_id VARCHAR(64),
-  estimated_cost NUMERIC(10,2),
-  metadata JSONB DEFAULT '{}'::jsonb, -- optional free-form data
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+## Technical Specifications
 
--- Postgres does not support ON UPDATE for columns; consider a trigger to set updated_at on UPDATE.
-CREATE INDEX idx_pickups_date ON pickups(pickup_date);
-CREATE INDEX idx_pickups_status ON pickups(status);
-
--- Optional GIN index for text search across important fields
-CREATE INDEX idx_pickups_search ON pickups USING GIN (to_tsvector('english', coalesce(client_name,'') || ' ' || coalesce(pickup_address,'')));
-
-Notes: consider a `pickup_status_history` table for audit and a `clients` table for normalized client data.
-
-B. MongoDB (document model)
-
-Example document:
+### Coordinate Handling Strategy
+**API Format**: Use simple lat/lng JSON for frontend compatibility
+```json
 {
-  _id: ObjectId(...),
-  pickupId: 'PU000123',
-  client: { id:'c1', name:'Acme', contact:'', address:'' },
-  pickupAddress: '123 Main St',
-  pickupType: 'vendor',
-  pickupDate: ISODate('2025-08-25T00:00:00Z'),
-  pickupTime: '10:30',
-  status: 'scheduled',
-  assignedStaff: { id:'s1', name:'Raj' },
-  items: [{desc:'Box', count:2, weight:5}],
-  estimatedCost: 100,
-  createdAt: ISODate(...),
-  updatedAt: ISODate(...)
+  "latitude": 37.7749,
+  "longitude": -122.4194
 }
+```
 
-Indexes: { pickupDate:1 }, { status:1 }, { pickupId:1 unique }, text index on client.name/address.
+**Backend Conversion**: Service layer converts between:
+- API: `{ latitude, longitude }` 
+- Entity: `org.locationtech.jts.geom.Point` with SRID 4326
 
-3) REST API (v1) — contract
---------------------------------
-- POST /api/v1/pickups
-  - Create pickup; request CreatePickupDto; returns 201 + PickupDto. Accepts Idempotency-Key header.
+### File Structure
+```
+backend/src/main/java/com/fleetops/geo/
+├── entity/Place.java                    # ✅ Exists
+├── repository/PlaceRepository.java      # ❌ Create
+├── service/PlaceService.java           # ❌ Create  
+├── service/PlaceServiceImpl.java       # ❌ Create
+├── controller/PlaceController.java     # ❌ Create
+├── dto/PlaceRequest.java              # ❌ Create
+├── dto/PlaceResponse.java             # ❌ Create
+└── mapper/PlaceMapper.java            # ❌ Create (optional)
+```
 
-- GET /api/v1/pickups
-  - List pickups with filters & pagination: page, size, sort, q, pickupDate, status, clientId, staffId
-  - Response: Page<PickupDto>
+### Dependencies Required
+- ✅ JTS Spatial (already configured)
+- ✅ PostGIS (already configured)  
+- ✅ Spring Data JPA (already configured)
+- ✅ Jackson (already configured)
 
-- GET /api/v1/pickups/{id}
-  - Get single pickup
+### API Endpoints Design
+```
+GET    /api/v1/places                    # List with pagination
+GET    /api/v1/places/{id}              # Get by ID
+POST   /api/v1/places                   # Create new place
+PUT    /api/v1/places/{id}              # Update existing
+DELETE /api/v1/places/{id}              # Delete place
+GET    /api/v1/places/nearby            # Spatial query
+```
 
-- PATCH /api/v1/pickups/{id}/status
-  - Update status (body: { status: 'in-progress'|'completed'|'cancelled' })
+### Priority Tasks
+1. **PlaceRepository** - Enable data access with spatial queries
+2. **PlaceService** - Handle coordinate conversion and business logic  
+3. **PlaceController** - Expose REST endpoints
+4. **DTOs** - Clean API contracts with lat/lng format
+5. **Testing** - Validate spatial functionality
 
-- PUT /api/v1/pickups/{id}
-  - Replace/update pickup (admin)
+### Success Criteria
+- [ ] All CRUD operations working via REST API
+- [ ] Coordinate conversion (JTS Point ↔ lat/lng) working
+- [ ] Pagination and filtering by organizationId working
+- [ ] Spatial nearby query working (within radius)
+- [ ] Frontend integration successful
+- [ ] Unit and integration tests passing
 
-- DELETE /api/v1/pickups/{id}
-  - Soft-delete/cancel
-
-- GET /api/v1/pickups/analytics
-  - Return counts/trends (today, weekly)
-
-- Real-time: SSE / WebSocket endpoint (`/api/v1/pickups/stream`) to push events for created/updated pickups.
-
-4) Spring Boot implementation sketch
------------------------------------
-
-- Migration: add Flyway script V1__create_pickups.sql for pickups table and indexes.
-
--- Entity (JPA) example (PostgreSQL):
-  @Entity class Pickup { Long id; String pickupId; Long clientId; String clientName; String pickupAddress; LocalDate pickupDate; LocalTime pickupTime; String status; Long assignedStaffId; Integer itemsCount; BigDecimal totalWeight; BigDecimal estimatedCost; Instant createdAt; Instant updatedAt; }
-
-- Repository:
-  interface PickupRepository extends JpaRepository<Pickup,Long>, JpaSpecificationExecutor<Pickup> { Optional<Pickup> findByPickupId(String pickupId); }
-
-- Service responsibilities:
-  - createPickup(CreatePickupDto, Optional<String> idempotencyKey)
-    - validate client/staff, generate pickupId (PU + sequence), persist, publish event
-  - searchPickups(filters, Pageable) using Specifications or QueryDSL
-  - updateStatus(id, status)
-
-- Controller (REST): map endpoints above; on create, return 201 Created with Location header.
-
-- Real-time push:
-  - Option A: SSE — maintain SseEmitters and push on create/update.
-  - Option B: WebSocket + STOMP for UI subscriptions.
-  - Option C: Publish domain events to message bus (Kafka) and subscribe in UI gateway.
-
-5) Frontend changes (Angular)
------------------------------
-
-- PickupService (`frontend/libs/shared/pickup.service.ts`):
-  - Replace demo `createPickup()` implementation with an HTTP POST to `/api/v1/pickups`.
-  - Implement `getPickups()` to call backend with paging params and map response.
-  - Subscribe to SSE/WebSocket stream and call `pickupsUpdatedSubject.next(...)` when events arrive.
-
-- Schedule UI (`pickup.component.ts`):
-  - Send CreatePickupDto to `pickupService.createPickup(dto)`.
-  - On success: show snackbar, navigate to `/pickup-list?highlight=<id>`.
-
-- Pickup List (`pickup-list.component.ts`):
-  - Use server pagination (page/size) and apply filters via query params.
-  - Subscribe to real-time events and update table rows.
-
-- Auth: attach Bearer token from auth store to HTTP calls.
-
-6) Migration & dev seed
------------------------
-- Flyway migration example (V1__create_pickups.sql) included in repo `backend/src/main/resources/db/migration/`.
-- Dev seed: add SQL inserts or a Spring CommandLineRunner (profile=dev) to create sample pickups.
-
-7) Example SQL snippets
------------------------
-- Insert:
-  INSERT INTO pickups (pickup_id, client_id, client_name, pickup_address, pickup_type, pickup_date, pickup_time, status, items_count, total_weight, estimated_cost) VALUES ('PU000123', 12, 'Acme', '123 Main', 'vendor', '2025-08-25', '10:30:00', 'scheduled', 2, 12.5, 150.0);
-
-- Select by date + status + pagination:
-  SELECT * FROM pickups WHERE pickup_date = '2025-08-25' AND status = 'scheduled' ORDER BY created_at DESC LIMIT 20 OFFSET 0;
-
-8) Example Mongo queries (if using MongoDB)
------------------------------------------
-- Insert document: db.pickups.insertOne({...})
-- Find by date & status: db.pickups.find({ pickupDate: ISODate('2025-08-25'), status: 'scheduled' }).sort({ createdAt:-1 }).limit(20)
-
-9) Tests
---------
-- Backend
-  - Unit tests for `PickupService.createPickup()` (happy path + validation errors)
-  - Integration tests using Testcontainers/MySQL or H2 with Flyway migrations applied
-  - SSE/WebSocket integration test (if implemented)
-
-- Frontend
-  - Unit tests for `pickup.component` (mock service, assert snackbar/navigation)
-  - Service tests using `HttpClientTestingModule` for `pickup.service`
-
-10) Edge cases & operational notes
----------------------------------
-- Timezones: store timestamps in UTC; use DATE for scheduled day and TIME or time-slot id for slot.
-- Idempotency: accept `Idempotency-Key` header on create to avoid duplicate records on retry.
-- Concurrency: use DB-level checks/locks or optimistic checks when assigning staff/time-slot.
-- Soft deletes: set status='cancelled' instead of hard delete.
-- Pagination: prefer cursor-based pagination for large datasets, otherwise return Page with totalElements.
-- Security: validate authorization for create/edit/cancel.
-
-11) Rollout plan
-----------------
-- Phase A (backend): add migration + implement create/list endpoints + unit tests; deploy to staging.
-- Phase B (realtime): add SSE/WebSocket and event publisher; deploy to staging.
-- Phase C (frontend): switch `pickup.service` to call backend endpoints behind feature flag; test flows.
-- Phase D: QA and production rollout; monitor errors and duplicates; rollback plan ready.
-
-12) Next concrete artifacts I can generate for you
--------------------------------------------------
-- Flyway SQL migration file (MySQL) ready-to-apply.
-- Spring Boot Java stubs: Entity, Repository, Service, Controller, DTOs, MapStruct mapper.
-- Angular changes: updated `pickup.service.ts` HTTP methods and SSE subscription, updated `pickup.component.ts` wiring.
-
-Tell me which artifact you want me to generate first (Flyway migration, Spring Boot stubs, or frontend wiring) and I will create the files and run quick validations.
-- [ ] Run build, lint, and tests locally; fix issues until green. Commit with clear messages and open a PR when ready.
-
-Execution guidance and constraints
----------------------------------
-- Follow existing conventions in the repo for file locations, naming, and module boundaries. Inspect `frontend/apps/console-app` and `frontend/apps/ui-kit` to mirror patterns.
-- Use Angular Material components and Tailwind utilities already present in the project. Respect `tailwind.config.js` colors and theming.
-- Do not create or publish external packages. Do not make network requests to external services while implementing tests; mock HTTP responses instead.
-- Avoid exposing secrets or changing CI/CD configurations in this change. Keep changes scoped to the pickup management feature.
-
-API and data contract
----------------------
-Use the endpoints and TypeScript interfaces listed in `PICKUP-MANAGEMENT-DASHBOARD-PLAN.md` as the source of truth for service shapes and query parameters. If an endpoint is missing, create a TODO and implement the frontend assuming the interface; coordinate backend changes via a separate issue/PR.
-
-Development checklist for each PR
--------------------------------
-- Branch name follows `feature/pickup-management`.
-- Commit messages are small, focused, and reference the issue/plan when applicable.
-- Add/modify routes and navigation entries with clear titles and icons.
-- Include unit tests for new components and services. Keep tests fast and deterministic.
-- Run `npm run build` (or `ng build console-app`) and `npm test` locally; fix errors before PR.
-
-How to validate locally (short)
-------------------------------
-1. From repo root: install deps (if needed) and start console app dev server:
-
-  cd frontend
-  npm install
-  ng serve console-app --port 4200
-
-2. Run unit tests:
-
-  npm test --workspace=console-app
-
-If build or tests fail, iterate locally and fix lint/type issues.
-
-Contact / notes
----------------
-If a missing backend API or schema prevents implementing a feature, add a TODO in the code and open an issue describing the required endpoint and minimal contract.
-
-This file is intentionally concise — use `PICKUP-MANAGEMENT-DASHBOARD-PLAN.md` as the authoritative specification for feature details. Implement the plan incrementally: foundation (list + service) → analytics → details/actions → exports/real-time.
-  - Pickup Address (from sender details in orders)- **Professional design** already implemented ✅
+**Status**: Ready for implementation | **Target**: 3 days
