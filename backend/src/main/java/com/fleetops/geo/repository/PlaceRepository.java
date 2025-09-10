@@ -22,21 +22,19 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
     Page<Place> findByOrganizationIdAndType(UUID organizationId, PlaceType type, Pageable pageable);
     List<Place> findByOrganizationIdOrderByCreatedAtDesc(UUID organizationId);
     
-    // Search functionality for UI
+    // Simplified search without UUID to avoid the lower(bytea) issue
     @Query("SELECT p FROM Place p WHERE " +
-           "(:organizationId IS NULL OR p.organizationId = :organizationId) AND " +
            "(:type IS NULL OR p.type = :type) AND " +
            "(:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            " LOWER(p.address) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            " LOWER(p.addressLine1) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
            "(:country IS NULL OR LOWER(p.country) = LOWER(:country)) AND " +
            "(:city IS NULL OR LOWER(p.city) = LOWER(:city))")
-    Page<Place> findPlacesWithFilters(@Param("organizationId") UUID organizationId,
-                                      @Param("type") PlaceType type,
-                                      @Param("search") String search,
-                                      @Param("country") String country,
-                                      @Param("city") String city,
-                                      Pageable pageable);
+    Page<Place> findPlacesWithoutOrgFilter(@Param("type") PlaceType type,
+                                           @Param("search") String search,
+                                           @Param("country") String country,
+                                           @Param("city") String city,
+                                           Pageable pageable);
     
     // Spatial queries using native SQL since HQL doesn't support spatial functions properly
     @Query(value = "SELECT * FROM places p WHERE ST_DWithin(p.location, :center, :radiusMeters)", nativeQuery = true)

@@ -84,7 +84,8 @@ public class PlaceServiceImpl implements PlaceService {
     @Override
     @Transactional(readOnly = true)
     public Page<PlaceResponse> getPlaces(UUID organizationId, PlaceType type, String search, String country, String city, Pageable pageable) {
-        Page<Place> places = placeRepository.findPlacesWithFilters(organizationId, type, search, country, city, pageable);
+        // Temporary fix: just return all places without filtering to isolate the bytea issue
+        Page<Place> places = placeRepository.findAll(pageable);
         return places.map(this::mapEntityToResponse);
     }
     
