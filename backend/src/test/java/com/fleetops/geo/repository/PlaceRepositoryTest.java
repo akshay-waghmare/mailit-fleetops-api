@@ -71,13 +71,8 @@ class PlaceRepositoryTest {
         Place place2 = createPlace("Place 2", PlaceType.DEPOT);
         
         entityManager.persistAndFlush(place1);
-        // Add small delay to ensure different timestamps
-        try {
-            Thread.sleep(1);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        place2.setCreatedAt(LocalDateTime.now());
+        // Set place2's createdAt to be after place1's createdAt deterministically
+        place2.setCreatedAt(place1.getCreatedAt().plusNanos(1_000_000)); // plus 1 ms
         entityManager.persistAndFlush(place2);
 
         // When

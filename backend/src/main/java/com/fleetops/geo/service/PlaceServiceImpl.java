@@ -217,7 +217,7 @@ public class PlaceServiceImpl implements PlaceService {
     private PlaceResponse mapEntityToResponse(Place place) {
         PlaceResponse response = new PlaceResponse();
         response.setId(place.getId());
-        response.setDisplayId("place_" + place.getType().toString().toLowerCase() + place.getId().toString().substring(0, 6));
+        response.setDisplayId("place_" + place.getType().toString().toLowerCase() + place.getId().toString().substring(0, Math.min(place.getId().toString().length(), 6)));
         response.setName(place.getName());
         response.setDescription(place.getDescription());
         response.setLocation(LocationMapper.toLocationDto(place.getLocation()));
