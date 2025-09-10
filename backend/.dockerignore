@@ -1,0 +1,26 @@
+# Ignore build outputs
+build/
+.gradle/
+*.log
+
+# Ignore IDE files
+.idea/
+.vscode/
+*.iml
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore git files
+.git/
+.gitignore
+
+# Ignore docker files
+docker-compose*.yml
+Dockerfile.*
+
+# Keep gradle wrapper - DO NOT IGNORE
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!gradlew

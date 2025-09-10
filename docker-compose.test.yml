@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres:
+    environment:
+      POSTGRES_DB: fleetops_test
+      POSTGRES_USER: fleetops_test
+      POSTGRES_PASSWORD: test123
+
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+      DB_NAME: fleetops_test
+      DB_USERNAME: fleetops_test
+      DB_PASSWORD: test123
+    command: ["java", "-jar", "app.jar", "--spring.flyway.clean-disabled=false"]
+
+  # Test runner service
+  backend-tests:
+    build:
+      context: ./backend
+      target: builder
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+      DB_HOST: postgres
+      DB_NAME: fleetops_test
+      DB_USERNAME: fleetops_test
+      DB_PASSWORD: test123
+    command: ["./gradlew", "test"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fleetops-network
+    profiles:
+      - test

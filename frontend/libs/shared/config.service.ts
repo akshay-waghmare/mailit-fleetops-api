@@ -1,4 +1,7 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { catchError, of } from 'rxjs';
 
 export interface AppConfig {
   apiBaseUrl: string;
@@ -6,55 +9,155 @@ export interface AppConfig {
   defaultMapCenter: [number, number];
   defaultMapZoom: number;
   enableSSR: boolean;
-  environment: 'development' | 'production' | 'staging';
+  environment: 'development' | 'production' | 'staging' | 'docker';
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class ConfigService {
-  private config: AppConfig = {
-  apiBaseUrl: 'http://localhost:8080/api',
-    mapStyle: 'https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
-    defaultMapCenter: [-74.0059, 40.7128], // New York City
-    defaultMapZoom: 12,
-    enableSSR: true,
-    environment: 'development'
-  };
+  private configSubject = new BehaviorSubject<AppConfig>(this.getDefaultConfig());
+  private configLoaded = false;
+
+  constructor(private http: HttpClient) {
+    // Only try to load config if we might be in Docker environment
+    if (this.mightBeDockerEnvironment()) {
+      this.loadConfig().catch(error => {
+        console.log('⚠️ Config loading failed, using defaults:', error.message);
+      });
+    } else {
+      console.log('📱 Local development detected, using default config');
+    }
+  }
+
+  private mightBeDockerEnvironment(): boolean {
+    if (typeof window === 'undefined') return true;
+    
+    // Check if we're likely in Docker (port 80, 4200 with nginx, or not localhost)
+    return window.location.port === '80' || 
+           window.location.port === '' ||
+           window.location.hostname !== 'localhost';
+  }
+
+  private getDefaultConfig(): AppConfig {
+    return {
+      apiBaseUrl: this.getApiBaseUrl(),
+      mapStyle: 'https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
+      defaultMapCenter: [-74.0059, 40.7128],
+      defaultMapZoom: 12,
+      enableSSR: true,
+      environment: this.getEnvironment()
+    };
+  }
+
+  private getApiBaseUrl(): string {
+    if (typeof window === 'undefined') {
+      return '/api'; // SSR fallback
+    }
+
+    // Check if we're in Docker (served by nginx on port 80 or no port)
+    const isDockerEnvironment = 
+      window.location.port === '80' || 
+      window.location.port === '' ||
+      window.location.hostname !== 'localhost';
+
+    if (isDockerEnvironment) {
+      return '/api'; // Use nginx proxy
+    } else {
+      return 'http://localhost:8081/api'; // Local development - direct to backend
+    }
+  }
+
+  private getEnvironment(): 'development' | 'production' | 'staging' | 'docker' {
+    if (typeof window === 'undefined') return 'docker';
+    
+    if (window.location.port === '4200' && window.location.hostname === 'localhost') {
+      return 'development';
+    } else if (window.location.port === '80' || window.location.port === '') {
+      return 'docker';
+    } else {
+      return 'production';
+    }
+  }
+
+  async loadConfig(): Promise<AppConfig> {
+    if (this.configLoaded) {
+      return this.configSubject.value;
+    }
+
+    try {
+      // Only try to fetch config if we're likely in Docker
+      if (!this.mightBeDockerEnvironment()) {
+        throw new Error('Not in Docker environment, skipping config fetch');
+      }
+
+      // Try to fetch config from nginx-served endpoint
+      const config = await this.http.get<AppConfig>('/assets/config.json').toPromise();
+      if (config) {
+        this.configSubject.next(config);
+        this.configLoaded = true;
+        console.log('✅ Loaded config from nginx:', config);
+        return config;
+      }
+    } catch (error) {
+      console.log('⚠️ Failed to load config from nginx, using defaults');
+    }
+
+    // Fallback to default config
+    const defaultConfig = this.getDefaultConfig();
+    this.configSubject.next(defaultConfig);
+    this.configLoaded = true;
+    console.log('✅ Using default config:', defaultConfig);
+    return defaultConfig;
+  }
 
   getConfig(): AppConfig {
-    return { ...this.config };
+    return this.configSubject.value;
+  }
+
+  getConfig$(): Observable<AppConfig> {
+    return this.configSubject.asObservable();
   }
 
   updateConfig(updates: Partial<AppConfig>): void {
-    this.config = { ...this.config, ...updates };
+    const currentConfig = this.configSubject.value;
+    const newConfig = { ...currentConfig, ...updates };
+    this.configSubject.next(newConfig);
   }
 
   get apiBaseUrl(): string {
-    return this.config.apiBaseUrl;
+    return this.configSubject.value.apiBaseUrl;
   }
 
   get mapStyle(): string {
-    return this.config.mapStyle;
+    return this.configSubject.value.mapStyle;
   }
 
   get defaultMapCenter(): [number, number] {
-    return this.config.defaultMapCenter;
+    return this.configSubject.value.defaultMapCenter;
   }
 
   get defaultMapZoom(): number {
-    return this.config.defaultMapZoom;
+    return this.configSubject.value.defaultMapZoom;
   }
 
-  get environment(): 'development' | 'production' | 'staging' {
-    return this.config.environment;
+  get enableSSR(): boolean {
+    return this.configSubject.value.enableSSR;
+  }
+
+  get environment(): 'development' | 'production' | 'staging' | 'docker' {
+    return this.configSubject.value.environment;
   }
 
   get isProduction(): boolean {
-    return this.config.environment === 'production';
+    return this.configSubject.value.environment === 'production';
   }
 
   get isDevelopment(): boolean {
-    return this.config.environment === 'development';
+    return this.configSubject.value.environment === 'development';
+  }
+
+  get isDocker(): boolean {
+    return this.configSubject.value.environment === 'docker';
   }
 }
