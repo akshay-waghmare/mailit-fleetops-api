@@ -1271,7 +1271,7 @@ export class PickupComponent implements OnInit {
           // Show additional detailed notification with better UX
           setTimeout(() => {
             this.snackBar.open(
-              `Pickup assigned to ${this.selectedEmployee!.name} • ${this.pickupForm.get('itemCount')?.value} items (${this.pickupForm.get('weight')?.value}kg) • Type: Direct/Internal`,
+              `Pickup assigned to ${this.selectedEmployee?.name || 'Staff'} • ${this.pickupForm.get('itemCount')?.value} items (${this.pickupForm.get('weight')?.value}kg) • Type: Direct/Internal`,
               'View List',
               {
                 duration: 6000,
@@ -1417,7 +1417,7 @@ export class PickupComponent implements OnInit {
           // Show additional detailed notification with service information
           setTimeout(() => {
             this.snackBar.open(
-              `Service: ${this.selectedCarrier!.name} • Fee: ₹${this.selectedCarrier!.price} • Staff: ${this.selectedEmployee!.name}`,
+              `Service: ${this.selectedCarrier?.name || 'Carrier'} • Fee: ₹${this.selectedCarrier?.price || 0} • Staff: ${this.selectedEmployee?.name || 'Staff'}`,
               'View Details',
               {
                 duration: 8000,
