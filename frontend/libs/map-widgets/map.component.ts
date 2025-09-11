@@ -1,6 +1,6 @@
 import { Component, ElementRef, OnInit, OnDestroy, ViewChild, Input, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
-import { Map, NavigationControl, GeolocateControl, ScaleControl, FullscreenControl, LngLatLike } from 'maplibre-gl';
+import type { LngLatLike } from 'maplibre-gl';
 
 @Component({
   selector: 'app-map',
@@ -94,7 +94,8 @@ export class MapComponent implements OnInit, OnDestroy {
   @Input() zoom = 12;
   @Input() style = 'https://api.maptiler.com/maps/streets/style.json?key=FqpjPjNhz5yU1vgFWeGi';
 
-  private map: Map | null = null;
+  // Use any for the runtime Map instance so we can dynamically import maplibre-gl
+  private map: any | null = null;
   public mapLoaded = false;
 
   constructor(
@@ -109,7 +110,7 @@ export class MapComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     if (isPlatformBrowser(this.platformId)) {
       // Small delay to ensure DOM is ready
-      setTimeout(() => this.initializeMap(), 100);
+  setTimeout(() => void this.initializeMap(), 100);
     }
   }
 
@@ -119,8 +120,16 @@ export class MapComponent implements OnInit, OnDestroy {
     }
   }
 
-  private initializeMap(): void {
+  private async initializeMap(): Promise<void> {
     try {
+      // Dynamically import maplibre-gl to keep it out of the initial bundle
+      const maplibre = await import('maplibre-gl');
+
+      // Expose to window for legacy usage in other places that expect window.maplibregl
+      (window as any).maplibregl = maplibre;
+
+      const { Map, NavigationControl, GeolocateControl, ScaleControl, FullscreenControl } = maplibre as any;
+
       this.map = new Map({
         container: this.mapContainer.nativeElement,
         style: this.style,
@@ -168,7 +177,7 @@ export class MapComponent implements OnInit, OnDestroy {
         this.setupMapStyles();
       });
 
-      this.map.on('error', (e) => {
+      this.map.on('error', (e: any) => {
         console.error('Map error:', e);
         // Set mapLoaded = true even on error to hide spinner
         this.mapLoaded = true;
@@ -238,7 +247,7 @@ export class MapComponent implements OnInit, OnDestroy {
     }
   }
 
-  public getMap(): Map | null {
+  public getMap(): any | null {
     return this.map;
   }
 
@@ -340,9 +349,10 @@ export class MapComponent implements OnInit, OnDestroy {
 
   public clearMarkers(): void {
     if (this.map) {
-      const layers = this.map.getStyle().layers;
+      const style = this.map.getStyle();
+      const layers = style && (style.layers as Array<{ id: string }> | undefined);
       if (layers) {
-        layers.forEach(layer => {
+        layers.forEach((layer: { id: string }) => {
           if (layer.id.startsWith('marker-')) {
             this.map!.removeLayer(layer.id);
             this.map!.removeSource(layer.id);

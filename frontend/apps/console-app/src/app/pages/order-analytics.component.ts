@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -24,6 +25,7 @@ import { OrderService, OrderAnalytics } from '../../../../../libs/shared';
     MatButtonModule,
     MatTooltipModule,
     MatFormFieldModule,
+    MatInputModule,
     MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule
@@ -410,12 +412,12 @@ export class OrderAnalyticsComponent implements OnInit, OnDestroy {
     private orderService: OrderService,
     private router: Router
   ) {
-    // Set default date range to current month
-    this.setQuickDateRange('month');
   }
 
   ngOnInit(): void {
-    this.loadAnalytics();
+  // Defer default date range setup to avoid ExpressionChangedAfterItHasBeenCheckedError
+  setTimeout(() => this.setQuickDateRange('month'));
+  this.loadAnalytics();
   }
 
   ngOnDestroy(): void {

@@ -99,4 +99,57 @@ export class ApiService {
   deleteGeofence(id: string): Observable<ApiResponse<void>> {
     return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/geofences/${id}`);
   }
+
+  // Orders
+  getOrders(filterParams: any = {}): Observable<PagedResponse<any>> {
+    let params = new HttpParams();
+    
+    // Add all provided filter parameters to the HTTP params
+    Object.keys(filterParams).forEach(key => {
+      const value = filterParams[key];
+      if (value !== undefined && value !== null && value !== '') {
+        params = params.set(key, value.toString());
+      }
+    });
+    
+    // Set default pagination if not provided
+    if (!filterParams.page) {
+      params = params.set('page', '0');
+    }
+    if (!filterParams.size) {
+      params = params.set('size', '20');
+    }
+    
+    console.log('🌐 ApiService HTTP params:', params.toString());
+    
+    return this.http.get<PagedResponse<any>>(`${this.baseUrl}/v1/orders`, { params });
+  }
+
+  getOrder(id: string): Observable<ApiResponse<any>> {
+  return this.http.get<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}`);
+  }
+
+  createOrder(payload: any): Observable<ApiResponse<any>> {
+  return this.http.post<ApiResponse<any>>(`${this.baseUrl}/v1/orders`, payload);
+  }
+
+  updateOrder(id: string, payload: any): Observable<ApiResponse<any>> {
+  return this.http.put<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}`, payload);
+  }
+
+  updateOrderStatus(id: string, payload: any): Observable<ApiResponse<any>> {
+  return this.http.patch<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}/status`, payload);
+  }
+
+  deleteOrder(id: string): Observable<ApiResponse<void>> {
+  return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/v1/orders/${id}`);
+  }
+
+  // Orders analytics
+  getOrderAnalytics(startDate?: string, endDate?: string): Observable<ApiResponse<any>> {
+    let params = new HttpParams();
+    if (startDate) params = params.set('startDate', startDate);
+    if (endDate) params = params.set('endDate', endDate);
+  return this.http.get<ApiResponse<any>>(`${this.baseUrl}/v1/orders/analytics`, { params });
+  }
 }
