@@ -33,9 +33,10 @@ export class ConfigService {
   private mightBeDockerEnvironment(): boolean {
     if (typeof window === 'undefined') return true;
     
-    // Check if we're likely in Docker (port 80, 4200 with nginx, or not localhost)
+    // Check if we're likely in Docker (port 80, 5001, or not localhost)
     return window.location.port === '80' || 
            window.location.port === '' ||
+           window.location.port === '5001' ||
            window.location.hostname !== 'localhost';
   }
 
@@ -43,7 +44,7 @@ export class ConfigService {
     return {
       apiBaseUrl: this.getApiBaseUrl(),
       mapStyle: 'https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
-      defaultMapCenter: [-74.0059, 40.7128],
+      defaultMapCenter: [72.8777, 19.0760], // Mumbai, India
       defaultMapZoom: 12,
       enableSSR: true,
       environment: this.getEnvironment()
@@ -55,16 +56,17 @@ export class ConfigService {
       return '/api'; // SSR fallback
     }
 
-    // Check if we're in Docker (served by nginx on port 80 or no port)
+    // Check if we're in Docker or production environment
     const isDockerEnvironment = 
       window.location.port === '80' || 
       window.location.port === '' ||
+      window.location.port === '5001' || // Docker frontend port
       window.location.hostname !== 'localhost';
 
     if (isDockerEnvironment) {
       return '/api'; // Use nginx proxy
     } else {
-      return 'http://localhost:8081/api'; // Local development - direct to backend
+      return 'http://localhost:8080/api'; // Local development - direct to backend
     }
   }
 
@@ -73,7 +75,7 @@ export class ConfigService {
     
     if (window.location.port === '4200' && window.location.hostname === 'localhost') {
       return 'development';
-    } else if (window.location.port === '80' || window.location.port === '') {
+    } else if (window.location.port === '80' || window.location.port === '' || window.location.port === '5001') {
       return 'docker';
     } else {
       return 'production';

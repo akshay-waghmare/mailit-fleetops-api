@@ -55,7 +55,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     image: macubex/fleetops-frontend:latest
     container_name: fleetops-frontend
     ports:

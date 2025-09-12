@@ -90,7 +90,7 @@ import type { LngLatLike } from 'maplibre-gl';
 export class MapComponent implements OnInit, OnDestroy {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   @Input() height = '400px';
-  @Input() center: LngLatLike = [-74.0059, 40.7128]; // New York City
+  @Input() center: LngLatLike = [72.8777, 19.0760]; // Mumbai, India
   @Input() zoom = 12;
   @Input() style = 'https://api.maptiler.com/maps/streets/style.json?key=FqpjPjNhz5yU1vgFWeGi';
 
@@ -122,13 +122,45 @@ export class MapComponent implements OnInit, OnDestroy {
 
   private async initializeMap(): Promise<void> {
     try {
-      // Dynamically import maplibre-gl to keep it out of the initial bundle
-      const maplibre = await import('maplibre-gl');
+      // Multiple import strategies for better compatibility
+      let maplibre: any;
+      
+      try {
+        // Strategy 1: Dynamic import
+        maplibre = await import('maplibre-gl');
+        console.log('MapLibre GL imported via dynamic import:', maplibre);
+      } catch (importError) {
+        console.warn('Dynamic import failed, trying fallback:', importError);
+        
+        // Strategy 2: Window fallback (if globally available)
+        if ((window as any).maplibregl) {
+          maplibre = (window as any).maplibregl;
+          console.log('Using window.maplibregl fallback');
+        } else {
+          throw new Error('MapLibre GL not available via any import method');
+        }
+      }
 
-      // Expose to window for legacy usage in other places that expect window.maplibregl
-      (window as any).maplibregl = maplibre;
+      // Handle different import formats (default vs named exports)
+      const MapLibre = maplibre?.default || maplibre;
+      
+      // Expose to window for legacy usage
+      (window as any).maplibregl = MapLibre;
 
-      const { Map, NavigationControl, GeolocateControl, ScaleControl, FullscreenControl } = maplibre as any;
+      // Extract constructors with multiple fallback paths
+      const Map = MapLibre?.Map || MapLibre?.default?.Map || maplibre?.Map;
+      const NavigationControl = MapLibre?.NavigationControl || MapLibre?.default?.NavigationControl || maplibre?.NavigationControl;
+      const GeolocateControl = MapLibre?.GeolocateControl || MapLibre?.default?.GeolocateControl || maplibre?.GeolocateControl;
+      const ScaleControl = MapLibre?.ScaleControl || MapLibre?.default?.ScaleControl || maplibre?.ScaleControl;
+      const FullscreenControl = MapLibre?.FullscreenControl || MapLibre?.default?.FullscreenControl || maplibre?.FullscreenControl;
+      
+      if (!Map) {
+        console.error('Available maplibre properties:', Object.keys(MapLibre || {}));
+        console.error('Available maplibre.default properties:', Object.keys(MapLibre?.default || {}));
+        throw new Error('MapLibre GL Map constructor not found - check import structure');
+      }
+      
+      console.log('Map constructor found and ready:', typeof Map);
 
       this.map = new Map({
         container: this.mapContainer.nativeElement,
@@ -141,33 +173,41 @@ export class MapComponent implements OnInit, OnDestroy {
       });
 
       // Add enhanced navigation control
-      this.map.addControl(new NavigationControl({
-        visualizePitch: true,
-        showZoom: true,
-        showCompass: true
-      }), 'top-right');
+      if (NavigationControl) {
+        this.map.addControl(new NavigationControl({
+          visualizePitch: true,
+          showZoom: true,
+          showCompass: true
+        }), 'top-right');
+      }
 
       // Add scale control
-      this.map.addControl(new ScaleControl({
-        maxWidth: 100,
-        unit: 'metric'
-      }), 'bottom-left');
+      if (ScaleControl) {
+        this.map.addControl(new ScaleControl({
+          maxWidth: 100,
+          unit: 'metric'
+        }), 'bottom-left');
+      }
 
       // Add fullscreen control
-      this.map.addControl(new FullscreenControl(), 'top-right');
+      if (FullscreenControl) {
+        this.map.addControl(new FullscreenControl(), 'top-right');
+      }
 
       // Add geolocate control with better options
-      this.map.addControl(
-        new GeolocateControl({
-          positionOptions: {
-            enableHighAccuracy: true,
-            timeout: 6000
-          },
-          trackUserLocation: true,
-          showUserLocation: true
-        }),
-        'top-right'
-      );
+      if (GeolocateControl) {
+        this.map.addControl(
+          new GeolocateControl({
+            positionOptions: {
+              enableHighAccuracy: true,
+              timeout: 6000
+            },
+            trackUserLocation: true,
+            showUserLocation: true
+          }),
+          'top-right'
+        );
+      }
 
       // Map event handlers
       this.map.on('load', () => {
@@ -315,12 +355,18 @@ export class MapComponent implements OnInit, OnDestroy {
       if (popup && this.map) {
         this.map.on('click', markerId, () => {
           if (this.map) {
-            new (window as any).maplibregl.Popup()
-              .setLngLat(coords)
-              .setHTML(`<div style="padding: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                ${popup}
-              </div>`)
-              .addTo(this.map);
+            // Get Popup constructor with fallback
+            const maplibregl = (window as any).maplibregl;
+            const Popup = maplibregl?.Popup || maplibregl?.default?.Popup;
+            
+            if (Popup) {
+              new Popup()
+                .setLngLat(coords)
+                .setHTML(`<div style="padding: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                  ${popup}
+                </div>`)
+                .addTo(this.map);
+            }
           }
         });
 

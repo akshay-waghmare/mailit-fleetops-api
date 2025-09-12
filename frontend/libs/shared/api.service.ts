@@ -9,12 +9,19 @@ import { ConfigService } from './config.service';
 })
 export class ApiService {
   private readonly baseUrl: string;
+  // Basic auth for development/docker parity with PickupService
+  // TODO: replace with real auth when security is wired
+  private readonly devAuthHeader = {
+    'Authorization': 'Basic ' + (typeof btoa !== 'undefined' ? btoa('admin:admin') : '')
+  } as const;
 
   constructor(
     private http: HttpClient,
     private configService: ConfigService
   ) {
     this.baseUrl = this.configService.apiBaseUrl;
+    console.log('🔧 ApiService initialized with baseUrl:', this.baseUrl);
+    console.log('🌍 Current environment:', this.configService.environment);
   }
 
   // Organizations
@@ -120,29 +127,31 @@ export class ApiService {
       params = params.set('size', '20');
     }
     
+    const fullUrl = `${this.baseUrl}/v1/orders`;
     console.log('🌐 ApiService HTTP params:', params.toString());
+    console.log('🌐 ApiService making request to:', fullUrl);
     
-    return this.http.get<PagedResponse<any>>(`${this.baseUrl}/v1/orders`, { params });
+    return this.http.get<PagedResponse<any>>(fullUrl, { params, headers: this.devAuthHeader as any });
   }
 
   getOrder(id: string): Observable<ApiResponse<any>> {
-  return this.http.get<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}`);
+  return this.http.get<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}`, { headers: this.devAuthHeader as any });
   }
 
   createOrder(payload: any): Observable<ApiResponse<any>> {
-  return this.http.post<ApiResponse<any>>(`${this.baseUrl}/v1/orders`, payload);
+  return this.http.post<ApiResponse<any>>(`${this.baseUrl}/v1/orders`, payload, { headers: this.devAuthHeader as any });
   }
 
   updateOrder(id: string, payload: any): Observable<ApiResponse<any>> {
-  return this.http.put<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}`, payload);
+  return this.http.put<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}`, payload, { headers: this.devAuthHeader as any });
   }
 
   updateOrderStatus(id: string, payload: any): Observable<ApiResponse<any>> {
-  return this.http.patch<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}/status`, payload);
+  return this.http.patch<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}/status`, payload, { headers: this.devAuthHeader as any });
   }
 
   deleteOrder(id: string): Observable<ApiResponse<void>> {
-  return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/v1/orders/${id}`);
+  return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/v1/orders/${id}`, { headers: this.devAuthHeader as any });
   }
 
   // Orders analytics
@@ -150,6 +159,6 @@ export class ApiService {
     let params = new HttpParams();
     if (startDate) params = params.set('startDate', startDate);
     if (endDate) params = params.set('endDate', endDate);
-  return this.http.get<ApiResponse<any>>(`${this.baseUrl}/v1/orders/analytics`, { params });
+  return this.http.get<ApiResponse<any>>(`${this.baseUrl}/v1/orders/analytics`, { params, headers: this.devAuthHeader as any });
   }
 }

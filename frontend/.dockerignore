@@ -1,5 +1,10 @@
 # 🚀 FleetOps Frontend Docker Ignore
 # Optimize Docker build by excluding unnecessary files
+# 
+# NOTE: dist folder is NOT excluded to support flexible development workflows:
+# - Pre-built files for debugging/testing
+# - Source building for production
+# - Consistent experience across all developers
 
 # Dependencies
 node_modules
@@ -8,7 +13,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Build outputs
-dist
+# dist - REMOVED: Allow dist folder for flexible Docker builds (pre-built + source builds)
 build
 *.tgz
 

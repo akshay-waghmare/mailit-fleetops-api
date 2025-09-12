@@ -588,7 +588,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
       service_type: this.filterValues.serviceType && this.filterValues.serviceType !== '' ? this.filterValues.serviceType : undefined,
       from_date: this.filterValues.fromDate?.toISOString().split('T')[0] || undefined,
       to_date: this.filterValues.toDate?.toISOString().split('T')[0] || undefined,
-      sort_by: 'created_at',
+      sort_by: 'createdAt',
       sort_order: 'desc'
     };
 
