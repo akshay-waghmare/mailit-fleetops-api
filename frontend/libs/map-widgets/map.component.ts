@@ -194,19 +194,33 @@ export class MapComponent implements OnInit, OnDestroy {
         this.map.addControl(new FullscreenControl(), 'top-right');
       }
 
-      // Add geolocate control with better options
+      // Add geolocate control with better options and error handling
       if (GeolocateControl) {
-        this.map.addControl(
-          new GeolocateControl({
-            positionOptions: {
-              enableHighAccuracy: true,
-              timeout: 6000
-            },
-            trackUserLocation: true,
-            showUserLocation: true
-          }),
-          'top-right'
-        );
+        const geolocateControl = new GeolocateControl({
+          positionOptions: {
+            enableHighAccuracy: true,
+            timeout: 10000, // Increased timeout
+            maximumAge: 300000 // 5 minutes cache
+          },
+          trackUserLocation: true,
+          showUserLocation: true,
+          showAccuracyCircle: true,
+          fitBoundsOptions: {
+            maxZoom: 15
+          }
+        });
+
+        // Add error handling for geolocation
+        geolocateControl.on('error', (e: any) => {
+          console.warn('Geolocation error:', e);
+          this.handleGeolocationError(e);
+        });
+
+        geolocateControl.on('geolocate', (e: any) => {
+          console.log('✅ Geolocation successful:', e.coords);
+        });
+
+        this.map.addControl(geolocateControl, 'top-right');
       }
 
       // Map event handlers
@@ -404,6 +418,86 @@ export class MapComponent implements OnInit, OnDestroy {
             this.map!.removeSource(layer.id);
           }
         });
+      }
+    }
+  }
+
+  private handleGeolocationError(error: any): void {
+    let errorMessage = 'Unable to access your location';
+    let suggestionMessage = 'Showing Mumbai, India instead';
+
+    switch (error.code) {
+      case 1: // PERMISSION_DENIED
+        errorMessage = 'Location access denied by user';
+        suggestionMessage = 'Please enable location permissions and try again';
+        break;
+      case 2: // POSITION_UNAVAILABLE
+        errorMessage = 'Location information unavailable';
+        suggestionMessage = 'Your location could not be determined';
+        break;
+      case 3: // TIMEOUT
+        errorMessage = 'Location request timed out';
+        suggestionMessage = 'Please try again or check your connection';
+        break;
+      default:
+        if (typeof window !== 'undefined' && window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {
+          errorMessage = 'Geolocation requires HTTPS in production';
+          suggestionMessage = 'Location features need secure connection';
+        }
+    }
+
+    console.warn(`🌍 ${errorMessage}: ${suggestionMessage}`);
+    
+    // Show a subtle notification (you can replace this with your notification system)
+    if (typeof window !== 'undefined') {
+      // Fallback to Mumbai coordinates when geolocation fails
+      this.flyTo([72.8777, 19.0760], 12);
+      
+      // Optional: Show user-friendly message
+      this.showLocationFallbackMessage(errorMessage, suggestionMessage);
+    }
+  }
+
+  private showLocationFallbackMessage(error: string, suggestion: string): void {
+    // Create a temporary popup to inform user about geolocation fallback
+    if (this.map && typeof window !== 'undefined') {
+      try {
+        const maplibregl = (window as any).maplibregl;
+        const Popup = maplibregl?.Popup || maplibregl?.default?.Popup;
+        
+        if (Popup) {
+          const popup = new Popup({
+            closeButton: true,
+            closeOnClick: true,
+            maxWidth: '300px'
+          })
+          .setLngLat([72.8777, 19.0760])
+          .setHTML(`
+            <div style="padding: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 18px; margin-right: 8px;">📍</span>
+                <strong style="color: #1f2937;">Location Service</strong>
+              </div>
+              <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px; line-height: 1.4;">
+                ${error}
+              </p>
+              <p style="margin: 0; color: #3b82f6; font-size: 13px; line-height: 1.4;">
+                ${suggestion}
+              </p>
+              <div style="margin-top: 10px; padding: 8px; background: #f3f4f6; border-radius: 4px; font-size: 12px; color: #4b5563;">
+                💡 Tip: For better location services, use HTTPS or enable location permissions
+              </div>
+            </div>
+          `)
+          .addTo(this.map);
+
+          // Auto-close after 5 seconds
+          setTimeout(() => {
+            popup.remove();
+          }, 5000);
+        }
+      } catch (popupError) {
+        console.warn('Could not show location fallback popup:', popupError);
       }
     }
   }

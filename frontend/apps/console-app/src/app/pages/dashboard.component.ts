@@ -1,10 +1,11 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MapComponent } from '@libs/map-widgets/map.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [MapComponent],
+  imports: [CommonModule, MapComponent],
   template: `
     <div class="dashboard">
       <h2>Fleet Operations Dashboard</h2>
@@ -13,6 +14,10 @@ import { MapComponent } from '@libs/map-widgets/map.component';
           <div class="map-header">
             <h3>Live Fleet Map</h3>
             <div class="map-controls">
+              <button class="btn btn-sm" (click)="findMyLocation()" [disabled]="locationLoading">
+                <span *ngIf="!locationLoading">📍 Find My Location</span>
+                <span *ngIf="locationLoading">🔍 Finding...</span>
+              </button>
               <button class="btn btn-sm" (click)="addSampleVehicles()">Show Sample Fleet</button>
               <button class="btn btn-sm" (click)="clearMap()">Clear Map</button>
             </div>
@@ -253,6 +258,7 @@ export class DashboardComponent implements OnInit {
   
   mapCenter: [number, number] = [72.8777, 19.0760]; // Mumbai, India
   mapZoom = 12;
+  locationLoading = false;
 
   // Sample fleet data - Mumbai locations
   private sampleVehicles = [
@@ -308,5 +314,91 @@ export class DashboardComponent implements OnInit {
     if (this.fleetMap && this.fleetMap.getMap()) {
       this.fleetMap.clearMarkers();
     }
+  }
+
+  findMyLocation(): void {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      this.showLocationNotSupported();
+      return;
+    }
+
+    this.locationLoading = true;
+
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 300000 // 5 minutes cache
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        this.locationLoading = false;
+        const { latitude, longitude } = position.coords;
+        
+        console.log('✅ Current location found:', { latitude, longitude });
+        
+        if (this.fleetMap && this.fleetMap.getMap()) {
+          // Fly to user's location
+          this.fleetMap.flyTo([longitude, latitude], 15);
+          
+          // Add a marker for user's location
+          this.fleetMap.addMarker(
+            [longitude, latitude],
+            '<strong>📍 Your Location</strong><br><small>Current position</small>',
+            'place'
+          );
+        }
+        
+        this.showLocationSuccess(latitude, longitude);
+      },
+      (error) => {
+        this.locationLoading = false;
+        this.handleLocationError(error);
+      },
+      options
+    );
+  }
+
+  private showLocationNotSupported(): void {
+    console.warn('🌍 Geolocation is not supported by this browser');
+    this.fallbackToMumbai();
+  }
+
+  private handleLocationError(error: GeolocationPositionError): void {
+    let errorMessage = 'Unable to access your location';
+    let fallbackMessage = 'Showing Mumbai, India instead';
+
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        errorMessage = 'Location access denied by user';
+        fallbackMessage = 'Please enable location permissions in your browser settings';
+        break;
+      case error.POSITION_UNAVAILABLE:
+        errorMessage = 'Location information unavailable';
+        fallbackMessage = 'Your location could not be determined';
+        break;
+      case error.TIMEOUT:
+        errorMessage = 'Location request timed out';
+        fallbackMessage = 'Please try again or check your internet connection';
+        break;
+      default:
+        if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {
+          errorMessage = 'Geolocation requires HTTPS in production';
+          fallbackMessage = 'Location features need a secure connection';
+        }
+    }
+
+    console.warn(`🌍 ${errorMessage}: ${fallbackMessage}`);
+    this.fallbackToMumbai();
+  }
+
+  private fallbackToMumbai(): void {
+    if (this.fleetMap && this.fleetMap.getMap()) {
+      this.fleetMap.flyTo([72.8777, 19.0760], 12);
+    }
+  }
+
+  private showLocationSuccess(lat: number, lng: number): void {
+    console.log(`✅ Location found: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
   }
 }
