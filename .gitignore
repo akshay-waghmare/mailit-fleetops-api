@@ -260,3 +260,8 @@ local.properties
 # Development tools
 .devcontainer/
 .vscode/settings.json
+# certbot/letsencrypt
+**/letsencrypt/**
+**/private_key.json
+**/privkey.pem
+**/accounts/**
