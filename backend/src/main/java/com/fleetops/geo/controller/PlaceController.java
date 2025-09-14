@@ -26,6 +26,11 @@ public class PlaceController {
     
     private final PlaceService placeService;
     
+    @GetMapping("/test")
+    public ResponseEntity<String> test() {
+        return ResponseEntity.ok("Places controller is working");
+    }
+    
     @GetMapping
     public ResponseEntity<Page<PlaceResponse>> getPlaces(
             @RequestParam(required = false) UUID organizationId,
@@ -33,7 +38,7 @@ public class PlaceController {
             @RequestParam(required = false) String search, // For search functionality in UI
             @RequestParam(required = false) String country, // Filter by country
             @RequestParam(required = false) String city,    // Filter by city
-            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+            @PageableDefault(size = 20) Pageable pageable) {
         
         log.debug("Getting places for organization: {}, type: {}, search: {}", organizationId, type, search);
         Page<PlaceResponse> places = placeService.getPlaces(organizationId, type, search, country, city, pageable);

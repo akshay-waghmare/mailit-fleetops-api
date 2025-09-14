@@ -22,17 +22,30 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
     Page<Place> findByOrganizationIdAndType(UUID organizationId, PlaceType type, Pageable pageable);
     List<Place> findByOrganizationIdOrderByCreatedAtDesc(UUID organizationId);
     
-    // Search functionality for UI
-    @Query("SELECT p FROM Place p WHERE " +
-           "(:organizationId IS NULL OR p.organizationId = :organizationId) AND " +
+    // Search functionality for UI - using native SQL to avoid geometry field issues
+    @Query(value = "SELECT p.id, p.organization_id, p.name, p.type, p.address, p.address_line_1, p.address_line_2, " +
+           "p.city, p.state, p.postal_code, p.country, p.latitude, p.longitude, p.contact_person, " +
+           "p.phone_number, p.email, p.description, p.active, p.created_at, p.updated_at " +
+           "FROM places p WHERE " +
+           "(:organizationId IS NULL OR p.organization_id = :organizationId) AND " +
            "(:type IS NULL OR p.type = :type) AND " +
-           "(:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           " LOWER(p.address) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           " LOWER(p.addressLine1) LIKE LOWER(CONCAT('%', :search, '%'))) AND " +
+           "(:search IS NULL OR LOWER(p.name) LIKE LOWER('%' || :search || '%') OR " +
+           " LOWER(p.address) LIKE LOWER('%' || :search || '%') OR " +
+           " LOWER(p.address_line_1) LIKE LOWER('%' || :search || '%')) AND " +
            "(:country IS NULL OR LOWER(p.country) = LOWER(:country)) AND " +
-           "(:city IS NULL OR LOWER(p.city) = LOWER(:city))")
+           "(:city IS NULL OR LOWER(p.city) = LOWER(:city)) " +
+           "ORDER BY p.created_at DESC",
+           countQuery = "SELECT COUNT(*) FROM places p WHERE " +
+           "(:organizationId IS NULL OR p.organization_id = :organizationId) AND " +
+           "(:type IS NULL OR p.type = :type) AND " +
+           "(:search IS NULL OR LOWER(p.name) LIKE LOWER('%' || :search || '%') OR " +
+           " LOWER(p.address) LIKE LOWER('%' || :search || '%') OR " +
+           " LOWER(p.address_line_1) LIKE LOWER('%' || :search || '%')) AND " +
+           "(:country IS NULL OR LOWER(p.country) = LOWER(:country)) AND " +
+           "(:city IS NULL OR LOWER(p.city) = LOWER(:city))",
+           nativeQuery = true)
     Page<Place> findPlacesWithFilters(@Param("organizationId") UUID organizationId,
-                                      @Param("type") PlaceType type,
+                                      @Param("type") String type,
                                       @Param("search") String search,
                                       @Param("country") String country,
                                       @Param("city") String city,

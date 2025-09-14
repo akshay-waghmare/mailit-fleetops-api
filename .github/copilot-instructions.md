@@ -1,105 +1,53 @@
-# Copilot Instructions — Places Backend Implementation
+# Copilot Instructions — Places Frontend Implementation
 
 ## Current Analysis
-**Backend Status**: 
-- ✅ Place entity exists: `backend/src/main/java/com/fleetops/geo/entity/Place.java`
-- ✅ Database schema exists: places table with PostGIS spatial support  
-- ✅ Frontend API service exists: `frontend/libs/shared/api.service.ts` has place methods
-- ❌ **Missing**: Repository, Service, Controller, DTOs for Places backend
+**Frontend Status**: 
+- ✅ Backend API exists: Places CRUD endpoints with spatial support  
+- ✅ API Service exists: `frontend/libs/shared/api.service.ts` has place methods
+- ✅ Place types exist: `frontend/libs/shared/types.ts` has Place interface
+- ❌ **Missing**: Full Places component implementation
 
-**Goal**: Complete the backend implementation for Places CRUD operations with spatial support.
+**Goal**: Complete the frontend implementation for Places management with modern UI/UX.
 
-## Implementation Plan
+## Implementation Context
 
-### Phase 1: Core Backend Components (Day 1)
-**Repository Layer**
-- Create `PlaceRepository` with JpaRepository + spatial queries
-- Add custom methods: `findByOrganizationId`, `findNearby`, `findByType`
+**Backend Integration**: 
+- Backend is already complete with spatial PostGIS support
+- API endpoints available: GET, POST, PUT, DELETE `/api/v1/places`
+- Coordinate handling: lat/lng JSON ↔ backend spatial types
+- No backend changes required
 
-**Service Layer** 
-- Create `PlaceService` interface and implementation
-- Handle CRUD operations + coordinate conversion (lat/lng ↔ JTS Point)
-- Add validation and business logic
+**Frontend Pattern**: 
+- Follow order management component structure and design
+- Maintain consistency with existing FleetOps UI patterns
+- Use Angular Material components with custom styling
 
-**DTO Layer**
-- Create `PlaceRequest` DTO for create/update operations
-- Create `PlaceResponse` DTO for API responses  
-- Handle coordinate serialization (JTS Point → lat/lng JSON)
+## Priority Tasks
 
-### Phase 2: REST Controller (Day 2)
-**PlaceController**
-- Implement REST endpoints: GET, POST, PUT, DELETE
-- Add pagination, filtering (by organizationId, type)
-- Add spatial endpoint: GET `/places/nearby`
-- Handle proper HTTP status codes and error responses
+### Phase 1: Core Component Architecture
+1. **Places Component** - Main places management interface
+2. **Place Form** - Create/edit place modal with map integration
+3. **Places Service** - Enhanced data management and state
+4. **Place Types** - Extended interfaces for UI requirements
 
-### Phase 3: Testing & Validation (Day 3)
-**Unit Tests**
-- Repository tests with spatial data
-- Service tests with coordinate conversion
-- Controller tests with MockMvc
+### Phase 2: UI Implementation  
+1. **Data Table** - Places list with search, filter, pagination
+2. **Map Integration** - Coordinate selection and visualization
+3. **Form Validation** - Address validation and coordinate handling
+4. **Responsive Design** - Mobile-first approach
 
-**Integration Testing**  
-- End-to-end API tests with real PostGIS data
-- Validate frontend integration
+### Phase 3: Features & Polish
+1. **Import/Export** - Bulk place management
+2. **Advanced Filters** - Organization, status, location-based
+3. **Error Handling** - User-friendly error states
+4. **Performance** - Lazy loading and optimization
 
-## Technical Specifications
+## Success Criteria
+- [ ] Full Places CRUD operations via modern UI
+- [ ] Map integration for coordinate selection
+- [ ] Search and filtering functionality
+- [ ] Import/Export capabilities
+- [ ] Responsive design working
+- [ ] Error handling and validation complete
 
-### Coordinate Handling Strategy
-**API Format**: Use simple lat/lng JSON for frontend compatibility
-```json
-{
-  "latitude": 37.7749,
-  "longitude": -122.4194
-}
-```
-
-**Backend Conversion**: Service layer converts between:
-- API: `{ latitude, longitude }` 
-- Entity: `org.locationtech.jts.geom.Point` with SRID 4326
-
-### File Structure
-```
-backend/src/main/java/com/fleetops/geo/
-├── entity/Place.java                    # ✅ Exists
-├── repository/PlaceRepository.java      # ❌ Create
-├── service/PlaceService.java           # ❌ Create  
-├── service/PlaceServiceImpl.java       # ❌ Create
-├── controller/PlaceController.java     # ❌ Create
-├── dto/PlaceRequest.java              # ❌ Create
-├── dto/PlaceResponse.java             # ❌ Create
-└── mapper/PlaceMapper.java            # ❌ Create (optional)
-```
-
-### Dependencies Required
-- ✅ JTS Spatial (already configured)
-- ✅ PostGIS (already configured)  
-- ✅ Spring Data JPA (already configured)
-- ✅ Jackson (already configured)
-
-### API Endpoints Design
-```
-GET    /api/v1/places                    # List with pagination
-GET    /api/v1/places/{id}              # Get by ID
-POST   /api/v1/places                   # Create new place
-PUT    /api/v1/places/{id}              # Update existing
-DELETE /api/v1/places/{id}              # Delete place
-GET    /api/v1/places/nearby            # Spatial query
-```
-
-### Priority Tasks
-1. **PlaceRepository** - Enable data access with spatial queries
-2. **PlaceService** - Handle coordinate conversion and business logic  
-3. **PlaceController** - Expose REST endpoints
-4. **DTOs** - Clean API contracts with lat/lng format
-5. **Testing** - Validate spatial functionality
-
-### Success Criteria
-- [ ] All CRUD operations working via REST API
-- [ ] Coordinate conversion (JTS Point ↔ lat/lng) working
-- [ ] Pagination and filtering by organizationId working
-- [ ] Spatial nearby query working (within radius)
-- [ ] Frontend integration successful
-- [ ] Unit and integration tests passing
-
-**Status**: Ready for implementation | **Target**: 3 days
+**Status**: Ready for frontend implementation | **Target**: 2-3 days
