@@ -598,6 +598,17 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (response) => {
         this.dataSource.data = response.content || [];
         
+        // Debug: Check value-related fields in the first order
+        if (response.content && response.content.length > 0) {
+          const firstOrder = response.content[0];
+          console.log('🔍 First order value fields:', {
+            total_amount: firstOrder.total_amount,
+            declared_value: firstOrder.declared_value,
+            cod_amount: firstOrder.cod_amount,
+            payment_status: firstOrder.payment_status
+          });
+        }
+        
         // Calculate live status counts
         this.calculateStatusCounts(response.content || []);
         
@@ -756,7 +767,8 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   editOrder(order: OrderRecord): void {
     console.log('Edit order:', order);
-    // TODO: Navigate to edit order page
+    // Navigate to edit order page using numeric ID
+    this.router.navigate(['/order-edit', order.id]);
   }
 
   trackOrder(order: OrderRecord): void {

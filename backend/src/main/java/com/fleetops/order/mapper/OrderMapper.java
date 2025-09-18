@@ -2,6 +2,7 @@ package com.fleetops.order.mapper;
 
 import com.fleetops.order.Order;
 import com.fleetops.order.dto.CreateOrderDto;
+import com.fleetops.order.dto.UpdateOrderDto;
 import com.fleetops.order.dto.OrderDto;
 import org.mapstruct.*;
 
@@ -35,6 +36,20 @@ public interface OrderMapper {
     @Mapping(target = "statusHistory", ignore = true)
     @Mapping(source = "serviceType", target = "serviceType", qualifiedByName = "mapServiceTypeToEntity")
     void updateEntityFromDto(CreateOrderDto dto, @MappingTarget Order entity);
+    
+    /**
+     * Partial update method for UpdateOrderDto - only non-null fields are updated
+     */
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "orderId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "statusHistory", ignore = true)
+    @Mapping(source = "serviceType", target = "serviceType", qualifiedByName = "mapServiceTypeToEntity")
+    @Mapping(source = "status", target = "status", qualifiedByName = "mapStringToStatus")
+    @Mapping(source = "paymentStatus", target = "paymentStatus", qualifiedByName = "mapStringToPaymentStatus")
+    void updateEntityFromUpdateDto(UpdateOrderDto dto, @MappingTarget Order entity);
     
     // Custom mapping methods
     default String generateOrderId() {

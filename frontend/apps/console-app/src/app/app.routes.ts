@@ -8,6 +8,7 @@ export const routes: Routes = [
   { path: 'geofences', loadComponent: () => import('./pages/geofences.component').then(m => m.GeofencesComponent) },
   { path: 'orders', loadComponent: () => import('./pages/orders.component').then(m => m.OrdersComponent) },
   { path: 'order-list', loadComponent: () => import('./pages/order-list.component').then(m => m.OrderListComponent) },
+  { path: 'order-edit/:id', loadComponent: () => import('./pages/order-edit.component').then(m => m.OrderEditComponent) },
   { path: 'order-analytics', loadComponent: () => import('./pages/order-analytics.component').then(m => m.OrderAnalyticsComponent) },
   { path: 'pickup', loadComponent: () => import('./pages/pickup.component').then(m => m.PickupComponent) },
   { path: 'pickup-list', loadComponent: () => import('./pages/pickup-list.component').then(m => m.PickupListComponent) },

@@ -58,7 +58,14 @@ export class OrderService {
    * Get order by ID
    */
   getOrderById(id: string): Observable<OrderRecord> {
-  return this.api.getOrder(id) as unknown as Observable<OrderRecord>;
+    return this.api.getOrder(id).pipe(
+      map((response: any) => {
+        console.log('🔍 Raw API response:', response);
+        // If the response is already the order object, return it directly
+        // If it's wrapped in ApiResponse, extract the data
+        return response.data || response;
+      })
+    );
   }
 
   /**
@@ -82,11 +89,26 @@ export class OrderService {
   }
 
   /**
-   * Update order details
+   * Update order details (full update)
    */
   updateOrder(orderId: string, orderData: Partial<OrderRecord>): Observable<OrderRecord> {
     // Map order data to backend format
     return this.api.updateOrder(orderId, orderData as any) as unknown as Observable<OrderRecord>;
+  }
+
+  /**
+   * Partially update order details (patch)
+   */
+  patchOrder(orderId: string, orderData: Partial<OrderRecord>): Observable<OrderRecord> {
+    console.log('🔧 OrderService.patchOrder - orderId:', orderId, 'data:', orderData);
+    return this.api.patchOrder(orderId, orderData).pipe(
+      map((response: any) => {
+        console.log('🔍 Raw PATCH API response:', response);
+        // If the response is already the order object, return it directly
+        // If it's wrapped in ApiResponse, extract the data
+        return response.data || response;
+      })
+    );
   }
 
   /**

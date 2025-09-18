@@ -2,6 +2,7 @@ package com.fleetops.order.controller;
 
 import com.fleetops.order.dto.CreateOrderDto;
 import com.fleetops.order.dto.OrderDto;
+import com.fleetops.order.dto.UpdateOrderDto;
 import com.fleetops.order.dto.UpdateOrderStatusDto;
 import com.fleetops.order.service.OrderService;
 import jakarta.validation.Valid;
@@ -104,6 +105,18 @@ public class OrderController {
                                                @Valid @RequestBody CreateOrderDto updateOrderDto) {
         logger.info("Updating order with id: {}", id);
         OrderDto updatedOrder = orderService.updateOrder(id, updateOrderDto);
+        return ResponseEntity.ok(updatedOrder);
+    }
+    
+    /**
+     * Partially update an order using PATCH method.
+     * Only provided fields will be updated, null/empty fields are ignored.
+     */
+    @PatchMapping("/{id}")
+    public ResponseEntity<OrderDto> patchOrder(@PathVariable Long id, 
+                                              @RequestBody UpdateOrderDto updateOrderDto) {
+        logger.info("Partially updating order with id: {}", id);
+        OrderDto updatedOrder = orderService.patchOrder(id, updateOrderDto);
         return ResponseEntity.ok(updatedOrder);
     }
     
