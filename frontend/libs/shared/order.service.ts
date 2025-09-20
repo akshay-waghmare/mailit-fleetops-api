@@ -82,6 +82,14 @@ export class OrderService {
   }
 
   /**
+   * Update order details
+   */
+  updateOrder(orderId: string, orderData: Partial<OrderRecord>): Observable<OrderRecord> {
+    // Map order data to backend format
+    return this.api.updateOrder(orderId, orderData as any) as unknown as Observable<OrderRecord>;
+  }
+
+  /**
    * Get order analytics
    */
   getOrderAnalytics(): Observable<OrderAnalytics> {
