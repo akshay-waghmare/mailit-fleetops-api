@@ -64,7 +64,7 @@ export class ConfigService {
     if (isDockerEnvironment) {
       return '/api'; // Use nginx proxy
     } else {
-      return 'http://localhost:8081/api'; // Local development - direct to backend
+      return 'http://localhost:8080/api'; // Local development - direct to backend
     }
   }
 

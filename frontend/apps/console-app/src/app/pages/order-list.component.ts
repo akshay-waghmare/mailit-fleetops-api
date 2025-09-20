@@ -16,9 +16,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCardModule } from '@angular/material/card';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog } from '@angular/material/dialog';
 import { Subscription, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { OrderService, OrderRecord, OrderQueryParams } from '../../../../../libs/shared';
+import { OrderDetailModalComponent } from '../components/order-detail-modal.component';
 
 @Component({
   selector: 'app-order-list',
@@ -527,7 +529,8 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     private orderService: OrderService,
     private router: Router,
     private route: ActivatedRoute,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -751,7 +754,20 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   viewOrderDetails(order: OrderRecord): void {
     console.log('View order details:', order);
-    // TODO: Open order detail modal
+    
+    const dialogRef = this.dialog.open(OrderDetailModalComponent, {
+      width: '90vw',
+      maxWidth: '900px',
+      maxHeight: '90vh',
+      data: order,
+      panelClass: 'order-detail-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.action === 'track') {
+        this.trackOrder(result.order);
+      }
+    });
   }
 
   editOrder(order: OrderRecord): void {
