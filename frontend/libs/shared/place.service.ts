@@ -82,7 +82,7 @@ export class PlaceService {
       return of(mockPlace);
     }
     
-    const place: Partial<Place> = this.transformFormDataToPlace(placeData);
+    const place: any = this.transformFormDataToPlace(placeData);
     
     return this.apiService.createPlace(place).pipe(
       map(response => {
@@ -112,7 +112,7 @@ export class PlaceService {
    * Update an existing place
    */
   updatePlace(id: string, placeData: PlaceFormData): Observable<PlaceRecord> {
-    const place: Partial<Place> = this.transformFormDataToPlace(placeData);
+    const place: any = this.transformFormDataToPlace(placeData);
     
     return this.apiService.updatePlace(id, place).pipe(
       map(response => {
@@ -253,26 +253,43 @@ export class PlaceService {
   }
 
   /**
-   * Transform form data to Place API format
+   * Transform form data to backend PlaceRequest format
    */
-  private transformFormDataToPlace(formData: PlaceFormData): Partial<Place> {
-    return {
+  private transformFormDataToPlace(formData: PlaceFormData): any {
+    const payload: any = {
       name: formData.name,
       description: formData.description,
+      // Coordinates as top-level fields (backend PlaceRequest requirement)
+      latitude: formData.latitude,
+      longitude: formData.longitude,
+      // Address fields
       addressLine1: formData.addressLine1,
       addressLine2: formData.addressLine2,
+      neighbourhood: formData.neighbourhood,
+      building: formData.building,
+      securityAccessCode: formData.securityAccessCode,
       city: formData.city,
       state: formData.state,
       postalCode: formData.postalCode,
       country: formData.country,
-      location: {
-        longitude: formData.longitude,
-        latitude: formData.latitude
-      },
+      // Contact information - only include if not empty
+      contactPerson: formData.contactPerson,
+      // Metadata
       type: formData.type,
       organizationId: formData.organizationId,
       active: formData.active
     };
+
+    // Only include phoneNumber if it's provided and valid
+    if (formData.phoneNumber && formData.phoneNumber.trim() !== '') {
+      payload.phoneNumber = formData.phoneNumber;
+    }
+
+    if (formData.phoneCountryCode && formData.phoneCountryCode.trim() !== '') {
+      payload.phoneCountryCode = formData.phoneCountryCode;
+    }
+
+    return payload;
   }
 
   /**

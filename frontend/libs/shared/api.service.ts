@@ -79,11 +79,11 @@ export class ApiService {
     return this.http.get<Place>(`${this.baseUrl}/places/${id}`);
   }
 
-  createPlace(place: Partial<Place>): Observable<Place> {
+  createPlace(place: any): Observable<Place> {
     return this.http.post<Place>(`${this.baseUrl}/places`, place);
   }
 
-  updatePlace(id: string, place: Partial<Place>): Observable<Place> {
+  updatePlace(id: string, place: any): Observable<Place> {
     return this.http.put<Place>(`${this.baseUrl}/places/${id}`, place);
   }
 

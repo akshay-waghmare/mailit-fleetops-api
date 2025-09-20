@@ -84,11 +84,32 @@ import { PlaceRecord, PlaceFormData, PlaceService } from '../../../../../libs/sh
                 </mat-form-field>
 
                 <div class="toggle-field">
-                  <mat-slide-toggle formControlName="isActive">
+                  <mat-slide-toggle formControlName="active">
                     <span class="toggle-label">Active Place</span>
                   </mat-slide-toggle>
                   <div class="toggle-hint">Inactive places won't appear in delivery options</div>
                 </div>
+
+                <!-- Place Type Field -->
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Place Type</mat-label>
+                  <mat-select formControlName="type" placeholder="Select Place Type">
+                    <mat-option value="DEPOT">🏭 Depot</mat-option>
+                    <mat-option value="WAREHOUSE">🏪 Warehouse</mat-option>
+                    <mat-option value="CUSTOMER">👥 Customer Location</mat-option>
+                    <mat-option value="PICKUP_POINT">📦 Pickup Point</mat-option>
+                    <mat-option value="DELIVERY_POINT">🚚 Delivery Point</mat-option>
+                    <mat-option value="SERVICE_CENTER">🔧 Service Center</mat-option>
+                    <mat-option value="RETAIL_STORE">🏬 Retail Store</mat-option>
+                    <mat-option value="DISTRIBUTION_CENTER">📊 Distribution Center</mat-option>
+                    <mat-option value="OFFICE">🏢 Office</mat-option>
+                    <mat-option value="OTHER">📍 Other</mat-option>
+                  </mat-select>
+                  <mat-hint>Select the type of place this represents</mat-hint>
+                  <mat-error *ngIf="placeForm.get('type')?.hasError('required')">
+                    Place type is required
+                  </mat-error>
+                </mat-form-field>
               </div>
             </mat-expansion-panel>
 
@@ -214,24 +235,30 @@ import { PlaceRecord, PlaceFormData, PlaceService } from '../../../../../libs/sh
               <div class="form-grid">
                 <div class="form-row">
                   <mat-form-field appearance="outline">
-                    <mat-label>Latitude</mat-label>
+                    <mat-label>Latitude *</mat-label>
                     <input matInput type="number" step="0.000001" 
                            formControlName="latitude" 
                            placeholder="40.712800"
                            autocomplete="off">
-                    <mat-hint>Decimal degrees (e.g., 40.712800) - Optional</mat-hint>
+                    <mat-hint>Decimal degrees (e.g., 40.712800) - Required</mat-hint>
+                    <mat-error *ngIf="placeForm.get('latitude')?.hasError('required')">
+                      Latitude is required
+                    </mat-error>
                     <mat-error *ngIf="placeForm.get('latitude')?.hasError('min') || placeForm.get('latitude')?.hasError('max')">
                       Latitude must be between -90 and 90
                     </mat-error>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
-                    <mat-label>Longitude</mat-label>
+                    <mat-label>Longitude *</mat-label>
                     <input matInput type="number" step="0.000001" 
                            formControlName="longitude" 
                            placeholder="-74.006000"
                            autocomplete="off">
-                    <mat-hint>Decimal degrees (e.g., -74.006000) - Optional</mat-hint>
+                    <mat-hint>Decimal degrees (e.g., -74.006000) - Required</mat-hint>
+                    <mat-error *ngIf="placeForm.get('longitude')?.hasError('required')">
+                      Longitude is required
+                    </mat-error>
                     <mat-error *ngIf="placeForm.get('longitude')?.hasError('min') || placeForm.get('longitude')?.hasError('max')">
                       Longitude must be between -180 and 180
                     </mat-error>
@@ -240,7 +267,7 @@ import { PlaceRecord, PlaceFormData, PlaceService } from '../../../../../libs/sh
 
                 <div class="coordinates-hint">
                   <mat-icon>info</mat-icon>
-                  <span>Enter coordinates in decimal degrees format (optional). Use the buttons below to get coordinates automatically.</span>
+                  <span>Enter coordinates in decimal degrees format (required). Use the buttons below to get coordinates automatically.</span>
                 </div>
 
                 <div class="map-actions">
@@ -299,7 +326,7 @@ import { PlaceRecord, PlaceFormData, PlaceService } from '../../../../../libs/sh
               <div class="form-grid">
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Phone Number</mat-label>
-                  <input matInput formControlName="phone" 
+                  <input matInput formControlName="phoneNumber" 
                          type="tel"
                          placeholder="e.g., +1 (555) 123-4567, +44 20 7946 0958"
                          autocomplete="tel">
@@ -314,6 +341,25 @@ import { PlaceRecord, PlaceFormData, PlaceService } from '../../../../../libs/sh
 
         <!-- Footer Actions -->
         <div class="modal-footer">
+          <!-- Debug info (remove in production) -->
+          <div class="debug-info" *ngIf="true" style="font-size: 12px; color: #666; margin-bottom: 15px; background: #f5f5f5; padding: 10px; border-radius: 4px;">
+            <div style="margin-bottom: 5px;">
+              <strong>Form Status:</strong> {{ getValidationStatus() }} | 
+              <strong>Valid:</strong> {{ placeForm.valid }} | 
+              <strong>Dirty:</strong> {{ placeForm.dirty }} | 
+              <strong>Touched:</strong> {{ placeForm.touched }} |
+              <strong>Submitting:</strong> {{ isSubmitting }}
+              <button type="button" style="margin-left: 10px; font-size: 10px;" (click)="refreshFormValidation()">Refresh Validation</button>
+            </div>
+            <div style="margin-bottom: 5px;"><strong>Invalid Fields:</strong></div>
+            <div *ngFor="let error of getInvalidFieldsList()" style="color: #d32f2f; font-size: 11px;">
+              • {{ error }}
+            </div>
+            <div *ngIf="getInvalidFieldsList().length === 0" style="color: #2e7d32; font-size: 11px;">
+              ✓ All fields are valid!
+            </div>
+          </div>
+          
           <div class="footer-actions">
             <button mat-stroked-button (click)="onClose()" 
                     [disabled]="isSubmitting">
@@ -321,7 +367,9 @@ import { PlaceRecord, PlaceFormData, PlaceService } from '../../../../../libs/sh
             </button>
             <button mat-raised-button color="primary" 
                     type="submit" 
-                    [disabled]="placeForm.invalid || isSubmitting">
+                    form="placeFormRef"
+                    [disabled]="placeForm.invalid || isSubmitting"
+                    (click)="onSubmit()">
               <mat-icon>{{ isEditMode ? 'save' : 'add' }}</mat-icon>
               {{ isEditMode ? 'Update Place' : 'Create Place' }}
             </button>
@@ -672,13 +720,17 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.initializeForm();
+    
+    // Remove the problematic status change subscription that causes ExpressionChangedAfterItHasBeenCheckedError
+    // Debug form validation status only when needed
   }
 
   ngOnChanges(): void {
-    if (this.placeData && this.isEditMode) {
-      this.populateForm();
-    } else if (!this.isEditMode) {
+    if (this.isOpen && !this.isEditMode) {
+      // Always reset form when opening for create
       this.resetForm();
+    } else if (this.placeData && this.isEditMode) {
+      this.populateForm();
     }
   }
 
@@ -702,13 +754,26 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
     if (this.placeForm.valid && !this.isSubmitting) {
       this.isSubmitting = true;
       
+      const formValues = this.placeForm.value;
       const formData: PlaceFormData = {
-        ...this.placeForm.value,
-        coordinates: {
-          latitude: this.placeForm.value.latitude || 0,
-          longitude: this.placeForm.value.longitude || 0
-        },
-        organizationId: 'default-org' // TODO: Get from user context
+        name: formValues.name,
+        description: formValues.description,
+        addressLine1: formValues.addressLine1,
+        addressLine2: formValues.addressLine2,
+        neighbourhood: formValues.neighborhood,
+        building: formValues.building,
+        securityAccessCode: formValues.securityAccessCode,
+        city: formValues.city,
+        state: formValues.state,
+        postalCode: formValues.postalCode,
+        country: formValues.country,
+        latitude: parseFloat(formValues.latitude),
+        longitude: parseFloat(formValues.longitude),
+        phoneNumber: formValues.phoneNumber,
+        type: formValues.type,
+        active: formValues.active,
+        // Generate a proper UUID v4 format for organizationId
+        organizationId: '550e8400-e29b-41d4-a716-446655440000' // Default organization UUID
       };
 
       console.log('Submitting form data:', formData);
@@ -716,23 +781,36 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
       if (this.isEditMode) {
         // Handle update
         this.placeUpdated.emit(formData as any);
-        this.snackBar.open('Place updated successfully', 'Close', { duration: 3000 });
-        this.isSubmitting = false;
-        this.onClose();
+        this.showSuccessAndClose('Place updated successfully');
       } else {
         // Handle create using PlaceService
         this.placeService.createPlace(formData).subscribe({
           next: (newPlace) => {
             console.log('Place created successfully:', newPlace);
             this.placeCreated.emit(newPlace);
-            this.snackBar.open('Place created successfully', 'Close', { duration: 3000 });
-            this.isSubmitting = false;
-            this.onClose();
+            this.showSuccessAndClose('Place created successfully');
           },
           error: (error) => {
             console.error('Error creating place:', error);
-            this.snackBar.open('Error creating place. Please try again.', 'Close', { duration: 5000 });
-            this.isSubmitting = false;
+            console.error('Error status:', error.status);
+            console.error('Error message:', error.message);
+            console.error('Error details:', error.error);
+            
+            // Show more specific error message
+            let errorMessage = 'Error creating place. Please try again.';
+            if (error.status === 400) {
+              errorMessage = 'Invalid data provided. Please check all required fields.';
+              if (error.error && error.error.message) {
+                errorMessage += ` (${error.error.message})`;
+              }
+            }
+            
+            this.snackBar.open(errorMessage, 'Close', { duration: 8000 });
+            
+            // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+            setTimeout(() => {
+              this.isSubmitting = false;
+            }, 0);
           }
         });
       }
@@ -740,6 +818,10 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
       console.log('Form submission blocked - invalid form or already submitting');
       if (!this.placeForm.valid) {
         this.markAllFieldsAsTouched();
+        // Show specific validation errors
+        setTimeout(() => {
+          this.snackBar.open('Please fill in all required fields correctly', 'Close', { duration: 4000 });
+        }, 0);
       }
     }
   }
@@ -754,8 +836,8 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           this.placeForm.patchValue({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
+            latitude: position.coords.latitude.toString(),
+            longitude: position.coords.longitude.toString()
           });
           this.snackBar.open('Location updated', 'Close', { duration: 2000 });
         },
@@ -771,7 +853,7 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
   hasCoordinates(): boolean {
     const lat = this.placeForm.get('latitude')?.value;
     const lng = this.placeForm.get('longitude')?.value;
-    return lat !== null && lng !== null && lat !== '' && lng !== '' && !isNaN(lat) && !isNaN(lng);
+    return lat && lng && lat !== '' && lng !== '' && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng));
   }
 
   hasValidAddress(): boolean {
@@ -793,8 +875,8 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
 
   clearCoordinates(): void {
     this.placeForm.patchValue({
-      latitude: null,
-      longitude: null
+      latitude: '',
+      longitude: ''
     });
   }
 
@@ -817,21 +899,22 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
 
   private createForm(): FormGroup {
     return this.formBuilder.group({
-      name: ['', [Validators.required, Validators.minLength(2)]],
+      name: ['', [Validators.required]], // Simplified - just required
       description: [''],
-      addressLine1: ['', [Validators.required, Validators.minLength(5)]],
+      addressLine1: ['', [Validators.required]], // Simplified - just required
       addressLine2: [''],
       neighborhood: [''],
       building: [''],
       securityAccessCode: [''],
-      city: ['', [Validators.required, Validators.minLength(2)]],
-      state: ['', [Validators.required, Validators.minLength(2)]],
-      postalCode: ['', [Validators.required, Validators.minLength(3)]],
+      city: ['', [Validators.required]], // Simplified - just required
+      state: ['', [Validators.required]], // Simplified - just required
+      postalCode: ['', [Validators.required]], // Simplified - just required
       country: ['', Validators.required],
-      latitude: [null, [Validators.min(-90), Validators.max(90)]],
-      longitude: [null, [Validators.min(-180), Validators.max(180)]],
-      phone: [''],
-      isActive: [true]
+      latitude: ['', [Validators.required, Validators.min(-90), Validators.max(90)]], // Now required
+      longitude: ['', [Validators.required, Validators.min(-180), Validators.max(180)]], // Now required
+      phoneNumber: [''],
+      active: [true], // This should always be valid
+      type: ['WAREHOUSE', Validators.required] // Use WAREHOUSE instead of OTHER temporarily
     });
   }
 
@@ -854,7 +937,9 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
         country: this.placeData.country,
         latitude: this.placeData.location.latitude,
         longitude: this.placeData.location.longitude,
-        active: this.placeData.active
+        phoneNumber: this.placeData.phoneNumber || '',
+        active: this.placeData.active,
+        type: this.placeData.type || 'OTHER'
       });
     }
   }
@@ -872,10 +957,11 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
       state: '',
       postalCode: '',
       country: '',
-      latitude: null,
-      longitude: null,
-      phone: '',
-      isActive: true
+      latitude: '',
+      longitude: '',
+      phoneNumber: '',
+      active: true,
+      type: 'OTHER'
     });
     this.isSubmitting = false;
     
@@ -901,5 +987,50 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
     Object.keys(this.placeForm.controls).forEach(key => {
       this.placeForm.get(key)?.markAsTouched();
     });
+  }
+
+  // Helper method to check if form is ready for submission
+  isFormValid(): boolean {
+    return this.placeForm.valid && !this.isSubmitting;
+  }
+
+  // Helper method to get validation status for debugging
+  getValidationStatus(): string {
+    if (this.placeForm.pending) return 'PENDING';
+    if (this.placeForm.valid) return 'VALID';
+    if (this.placeForm.invalid) return 'INVALID';
+    return 'UNKNOWN';
+  }
+
+  // Helper method to get list of invalid fields for debugging
+  getInvalidFieldsList(): string[] {
+    const invalidFields: string[] = [];
+    Object.keys(this.placeForm.controls).forEach(key => {
+      const control = this.placeForm.get(key);
+      if (control && control.invalid && control.errors) {
+        const errors = Object.keys(control.errors).join(', ');
+        invalidFields.push(`${key}: ${errors} (value: '${control.value}')`);
+      }
+    });
+    return invalidFields;
+  }
+
+  // Method to manually refresh form validation
+  refreshFormValidation(): void {
+    this.placeForm.updateValueAndValidity();
+    Object.keys(this.placeForm.controls).forEach(key => {
+      this.placeForm.get(key)?.updateValueAndValidity();
+    });
+  }
+
+  // Helper method to show success message and close modal
+  private showSuccessAndClose(message: string): void {
+    this.snackBar.open(message, 'Close', { duration: 3000 });
+    this.isSubmitting = false;
+    
+    // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.onClose();
+    }, 0);
   }
 }

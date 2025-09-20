@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -781,7 +781,8 @@ export class PlacesComponent implements OnInit, OnDestroy {
 
   constructor(
     private placeService: PlaceService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -805,11 +806,13 @@ export class PlacesComponent implements OnInit, OnDestroy {
           this.applyFilters();
           this.updateStatusMetrics();
           this.loading = false;
+          this.cdr.detectChanges();
         },
         error: (error) => {
           console.error('Error loading places:', error);
           this.snackBar.open('Error loading places', 'Close', { duration: 3000 });
           this.loading = false;
+          this.cdr.detectChanges();
         }
       });
   }
@@ -915,12 +918,14 @@ export class PlacesComponent implements OnInit, OnDestroy {
     this.isEditMode = false;
     this.selectedPlaceForEdit = undefined;
     this.showCreateModal = true;
+    this.cdr.detectChanges();
   }
 
   editPlace(place: PlaceRecord): void {
     this.isEditMode = true;
     this.selectedPlaceForEdit = place;
     this.showCreateModal = true;
+    this.cdr.detectChanges();
   }
 
   viewPlace(place: PlaceRecord): void {
@@ -961,6 +966,7 @@ export class PlacesComponent implements OnInit, OnDestroy {
     this.showCreateModal = false;
     this.selectedPlaceForEdit = undefined;
     this.isEditMode = false;
+    this.cdr.detectChanges();
   }
 
   onPlaceCreated(place: PlaceRecord): void {
