@@ -181,14 +181,14 @@ import { OrderStatusUpdateModalComponent } from '../components/order-status-upda
 
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>From Date</mat-label>
-                  <input matInput [matDatepicker]="fromDatePicker" [(ngModel)]="filterValues.fromDate" (dateChange)="applyFilters()">
+                  <input matInput [matDatepicker]="fromDatePicker" [(ngModel)]="filterValues.fromDate" (dateChange)="onDateChange()">
                   <mat-datepicker-toggle matSuffix [for]="fromDatePicker"></mat-datepicker-toggle>
                   <mat-datepicker #fromDatePicker></mat-datepicker>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>To Date</mat-label>
-                  <input matInput [matDatepicker]="toDatePicker" [(ngModel)]="filterValues.toDate" (dateChange)="applyFilters()">
+                  <input matInput [matDatepicker]="toDatePicker" [(ngModel)]="filterValues.toDate" (dateChange)="onDateChange()">
                   <mat-datepicker-toggle matSuffix [for]="toDatePicker"></mat-datepicker-toggle>
                   <mat-datepicker #toDatePicker></mat-datepicker>
                 </mat-form-field>
@@ -296,14 +296,6 @@ import { OrderStatusUpdateModalComponent } from '../components/order-status-upda
                         </div>
                         <div class="flex items-center text-sm">
                           <mat-icon class="text-red-600 text-base mr-1">location_on</mat-icon>
-                                                    <span class="text-slate-600 truncate max-w-[200px]" matTooltip="{{order.sender_address}}">
-                            {{order.sender_name}}
-                          </span>
-                        </div>
-                        <div class="text-right">
-                          <i class="fas fa-arrow-right text-slate-400 mx-2"></i>
-                        </div>
-                        <div class="max-w-[200px]">
                           <span class="text-slate-600 truncate max-w-[200px]" matTooltip="{{order.receiver_address}}">
                             {{order.receiver_name}}, {{order.receiver_city}}
                           </span>
@@ -319,11 +311,11 @@ import { OrderStatusUpdateModalComponent } from '../components/order-status-upda
                       <div>
                         <span class="inline-flex items-center px-3 py-1 text-sm rounded-full font-medium" 
                               [ngClass]="getServiceClass(order.service_type)">
-                          <mat-icon class="mr-1" style="font-size: 16px;">{{getServiceIcon(order.serviceType)}}</mat-icon>
-                          {{order.serviceType | titlecase}}
+                          <mat-icon class="mr-1" style="font-size: 16px;">{{getServiceIcon(order.service_type)}}</mat-icon>
+                          {{order.service_type | titlecase}}
                         </span>
-                        <div class="text-sm text-slate-500 mt-1">{{order.carrierName}}</div>
-                        <div class="text-xs text-slate-400" *ngIf="order.trackingNumber">{{order.trackingNumber}}</div>
+                        <div class="text-sm text-slate-500 mt-1">{{order.carrier_name}}</div>
+                        <div class="text-xs text-slate-400" *ngIf="order.tracking_number">{{order.tracking_number}}</div>
                       </div>
                     </td>
                   </ng-container>
@@ -590,8 +582,8 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
       search: this.filterValues.search && this.filterValues.search.trim() ? this.filterValues.search.trim() : undefined,
       status: this.filterValues.status && this.filterValues.status !== '' ? this.filterValues.status : undefined,
       service_type: this.filterValues.serviceType && this.filterValues.serviceType !== '' ? this.filterValues.serviceType : undefined,
-      from_date: this.filterValues.fromDate?.toISOString().split('T')[0] || undefined,
-      to_date: this.filterValues.toDate?.toISOString().split('T')[0] || undefined,
+      from_date: this.filterValues.fromDate ? this.formatDateRangeForAPI(this.filterValues.fromDate, false) : undefined,
+      to_date: this.filterValues.toDate ? this.formatDateRangeForAPI(this.filterValues.toDate, true) : undefined,
       sort_by: 'created_at',
       sort_order: 'desc'
     };
@@ -692,6 +684,38 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     // Force change detection and apply filters
     this.cdr.detectChanges();
     this.applyFilters();
+  }
+
+  onDateChange(): void {
+    console.log('📅 Date filter changed:', {
+      fromDate: this.filterValues.fromDate,
+      toDate: this.filterValues.toDate
+    });
+    
+    // Force change detection and apply filters
+    this.cdr.detectChanges();
+    this.applyFilters();
+  }
+
+  formatDateForAPI(date: Date): string {
+    if (!date) return '';
+    // Format as full ISO datetime for the backend API (Instant format)
+    return date.toISOString();
+  }
+
+  formatDateRangeForAPI(date: Date, isEndDate: boolean = false): string {
+    if (!date) return '';
+    
+    const adjustedDate = new Date(date);
+    if (isEndDate) {
+      // Set to end of day (23:59:59.999)
+      adjustedDate.setHours(23, 59, 59, 999);
+    } else {
+      // Set to start of day (00:00:00.000)
+      adjustedDate.setHours(0, 0, 0, 0);
+    }
+    
+    return adjustedDate.toISOString();
   }
 
   clearFilters(): void {
