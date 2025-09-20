@@ -389,6 +389,37 @@ interface Client {
                     </mat-select>
                   </mat-form-field>
                   
+                  <!-- Financial Details -->
+                  <mat-form-field >
+                    <mat-label>Declared Value (₹)</mat-label>
+                    <input matInput 
+                           formControlName="declaredValue" 
+                           type="number" 
+                           placeholder="5000"
+                           min="1"
+                           step="0.01">
+                  </mat-form-field>
+                  
+                  <mat-form-field >
+                    <mat-label>COD Amount (₹)</mat-label>
+                    <input matInput 
+                           formControlName="codAmount" 
+                           type="number" 
+                           placeholder="0"
+                           min="0"
+                           step="0.01">
+                  </mat-form-field>
+                  
+                  <mat-form-field >
+                    <mat-label>Payment Status</mat-label>
+                    <mat-select formControlName="paymentStatus">
+                      <mat-option value="pending">Pending</mat-option>
+                      <mat-option value="paid">Paid</mat-option>
+                      <mat-option value="cod">Cash on Delivery</mat-option>
+                      <mat-option value="refunded">Refunded</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  
                   <!-- Dimensions -->
                   <div class="md:col-span-2 lg:col-span-3">
                     <label class="block text-sm font-medium text-slate-700 mb-2">Dimensions (L × W × H cm)</label>
@@ -1009,7 +1040,10 @@ export class OrdersComponent implements OnInit {
       senderName: ['FleetOps India Pvt Ltd', Validators.required],
       senderContact: ['9876543210', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
       senderAddress: ['456 Business Park, Mumbai, Maharashtra 400001', Validators.required],
-      selectedCarrier: ['']
+      selectedCarrier: [''],
+      declaredValue: ['5000', [Validators.required, Validators.min(1)]],
+      codAmount: ['0', [Validators.min(0)]],
+      paymentStatus: ['pending', Validators.required]
     });
   }
 
@@ -1355,7 +1389,7 @@ export class OrdersComponent implements OnInit {
         width_cm: formData.width ? parseFloat(formData.width) : null,
         height_cm: formData.height ? parseFloat(formData.height) : null,
         item_description: formData.commodity || 'General Items',
-        declared_value: null,
+        declared_value: formData.declaredValue ? parseFloat(formData.declaredValue) : null,
         
         // Service Details
         service_type: this.getServiceType(this.selectedCarrier.type || 'standard'),
@@ -1367,8 +1401,8 @@ export class OrdersComponent implements OnInit {
         estimated_cost: this.selectedCarrier.price,
         actual_cost: this.selectedCarrier.price,
         total_amount: this.selectedCarrier.price,
-        cod_amount: null,
-        payment_status: 'pending',
+        cod_amount: formData.codAmount ? parseFloat(formData.codAmount) : 0,
+        payment_status: formData.paymentStatus || 'pending',
         
         // Additional Information
         special_instructions: null,

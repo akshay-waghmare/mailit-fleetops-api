@@ -6,6 +6,7 @@ import com.fleetops.order.OrderStatusHistory;
 import com.fleetops.order.OrderStatusHistoryRepository;
 import com.fleetops.order.dto.CreateOrderDto;
 import com.fleetops.order.dto.OrderDto;
+import com.fleetops.order.dto.UpdateOrderDto;
 import com.fleetops.order.dto.UpdateOrderStatusDto;
 import com.fleetops.order.mapper.OrderMapper;
 import jakarta.persistence.EntityNotFoundException;
@@ -183,6 +184,33 @@ public class OrderService {
         sendRealTimeUpdate("ORDER_UPDATED", orderDto);
         
         logger.info("Order updated successfully: {}", savedOrder.getOrderId());
+        return orderDto;
+    }
+    
+    /**
+     * Partially update an order using UpdateOrderDto.
+     * Only provided fields will be updated, null/empty fields are ignored.
+     */
+    public OrderDto patchOrder(Long id, UpdateOrderDto updateOrderDto) {
+        Order existingOrder = orderRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + id));
+        
+        logger.info("Partially updating order: {}", existingOrder.getOrderId());
+        
+        orderMapper.updateEntityFromUpdateDto(updateOrderDto, existingOrder);
+        
+        // Recalculate total amount if relevant fields changed
+        if (updateOrderDto.getShippingCost() != null || updateOrderDto.getTaxAmount() != null || updateOrderDto.getCodAmount() != null) {
+            existingOrder.setTotalAmount(calculateTotalAmount(existingOrder));
+        }
+        
+        Order savedOrder = orderRepository.save(existingOrder);
+        OrderDto orderDto = orderMapper.toDto(savedOrder);
+        
+        // Send real-time update
+        sendRealTimeUpdate("ORDER_UPDATED", orderDto);
+        
+        logger.info("Order partially updated successfully: {}", savedOrder.getOrderId());
         return orderDto;
     }
     

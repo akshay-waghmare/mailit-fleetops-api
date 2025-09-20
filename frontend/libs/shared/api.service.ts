@@ -137,6 +137,10 @@ export class ApiService {
   return this.http.put<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}`, payload);
   }
 
+  patchOrder(id: string, payload: any): Observable<ApiResponse<any>> {
+  return this.http.patch<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}`, payload);
+  }
+
   updateOrderStatus(id: string, payload: any): Observable<ApiResponse<any>> {
   return this.http.patch<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}/status`, payload);
   }
