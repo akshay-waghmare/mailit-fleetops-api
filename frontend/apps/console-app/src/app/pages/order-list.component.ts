@@ -16,9 +16,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCardModule } from '@angular/material/card';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog } from '@angular/material/dialog';
 import { Subscription, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { OrderService, OrderRecord, OrderQueryParams } from '../../../../../libs/shared';
+import { OrderEditModalComponent } from '../components/order-edit-modal.component';
+import { OrderStatusUpdateModalComponent } from '../components/order-status-update-modal.component';
 
 @Component({
   selector: 'app-order-list',
@@ -527,7 +530,8 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     private orderService: OrderService,
     private router: Router,
     private route: ActivatedRoute,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -767,8 +771,22 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   editOrder(order: OrderRecord): void {
     console.log('Edit order:', order);
-    // Navigate to edit order page using numeric ID
-    this.router.navigate(['/order-edit', order.id]);
+    
+    const dialogRef = this.dialog.open(OrderEditModalComponent, {
+      data: { order },
+      width: '800px',
+      maxWidth: '90vw',
+      disableClose: true,
+      autoFocus: false
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Order updated:', result);
+        // Refresh the orders list to show updated data
+        this.refreshOrders();
+      }
+    });
   }
 
   trackOrder(order: OrderRecord): void {
@@ -778,7 +796,22 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   updateOrderStatus(order: OrderRecord): void {
     console.log('Update status for order:', order);
-    // TODO: Open status update modal
+    
+    const dialogRef = this.dialog.open(OrderStatusUpdateModalComponent, {
+      data: { order },
+      width: '600px',
+      maxWidth: '90vw',
+      disableClose: true,
+      autoFocus: false
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Order status updated:', result);
+        // Refresh the orders list to show updated data
+        this.refreshOrders();
+      }
+    });
   }
 
   printOrder(order: OrderRecord): void {
