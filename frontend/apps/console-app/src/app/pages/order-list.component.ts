@@ -194,6 +194,34 @@ import { OrderStatusUpdateModalComponent } from '../components/order-status-upda
                 </mat-form-field>
               </div>
               
+              <!-- Quick Date Range Buttons -->
+              <div class="mt-4 flex flex-wrap gap-2">
+                <button mat-button (click)="setDateRange('today')" class="text-sm">
+                  <mat-icon class="text-base mr-1">today</mat-icon>
+                  Today
+                </button>
+                <button mat-button (click)="setDateRange('yesterday')" class="text-sm">
+                  <mat-icon class="text-base mr-1">calendar_today</mat-icon>
+                  Yesterday  
+                </button>
+                <button mat-button (click)="setDateRange('thisWeek')" class="text-sm">
+                  <mat-icon class="text-base mr-1">date_range</mat-icon>
+                  This Week
+                </button>
+                <button mat-button (click)="setDateRange('lastWeek')" class="text-sm">
+                  <mat-icon class="text-base mr-1">date_range</mat-icon>
+                  Last Week
+                </button>
+                <button mat-button (click)="setDateRange('thisMonth')" class="text-sm">
+                  <mat-icon class="text-base mr-1">calendar_month</mat-icon>
+                  This Month
+                </button>
+                <button mat-button (click)="setDateRange('sep18')" class="text-sm bg-blue-50 text-blue-600">
+                  <mat-icon class="text-base mr-1">event</mat-icon>
+                  Sep 18 (Test Data)
+                </button>
+              </div>
+              
               <!-- Clear Filters Button -->
               <div class="mt-4 flex justify-end">
                 <button mat-stroked-button (click)="clearFilters()" class="rounded-lg">
@@ -577,6 +605,8 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     console.log('  - search:', `"${this.filterValues.search}"`);
     console.log('  - status:', `"${this.filterValues.status}"`);
     console.log('  - serviceType:', `"${this.filterValues.serviceType}"`);
+    console.log('  - fromDate:', this.filterValues.fromDate);
+    console.log('  - toDate:', this.filterValues.toDate);
     
     const queryParams: OrderQueryParams = {
       search: this.filterValues.search && this.filterValues.search.trim() ? this.filterValues.search.trim() : undefined,
@@ -692,6 +722,16 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
       toDate: this.filterValues.toDate
     });
     
+    // Validate date range
+    if (this.filterValues.fromDate && this.filterValues.toDate) {
+      if (this.filterValues.fromDate > this.filterValues.toDate) {
+        console.warn('⚠️ From date is after to date, swapping them');
+        const temp = this.filterValues.fromDate;
+        this.filterValues.fromDate = this.filterValues.toDate;
+        this.filterValues.toDate = temp;
+      }
+    }
+    
     // Force change detection and apply filters
     this.cdr.detectChanges();
     this.applyFilters();
@@ -708,14 +748,16 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     
     const adjustedDate = new Date(date);
     if (isEndDate) {
-      // Set to end of day (23:59:59.999)
+      // Set to end of day (23:59:59.999) for end date
       adjustedDate.setHours(23, 59, 59, 999);
     } else {
-      // Set to start of day (00:00:00.000)
+      // Set to start of day (00:00:00.000) for start date
       adjustedDate.setHours(0, 0, 0, 0);
     }
     
-    return adjustedDate.toISOString();
+    const isoString = adjustedDate.toISOString();
+    console.log(`📅 Formatted ${isEndDate ? 'end' : 'start'} date:`, date, '→', isoString);
+    return isoString;
   }
 
   clearFilters(): void {
@@ -728,6 +770,66 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     };
     this.loadOrders();
     this.cdr.detectChanges();
+  }
+
+  setDateRange(range: string): void {
+    const today = new Date();
+    let fromDate: Date | null = null;
+    let toDate: Date | null = null;
+
+    switch (range) {
+      case 'today':
+        fromDate = new Date(today);
+        toDate = new Date(today);
+        break;
+      
+      case 'yesterday':
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        fromDate = new Date(yesterday);
+        toDate = new Date(yesterday);
+        break;
+      
+      case 'thisWeek':
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        fromDate = new Date(startOfWeek);
+        toDate = new Date(today);
+        break;
+      
+      case 'lastWeek':
+        const startOfLastWeek = new Date(today);
+        startOfLastWeek.setDate(today.getDate() - today.getDay() - 7);
+        const endOfLastWeek = new Date(startOfLastWeek);
+        endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
+        fromDate = new Date(startOfLastWeek);
+        toDate = new Date(endOfLastWeek);
+        break;
+      
+      case 'thisMonth':
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        fromDate = new Date(startOfMonth);
+        toDate = new Date(today);
+        break;
+      
+      case 'sep18':
+        // Special test case for September 18, 2025 (where our test data is)
+        const sep18 = new Date(2025, 8, 18); // Month is 0-based, so 8 = September
+        fromDate = new Date(sep18);
+        toDate = new Date(sep18);
+        break;
+    }
+
+    this.filterValues.fromDate = fromDate;
+    this.filterValues.toDate = toDate;
+    
+    console.log(`📅 Set date range for "${range}":`, {
+      fromDate: fromDate,
+      toDate: toDate
+    });
+    
+    this.cdr.detectChanges();
+    this.applyFilters();
   }
 
   calculateStatusCounts(orders: OrderRecord[]): void {
