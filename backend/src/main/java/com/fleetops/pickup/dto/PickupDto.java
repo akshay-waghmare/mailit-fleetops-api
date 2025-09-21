@@ -15,6 +15,10 @@ public class PickupDto {
     public String pickupTime;
     public String assignedStaff;
     public String assignedStaffName;
+    public String pickupType; // Fix: Add pickup type field
+    public Integer itemsCount;
+    public BigDecimal totalWeight;
+    public String carrierId;
     public BigDecimal estimatedCost;
     // getters/setters omitted for brevity
 }

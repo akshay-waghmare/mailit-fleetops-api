@@ -32,4 +32,14 @@ public class PickupController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PickupDto> update(@PathVariable Long id, @RequestBody CreatePickupDto dto) {
+        try {
+            PickupDto updated = pickupService.updatePickup(id, dto);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 }

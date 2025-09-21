@@ -8,14 +8,18 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select'; // Add MatSelectModule
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
 import { PickupService } from '../../../../../libs/shared/pickup.service';
 import { PickupRecord } from '../../../../../libs/shared/pickup.interface';
+import { PickupViewModalComponent } from './pickup-view-modal.component';
+import { PickupEditModalComponent } from '../components/pickup-edit-modal/pickup-edit-modal.component';
 
 @Component({
   selector: 'app-pickup-list',
@@ -29,11 +33,13 @@ import { PickupRecord } from '../../../../../libs/shared/pickup.interface';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule, // Add MatSelectModule
     MatDatepickerModule,
     MatNativeDateModule,
     MatChipsModule,
     MatTooltipModule,
-    MatCardModule
+    MatCardModule,
+    MatDialogModule
   ],
   template: `
     <!-- Modern Layout with Tailwind + Material matching other pages -->
@@ -145,14 +151,33 @@ import { PickupRecord } from '../../../../../libs/shared/pickup.interface';
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Status</mat-label>
-                  <input matInput (keyup)="applyFilter($event, 'status')" placeholder="Filter by status" />
+                  <mat-select (selectionChange)="onStatusFilterChange($event.value)" [value]="selectedStatusFilter">
+                    <mat-option value="">All Statuses</mat-option>
+                    <mat-option value="scheduled">Scheduled</mat-option>
+                    <mat-option value="in-progress">In Progress</mat-option>
+                    <mat-option value="completed">Completed</mat-option>
+                    <mat-option value="cancelled">Cancelled</mat-option>
+                    <mat-option value="delayed">Delayed</mat-option>
+                  </mat-select>
                   <mat-icon matSuffix>flag</mat-icon>
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Type</mat-label>
-                  <input matInput (keyup)="applyFilter($event, 'pickupType')" placeholder="Filter by type" />
+                  <mat-select (selectionChange)="onTypeFilterChange($event.value)" [value]="selectedTypeFilter">
+                    <mat-option value="">All Types</mat-option>
+                    <mat-option value="vendor">Vendor</mat-option>
+                    <mat-option value="direct">Direct</mat-option>
+                  </mat-select>
                   <mat-icon matSuffix>category</mat-icon>
                 </mat-form-field>
+              </div>
+              
+              <!-- Clear Filters Button -->
+              <div class="mt-4 flex justify-end">
+                <button mat-stroked-button (click)="clearAllFilters()" class="rounded-lg">
+                  <mat-icon>clear</mat-icon>
+                  <span class="ml-1">Clear Filters</span>
+                </button>
               </div>
             </mat-card-content>
           </mat-card>
@@ -326,6 +351,10 @@ export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
   dataSource = new MatTableDataSource<PickupRecord>([]);
   displayedColumns = ['pickupId', 'client', 'schedule', 'status', 'type', 'staff', 'actions'];
   
+  // Filter properties
+  selectedStatusFilter = '';
+  selectedTypeFilter = '';
+  
   // Real-time features
   autoRefresh = true;
   lastRefresh: Date = new Date();
@@ -344,7 +373,8 @@ export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private pickupService: PickupService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit() {
@@ -452,25 +482,64 @@ export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.router.navigate(['/pickup']);
   }
 
-  // Open details for a pickup (demo: route with view param)
+  // Open details for a pickup in modal
   openDetails(row: PickupRecord) {
-    // Navigate to same list with a view flag so UI can open a modal or scroll
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { highlight: row.id, view: 'true' },
-      queryParamsHandling: 'merge'
+    const dialogRef = this.dialog.open(PickupViewModalComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      data: { pickup: row },
+      panelClass: 'custom-dialog-container'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.action === 'edit') {
+        this.editPickup(result.pickup);
+      }
     });
   }
 
-  // Edit a scheduled pickup: navigate to schedule page with edit param
+  // Edit a scheduled pickup in modal
   editPickup(row: PickupRecord) {
-    this.router.navigate(['/pickup'], { queryParams: { edit: row.id } });
+    const dialogRef = this.dialog.open(PickupEditModalComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      data: { pickup: row },
+      panelClass: 'custom-dialog-container'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.action === 'updated') {
+        // Refresh the pickup list to show updated data
+        this.loadPickups();
+      }
+    });
   }
 
   applyFilter(event: Event, column: string) {
     const filterValue = (event.target as HTMLInputElement).value;
+    
+    // Enhanced filtering to work with dropdown filters
+    this.dataSource.filterPredicate = (data: PickupRecord) => {
+      const statusMatch = !this.selectedStatusFilter || data.status === this.selectedStatusFilter;
+      const typeMatch = !this.selectedTypeFilter || data.pickupType === this.selectedTypeFilter;
+      
+      // Text-based filtering
+      let textMatch = true;
+      if (filterValue) {
+        const searchText = filterValue.trim().toLowerCase();
+        if (column === 'pickupId') {
+          textMatch = data.pickupId.toLowerCase().includes(searchText);
+        } else if (column === 'clientName') {
+          textMatch = data.clientName.toLowerCase().includes(searchText);
+        }
+      }
+      
+      return statusMatch && typeMatch && textMatch;
+    };
+    
+    // Trigger filtering
     this.dataSource.filter = filterValue.trim().toLowerCase();
-
+    
     if (this.dataSource.paginator) {
       this.dataSource.paginator.firstPage();
     }
@@ -495,6 +564,48 @@ export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
       case 'cancelled': return 'bg-red-400';
       case 'delayed': return 'bg-orange-400';
       default: return 'bg-gray-400';
+    }
+  }
+
+  // Enhanced filter methods for dropdown selections
+  onStatusFilterChange(status: string) {
+    this.selectedStatusFilter = status;
+    this.applyMultipleFilters();
+  }
+
+  onTypeFilterChange(type: string) {
+    this.selectedTypeFilter = type;
+    this.applyMultipleFilters();
+  }
+
+  // Apply multiple filters simultaneously
+  private applyMultipleFilters() {
+    this.dataSource.filterPredicate = (data: PickupRecord) => {
+      const statusMatch = !this.selectedStatusFilter || data.status === this.selectedStatusFilter;
+      const typeMatch = !this.selectedTypeFilter || data.pickupType === this.selectedTypeFilter;
+      
+      return statusMatch && typeMatch;
+    };
+    
+    // Trigger filtering
+    this.dataSource.filter = Math.random().toString(); // Force update
+    
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
+  }
+
+  // Clear all filters
+  clearAllFilters() {
+    this.selectedStatusFilter = '';
+    this.selectedTypeFilter = '';
+    this.dataSource.filter = '';
+    this.dataSource.filterPredicate = (data: any, filter: string) => {
+      return JSON.stringify(data).toLowerCase().includes(filter);
+    };
+    
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
     }
   }
 }

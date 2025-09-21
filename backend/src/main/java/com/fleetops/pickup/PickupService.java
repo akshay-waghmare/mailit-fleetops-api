@@ -8,4 +8,5 @@ import org.springframework.data.domain.Pageable;
 public interface PickupService {
     PickupDto createPickup(CreatePickupDto dto, String idempotencyKey);
     Page<PickupDto> listPickups(Pageable pageable);
+    PickupDto updatePickup(Long id, CreatePickupDto dto);
 }
