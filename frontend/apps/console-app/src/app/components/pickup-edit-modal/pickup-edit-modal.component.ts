@@ -10,6 +10,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatChipsModule } from '@angular/material/chips';
+import { PickupService } from '../../../../../../libs/shared/pickup.service';
+import { PickupRecord } from '../../../../../../libs/shared/pickup.interface';
 
 @Component({
   selector: 'app-pickup-edit-modal',
@@ -29,68 +31,110 @@ import { MatChipsModule } from '@angular/material/chips';
   ],
   template: `
     <div class="pickup-edit-modal">
-      <!-- Header with gradient background -->
-      <div class="modal-header bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 text-white p-6 rounded-t-lg">
+      <!-- Header with light green background to match view modal -->
+      <div class="modal-header bg-green-50 border-b border-green-200 p-6">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
-            <mat-icon class="text-2xl">edit_location</mat-icon>
+            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <mat-icon class="text-green-600">edit</mat-icon>
+            </div>
             <div>
-              <h2 class="text-xl font-bold">Edit Pickup</h2>
-              <p class="text-blue-100 text-sm">Modify pickup details and schedule</p>
+              <h2 class="text-lg font-semibold text-green-900 m-0">Edit Pickup</h2>
+              <p class="text-sm text-green-600 mt-1">Modify pickup details</p>
             </div>
           </div>
-          <button mat-icon-button (click)="onCancel()" class="text-white hover:bg-white/20 rounded-full">
+          <button 
+            mat-icon-button 
+            (click)="onCancel()" 
+            class="text-green-400 hover:text-green-600">
             <mat-icon>close</mat-icon>
           </button>
         </div>
       </div>
 
       <!-- Form Content -->
-      <div class="modal-content p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+      <div class="modal-content p-6 max-h-[calc(100vh-200px)] overflow-y-auto bg-white">
         <form [formGroup]="editForm" (ngSubmit)="onSave()">
           
-          <!-- Customer Information Section -->
-          <div class="section-card bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 mb-6">
-            <div class="section-header">
-              <mat-icon class="section-icon text-blue-600">person</mat-icon>
-              <h3 class="section-title">Customer Information</h3>
+          <!-- Basic Information Section -->
+          <div class="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center mb-4 pb-2 border-b border-gray-100">
+              <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                <mat-icon class="text-blue-600 text-lg">person</mat-icon>
+              </div>
+              <h3 class="text-sm font-semibold text-gray-900 m-0">Basic Information</h3>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <mat-form-field appearance="outline" class="w-full">
                 <mat-label>Customer Name</mat-label>
-                <input matInput formControlName="customerName" placeholder="Enter customer name">
+                <input matInput formControlName="clientName" placeholder="Customer Name">
                 <mat-icon matSuffix>person</mat-icon>
               </mat-form-field>
               
               <mat-form-field appearance="outline" class="w-full">
-                <mat-label>Customer Phone</mat-label>
-                <input matInput formControlName="customerPhone" placeholder="Enter phone number">
-                <mat-icon matSuffix>phone</mat-icon>
+                <mat-label>Status</mat-label>
+                <mat-select formControlName="status">
+                  <mat-option value="scheduled">Scheduled</mat-option>
+                  <mat-option value="in-progress">In Progress</mat-option>
+                  <mat-option value="completed">Completed</mat-option>
+                  <mat-option value="cancelled">Cancelled</mat-option>
+                  <mat-option value="delayed">Delayed</mat-option>
+                </mat-select>
+                <mat-icon matSuffix>flag</mat-icon>
               </mat-form-field>
               
               <mat-form-field appearance="outline" class="w-full md:col-span-2">
-                <mat-label>Customer Email</mat-label>
-                <input matInput formControlName="customerEmail" type="email" placeholder="Enter email address">
-                <mat-icon matSuffix>email</mat-icon>
+                <mat-label>Pickup Address</mat-label>
+                <textarea matInput formControlName="pickupAddress" rows="2" placeholder="Complete pickup address"></textarea>
+                <mat-icon matSuffix>place</mat-icon>
               </mat-form-field>
             </div>
           </div>
 
-          <!-- Pickup Details Section -->
-          <div class="section-card bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 mb-6">
-            <div class="section-header">
-              <mat-icon class="section-icon text-green-600">location_on</mat-icon>
-              <h3 class="section-title">Pickup Details</h3>
+          <!-- Package Details Section -->
+          <div class="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center mb-4 pb-2 border-b border-gray-100">
+              <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                <mat-icon class="text-green-600 text-lg">inventory_2</mat-icon>
+              </div>
+              <h3 class="text-sm font-semibold text-gray-900 m-0">Package Details</h3>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <mat-form-field appearance="outline" class="w-full md:col-span-2">
-                <mat-label>Pickup Address</mat-label>
-                <textarea matInput formControlName="pickupAddress" rows="2" placeholder="Enter pickup address"></textarea>
-                <mat-icon matSuffix>place</mat-icon>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Item Count</mat-label>
+                <input matInput formControlName="itemCount" type="number" placeholder="1" min="1">
+                <mat-icon matSuffix>inventory</mat-icon>
               </mat-form-field>
               
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Total Weight (kg)</mat-label>
+                <input matInput formControlName="totalWeight" type="number" placeholder="0.5" step="0.1">
+                <mat-icon matSuffix>scale</mat-icon>
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Pickup Type</mat-label>
+                <mat-select formControlName="pickupType">
+                  <mat-option value="vendor">Vendor Pickup</mat-option>
+                  <mat-option value="direct">Direct Pickup</mat-option>
+                </mat-select>
+                <mat-icon matSuffix>category</mat-icon>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <!-- Schedule & Assignment Section -->
+          <div class="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center mb-4 pb-2 border-b border-gray-100">
+              <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                <mat-icon class="text-purple-600 text-lg">schedule</mat-icon>
+              </div>
+              <h3 class="text-sm font-semibold text-gray-900 m-0">Schedule & Assignment</h3>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <mat-form-field appearance="outline" class="w-full">
                 <mat-label>Pickup Date</mat-label>
                 <input matInput [matDatepicker]="picker" formControlName="pickupDate">
@@ -101,104 +145,37 @@ import { MatChipsModule } from '@angular/material/chips';
               <mat-form-field appearance="outline" class="w-full">
                 <mat-label>Pickup Time</mat-label>
                 <input matInput formControlName="pickupTime" type="time">
-                <mat-icon matSuffix>schedule</mat-icon>
+                <mat-icon matSuffix>access_time</mat-icon>
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline" class="w-full">
+                <mat-label>Assigned Staff</mat-label>
+                <input matInput formControlName="assignedStaff" placeholder="Staff Name">
+                <mat-icon matSuffix>person_pin</mat-icon>
               </mat-form-field>
             </div>
           </div>
 
-          <!-- Service Details Section -->
-          <div class="section-card bg-gradient-to-r from-purple-50 to-violet-50 border-l-4 border-purple-500 mb-6">
-            <div class="section-header">
-              <mat-icon class="section-icon text-purple-600">local_shipping</mat-icon>
-              <h3 class="section-title">Service Details</h3>
+          <!-- Cost & Carrier Information Section -->
+          <div class="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center mb-4 pb-2 border-b border-gray-100">
+              <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+                <mat-icon class="text-yellow-600 text-lg">attach_money</mat-icon>
+              </div>
+              <h3 class="text-sm font-semibold text-gray-900 m-0">Cost & Carrier Information</h3>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <mat-form-field appearance="outline" class="w-full">
-                <mat-label>Service Type</mat-label>
-                <mat-select formControlName="serviceType">
-                  <mat-option value="standard">Standard Pickup</mat-option>
-                  <mat-option value="express">Express Pickup</mat-option>
-                  <mat-option value="same-day">Same Day Pickup</mat-option>
-                  <mat-option value="scheduled">Scheduled Pickup</mat-option>
-                </mat-select>
-                <mat-icon matSuffix>local_shipping</mat-icon>
+                <mat-label>Estimated Cost (₹)</mat-label>
+                <input matInput formControlName="estimatedCost" type="number" placeholder="0.00" step="0.01">
+                <mat-icon matSuffix>currency_rupee</mat-icon>
               </mat-form-field>
               
               <mat-form-field appearance="outline" class="w-full">
-                <mat-label>Status</mat-label>
-                <mat-select formControlName="status">
-                  <mat-option value="pending">
-                    <div class="flex items-center">
-                      <mat-icon class="mr-2 text-orange-500">schedule</mat-icon>
-                      Pending
-                    </div>
-                  </mat-option>
-                  <mat-option value="confirmed">
-                    <div class="flex items-center">
-                      <mat-icon class="mr-2 text-blue-500">check_circle</mat-icon>
-                      Confirmed
-                    </div>
-                  </mat-option>
-                  <mat-option value="in-progress">
-                    <div class="flex items-center">
-                      <mat-icon class="mr-2 text-yellow-500">local_shipping</mat-icon>
-                      In Progress
-                    </div>
-                  </mat-option>
-                  <mat-option value="completed">
-                    <div class="flex items-center">
-                      <mat-icon class="mr-2 text-green-500">check_circle</mat-icon>
-                      Completed
-                    </div>
-                  </mat-option>
-                  <mat-option value="cancelled">
-                    <div class="flex items-center">
-                      <mat-icon class="mr-2 text-red-500">cancel</mat-icon>
-                      Cancelled
-                    </div>
-                  </mat-option>
-                </mat-select>
-                <mat-icon matSuffix>flag</mat-icon>
-              </mat-form-field>
-              
-              <mat-form-field appearance="outline" class="w-full">
-                <mat-label>Priority</mat-label>
-                <mat-select formControlName="priority">
-                  <mat-option value="low">Low</mat-option>
-                  <mat-option value="medium">Medium</mat-option>
-                  <mat-option value="high">High</mat-option>
-                  <mat-option value="urgent">Urgent</mat-option>
-                </mat-select>
-                <mat-icon matSuffix>priority_high</mat-icon>
-              </mat-form-field>
-              
-              <mat-form-field appearance="outline" class="w-full">
-                <mat-label>Estimated Weight (kg)</mat-label>
-                <input matInput formControlName="estimatedWeight" type="number" placeholder="0.0">
-                <mat-icon matSuffix>scale</mat-icon>
-              </mat-form-field>
-            </div>
-          </div>
-
-          <!-- Additional Information Section -->
-          <div class="section-card bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 mb-6">
-            <div class="section-header">
-              <mat-icon class="section-icon text-amber-600">note</mat-icon>
-              <h3 class="section-title">Additional Information</h3>
-            </div>
-            
-            <div class="grid grid-cols-1 gap-4">
-              <mat-form-field appearance="outline" class="w-full">
-                <mat-label>Special Instructions</mat-label>
-                <textarea matInput formControlName="specialInstructions" rows="3" placeholder="Enter any special instructions..."></textarea>
-                <mat-icon matSuffix>info</mat-icon>
-              </mat-form-field>
-              
-              <mat-form-field appearance="outline" class="w-full">
-                <mat-label>Items Description</mat-label>
-                <textarea matInput formControlName="itemsDescription" rows="2" placeholder="Describe the items to be picked up..."></textarea>
-                <mat-icon matSuffix>inventory_2</mat-icon>
+                <mat-label>Carrier ID</mat-label>
+                <input matInput formControlName="carrierId" placeholder="Carrier ID">
+                <mat-icon matSuffix>badge</mat-icon>
               </mat-form-field>
             </div>
           </div>
@@ -207,7 +184,7 @@ import { MatChipsModule } from '@angular/material/chips';
       </div>
 
       <!-- Footer Actions -->
-      <div class="modal-footer border-t bg-gray-50 px-6 py-4 rounded-b-lg">
+      <div class="border-t bg-white px-6 py-4">
         <div class="flex justify-between items-center">
           <div class="text-sm text-gray-500">
             <mat-icon class="text-base mr-1">info</mat-icon>
@@ -215,15 +192,14 @@ import { MatChipsModule } from '@angular/material/chips';
           </div>
           
           <div class="flex space-x-3">
-            <button mat-stroked-button (click)="onCancel()" class="px-6">
+            <button mat-stroked-button (click)="onCancel()" class="px-6 border-gray-300 text-gray-700 hover:bg-gray-50">
               <mat-icon class="mr-2">close</mat-icon>
               Cancel
             </button>
             <button mat-flat-button 
-                    color="primary" 
                     (click)="onSave()" 
                     [disabled]="editForm.invalid || isSaving"
-                    class="px-6 bg-gradient-to-r from-blue-600 to-purple-600">
+                    class="px-6 bg-green-600 hover:bg-green-700 text-white">
               <mat-icon class="mr-2">{{ isSaving ? 'hourglass_empty' : 'save' }}</mat-icon>
               {{ isSaving ? 'Saving...' : 'Save Changes' }}
             </button>
@@ -237,35 +213,9 @@ import { MatChipsModule } from '@angular/material/chips';
       width: 100%;
       max-width: 800px;
       background: white;
-      border-radius: 8px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      border-radius: 12px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
       overflow: hidden;
-    }
-
-    .section-card {
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-
-    .section-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid rgba(0,0,0,0.1);
-    }
-
-    .section-icon {
-      margin-right: 12px;
-      font-size: 20px;
-    }
-
-    .section-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: #374151;
-      margin: 0;
     }
 
     .mat-mdc-form-field {
@@ -273,85 +223,160 @@ import { MatChipsModule } from '@angular/material/chips';
     }
 
     .mat-mdc-form-field-appearance-outline .mat-mdc-form-field-outline {
-      border-radius: 6px;
+      border-radius: 8px;
     }
 
-    .modal-footer {
-      position: sticky;
-      bottom: 0;
-      background: white;
-      z-index: 10;
+    .mat-mdc-form-field-appearance-outline .mat-mdc-form-field-outline-thick {
+      border-width: 1px;
     }
 
-    .mat-mdc-option {
-      padding: 8px 16px;
+    /* Clean button styles */
+    .mat-mdc-outlined-button {
+      border-radius: 8px;
+      font-weight: 500;
     }
 
-    .mat-mdc-option .mat-icon {
-      margin-right: 8px;
+    .mat-mdc-raised-button {
+      border-radius: 8px;
+      font-weight: 500;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .mat-mdc-raised-button:hover {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Icon styles */
+    .mat-icon {
       font-size: 18px;
-    }
-
-    /* Custom gradient button styles */
-    .mat-mdc-flat-button {
-      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
-      color: white !important;
-    }
-
-    .mat-mdc-flat-button:hover {
-      background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%) !important;
-    }
-
-    .mat-mdc-flat-button:disabled {
-      background: #e5e7eb !important;
-      color: #9ca3af !important;
+      width: 18px;
+      height: 18px;
     }
   `]
 })
 export class PickupEditModalComponent implements OnInit {
   editForm: FormGroup;
   isSaving = false;
+  pickup: PickupRecord;
 
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<PickupEditModalComponent>,
-    @Inject(MAT_DIALOG_DATA) public pickup: any
+    @Inject(MAT_DIALOG_DATA) public data: { pickup: PickupRecord },
+    private pickupService: PickupService
   ) {
+    // Extract pickup from data object
+    this.pickup = data.pickup;
+    
     this.editForm = this.fb.group({
-      customerName: [pickup?.customerName || '', [Validators.required]],
-      customerPhone: [pickup?.customerPhone || '', [Validators.required]],
-      customerEmail: [pickup?.customerEmail || '', [Validators.email]],
-      pickupAddress: [pickup?.pickupAddress || '', [Validators.required]],
-      pickupDate: [pickup?.pickupDate || new Date(), [Validators.required]],
-      pickupTime: [pickup?.pickupTime || '', [Validators.required]],
-      serviceType: [pickup?.serviceType || 'standard', [Validators.required]],
-      status: [pickup?.status || 'pending', [Validators.required]],
-      priority: [pickup?.priority || 'medium'],
-      estimatedWeight: [pickup?.estimatedWeight || 0],
-      specialInstructions: [pickup?.specialInstructions || ''],
-      itemsDescription: [pickup?.itemsDescription || '']
+      // Available backend fields only (mapped to frontend interface)
+      clientName: [this.pickup?.clientName || '', [Validators.required]],
+      pickupAddress: [this.pickup?.pickupAddress || '', [Validators.required]],
+      itemCount: [this.pickup?.itemCount || 1, [Validators.required, Validators.min(1)]],
+      totalWeight: [this.pickup?.totalWeight || 0, [Validators.required, Validators.min(0)]],
+      pickupType: [this.pickup?.pickupType || 'direct', [Validators.required]],
+      assignedStaff: [this.pickup?.assignedStaff || ''],
+      pickupDate: [this.pickup?.pickupDate || new Date(), [Validators.required]],
+      pickupTime: [this.pickup?.pickupTime || '', [Validators.required]],
+      estimatedCost: [this.pickup?.estimatedCost || 0, [Validators.min(0)]],
+      carrierId: [this.pickup?.carrierId || ''],
+      status: [this.pickup?.status || 'scheduled', [Validators.required]]
     });
+
+    console.log('Pickup data passed to edit modal:', this.pickup);
+    console.log('Form values after initialization:', this.editForm.value);
   }
 
   ngOnInit(): void {
-    // Any additional initialization logic
+    // Additional data population for complex fields
+    if (this.pickup) {
+      // Handle date conversion if needed
+      if (this.pickup.pickupDate && typeof this.pickup.pickupDate === 'string') {
+        const dateValue = new Date(this.pickup.pickupDate);
+        this.editForm.patchValue({
+          pickupDate: dateValue
+        });
+      }
+      
+      // Handle pickup time formatting if needed
+      if (this.pickup.pickupTime) {
+        let timeValue = this.pickup.pickupTime;
+        // Convert from various time formats to HH:mm format expected by input[type="time"]
+        if (typeof timeValue === 'string' && !timeValue.includes(':')) {
+          // Handle cases like "1400" -> "14:00"
+          if (timeValue.length === 4) {
+            timeValue = timeValue.substr(0, 2) + ':' + timeValue.substr(2, 2);
+          }
+        }
+        this.editForm.patchValue({
+          pickupTime: timeValue
+        });
+      }
+      
+      console.log('Final form values after ngOnInit:', this.editForm.value);
+      console.log('Form valid:', this.editForm.valid);
+      
+      // Mark form as pristine after initial load
+      this.editForm.markAsPristine();
+    }
   }
 
   onSave(): void {
     if (this.editForm.valid) {
       this.isSaving = true;
       
-      const updatedPickup = {
-        ...this.pickup,
-        ...this.editForm.value,
-        updatedAt: new Date()
+      // Map form values to only the backend available fields
+      const formData = this.editForm.value;
+      const updateData: any = {
+        // Only include fields that exist in backend PickupDto
+        clientName: formData.clientName,
+        pickupAddress: formData.pickupAddress,
+        itemsCount: formData.itemCount,
+        totalWeight: formData.totalWeight,
+        pickupType: formData.pickupType,
+        assignedStaffName: formData.assignedStaff,
+        pickupDate: formData.pickupDate instanceof Date ? 
+          formData.pickupDate.toISOString().split('T')[0] : 
+          formData.pickupDate,
+        pickupTime: formData.pickupTime,
+        estimatedCost: formData.estimatedCost,
+        carrierId: formData.carrierId,
+        status: formData.status
       };
 
-      // Simulate save operation
-      setTimeout(() => {
-        this.isSaving = false;
-        this.dialogRef.close(updatedPickup);
-      }, 1500);
+      console.log('Updating pickup with ID:', this.pickup.id);
+      console.log('Update data (backend fields only):', updateData);
+
+      // Call pickup service to update the pickup in the database
+      this.pickupService.updatePickup(this.pickup.id, updateData).subscribe({
+        next: (updatedPickup) => {
+          this.isSaving = false;
+          console.log('Pickup updated successfully:', updatedPickup);
+          // Close dialog and return the updated pickup data
+          this.dialogRef.close({
+            action: 'updated',
+            pickup: updatedPickup
+          });
+        },
+        error: (error) => {
+          this.isSaving = false;
+          console.error('Error updating pickup:', error);
+          // You might want to show a snackbar or error message here
+          alert('Error updating pickup. Please try again.');
+        }
+      });
+    } else {
+      // Mark all fields as touched to show validation errors
+      this.editForm.markAllAsTouched();
+      console.log('Form is invalid:', this.editForm.errors);
+      
+      // Find and log specific validation errors for debugging
+      Object.keys(this.editForm.controls).forEach(key => {
+        const control = this.editForm.get(key);
+        if (control && control.errors) {
+          console.log(`Field ${key} has errors:`, control.errors);
+        }
+      });
     }
   }
 

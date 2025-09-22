@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -29,7 +31,7 @@ public class PickupServiceImpl implements PickupService {
         p.setClientName(dto.clientName); // Fix: Use actual client name from DTO
         if (dto.pickupDate != null) p.setPickupDate(LocalDate.parse(dto.pickupDate));
         if (dto.pickupTime != null && !dto.pickupTime.isEmpty()) {
-            p.setPickupTime(LocalTime.parse(dto.pickupTime));
+            p.setPickupTime(parseTime(dto.pickupTime));
         }
         p.setPickupAddress(dto.pickupAddress);
         p.setPickupType(dto.pickupType); // Fix: Map pickup type from DTO
@@ -58,7 +60,7 @@ public class PickupServiceImpl implements PickupService {
         if (dto.pickupAddress != null) existing.setPickupAddress(dto.pickupAddress);
         if (dto.pickupDate != null) existing.setPickupDate(LocalDate.parse(dto.pickupDate));
         if (dto.pickupTime != null && !dto.pickupTime.isEmpty()) {
-            existing.setPickupTime(LocalTime.parse(dto.pickupTime));
+            existing.setPickupTime(parseTime(dto.pickupTime));
         }
         if (dto.pickupType != null) existing.setPickupType(dto.pickupType);
         if (dto.status != null) existing.setStatus(dto.status);
@@ -92,5 +94,32 @@ public class PickupServiceImpl implements PickupService {
         d.carrierId = p.getCarrierId();
         d.estimatedCost = p.getEstimatedCost();
         return d;
+    }
+
+    /**
+     * Parse time string that can be in either HH:mm (24-hour) or h:mm a (12-hour AM/PM) format
+     */
+    private LocalTime parseTime(String timeStr) {
+        if (timeStr == null || timeStr.trim().isEmpty()) {
+            return null;
+        }
+        
+        // First try 24-hour format (HH:mm)
+        try {
+            return LocalTime.parse(timeStr, DateTimeFormatter.ofPattern("HH:mm"));
+        } catch (DateTimeParseException e1) {
+            // If that fails, try 12-hour format with AM/PM
+            try {
+                return LocalTime.parse(timeStr, DateTimeFormatter.ofPattern("h:mm a"));
+            } catch (DateTimeParseException e2) {
+                // If both fail, try other common formats
+                try {
+                    return LocalTime.parse(timeStr, DateTimeFormatter.ofPattern("hh:mm a"));
+                } catch (DateTimeParseException e3) {
+                    throw new IllegalArgumentException("Unable to parse time: " + timeStr + 
+                        ". Expected formats: HH:mm, h:mm a, or hh:mm a");
+                }
+            }
+        }
     }
 }
