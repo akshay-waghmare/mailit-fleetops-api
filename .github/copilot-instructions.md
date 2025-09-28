@@ -312,9 +312,16 @@ npm test --workspace=console-app
 If build or tests fail, iterate locally and fix lint/type issues.
 
 **Documentation References:**
-- Pickup Management: `PICKUP-INTEGRATION-PHASE1-COMPLETE.md` (completed implementation)
-- Order Management: `ORDER-MANAGEMENT-DATABASE-INTEGRATION-PLAN.md` (implementation plan)
-- Order UI: `MAILIT-STYLE-ORDERS-COMPLETE.md` (frontend design completed)
+All documentation has been organized in the `/docs` folder:
+- **Setup & Installation**: `docs/setup/` - Project setup and configuration
+- **Infrastructure**: `docs/infrastructure/` - Docker and deployment guides
+- **Implementation Plans**: `docs/implementation/` - Active development roadmaps
+- **Completed Features**: `docs/completed/` - Documentation for finished implementations
+
+Key references:
+- Pickup Management: `docs/completed/PICKUP-INTEGRATION-PHASE1-COMPLETE.md` (completed implementation)
+- Order Management: `docs/implementation/ORDER-MANAGEMENT-DATABASE-INTEGRATION-PLAN.md` (implementation plan)
+- Order UI: `docs/completed/MAILIT-STYLE-ORDERS-COMPLETE.md` (frontend design completed)
 
 **Contact / Notes:**
 If a missing backend API or schema prevents implementing a feature, add a TODO in the code and open an issue describing the required endpoint and minimal contract.
