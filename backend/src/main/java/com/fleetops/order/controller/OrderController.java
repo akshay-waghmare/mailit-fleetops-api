@@ -114,7 +114,7 @@ public class OrderController {
      */
     @PatchMapping("/{id}")
     public ResponseEntity<OrderDto> patchOrder(@PathVariable Long id, 
-                                              @RequestBody UpdateOrderDto updateOrderDto) {
+                                              @Valid @RequestBody UpdateOrderDto updateOrderDto) {
         logger.info("Partially updating order with id: {}", id);
         OrderDto updatedOrder = orderService.patchOrder(id, updateOrderDto);
         return ResponseEntity.ok(updatedOrder);

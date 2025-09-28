@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Organization, Place, Geofence, ApiResponse, PagedResponse } from './types';
 import { ConfigService } from './config.service';
+import { LoggingService } from './logging.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +13,8 @@ export class ApiService {
 
   constructor(
     private http: HttpClient,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private logger: LoggingService
   ) {
     this.baseUrl = this.configService.apiBaseUrl;
   }
@@ -120,7 +122,7 @@ export class ApiService {
       params = params.set('size', '20');
     }
     
-    console.log('🌐 ApiService HTTP params:', params.toString());
+  this.logger.debug('ApiService HTTP params', params.toString());
     
     return this.http.get<PagedResponse<any>>(`${this.baseUrl}/v1/orders`, { params });
   }

@@ -3,6 +3,7 @@ package com.fleetops.order.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -11,16 +12,25 @@ import java.time.LocalDate;
  * DTO for partial order updates via PATCH requests.
  * All fields are optional - only provided fields will be updated.
  * No validation annotations to allow partial updates.
+ *
+ * <b>Security Warning:</b> This DTO does not perform any input validation or sanitization.
+ * All fields are accepted as-is from user input. It is <b>critical</b> that any service or controller
+ * consuming this DTO performs proper input validation and sanitization to prevent security vulnerabilities
+ * such as injection attacks or XSS. Do <b>not</b> use this DTO directly with untrusted data without
+ * validating and sanitizing all fields.
  */
 public class UpdateOrderDto {
     
     // Client Information
+    @Size(max = 255, message = "Client name exceeds maximum length")
+    @Pattern(regexp = "^[a-zA-Z0-9\\s\\-\\.,'&()]+$", message = "Client name contains invalid characters")
     @JsonProperty("client_name")
     private String clientName;
     
     @JsonProperty("client_company")
     private String clientCompany;
     
+    @Pattern(regexp = "^[+]?[0-9\\s\\-()]{7,20}$", message = "Invalid contact number format")
     @JsonProperty("contact_number")
     private String contactNumber;
     
@@ -34,6 +44,8 @@ public class UpdateOrderDto {
     @JsonProperty("sender_contact")
     private String senderContact;
     
+    @Email(message = "Invalid sender email format")
+    @Size(max = 255, message = "Sender email exceeds maximum length")
     @JsonProperty("sender_email")
     private String senderEmail;
     
@@ -56,6 +68,8 @@ public class UpdateOrderDto {
     @JsonProperty("receiver_contact")
     private String receiverContact;
     
+    @Email(message = "Invalid receiver email format")
+    @Size(max = 255, message = "Receiver email exceeds maximum length")
     @JsonProperty("receiver_email")
     private String receiverEmail;
     
@@ -87,6 +101,8 @@ public class UpdateOrderDto {
     @JsonProperty("item_description")
     private String itemDescription;
     
+    @DecimalMin(value = "0.0", inclusive = true, message = "Declared value cannot be negative")
+    @Digits(integer = 10, fraction = 2, message = "Invalid declared value format")
     @JsonProperty("declared_value")
     private BigDecimal declaredValue;
     
@@ -126,6 +142,8 @@ public class UpdateOrderDto {
     @JsonProperty("tax_amount")
     private BigDecimal taxAmount;
     
+    @DecimalMin(value = "0.0", inclusive = true, message = "Total amount cannot be negative")
+    @Digits(integer = 10, fraction = 2, message = "Invalid total amount format")
     @JsonProperty("total_amount")
     private BigDecimal totalAmount;
     

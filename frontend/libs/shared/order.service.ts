@@ -11,12 +11,13 @@ import {
 } from './order.interface';
 import { PaginatedResponse } from './pickup.interface';
 import { ApiService } from './api.service';
+import { LoggingService } from './logging.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class OrderService {
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private logger: LoggingService) {}
 
   /**
    * Get paginated orders with filtering and sorting
@@ -39,7 +40,7 @@ export class OrderService {
     if (params.sort_by) queryParams.sort_by = params.sort_by;
     if (params.sort_order) queryParams.sort_order = params.sort_order;
 
-    console.log('🔧 OrderService sending parameters to API:', queryParams);
+  this.logger.debug('OrderService sending parameters', queryParams);
 
     return this.api.getOrders(queryParams).pipe(
       map(resp => {
@@ -60,7 +61,7 @@ export class OrderService {
   getOrderById(id: string): Observable<OrderRecord> {
     return this.api.getOrder(id).pipe(
       map((response: any) => {
-        console.log('🔍 Raw API response:', response);
+  this.logger.debug('OrderService raw API response', response);
         // If the response is already the order object, return it directly
         // If it's wrapped in ApiResponse, extract the data
         return response.data || response;
@@ -100,10 +101,10 @@ export class OrderService {
    * Partially update order details (patch)
    */
   patchOrder(orderId: string, orderData: Partial<OrderRecord>): Observable<OrderRecord> {
-    console.log('🔧 OrderService.patchOrder - orderId:', orderId, 'data:', orderData);
+  this.logger.debug('OrderService.patchOrder', { orderId, orderData });
     return this.api.patchOrder(orderId, orderData).pipe(
       map((response: any) => {
-        console.log('🔍 Raw PATCH API response:', response);
+  this.logger.debug('OrderService raw PATCH response', response);
         // If the response is already the order object, return it directly
         // If it's wrapped in ApiResponse, extract the data
         return response.data || response;
@@ -117,7 +118,7 @@ export class OrderService {
   getOrderAnalytics(): Observable<OrderAnalytics> {
     return this.api.getOrderAnalytics().pipe(
       map((response: any) => {
-        console.log('🔍 Raw analytics API response:', response);
+  this.logger.debug('OrderService raw analytics response', response);
         // If the response is already the analytics object, return it directly
         // If it's wrapped in ApiResponse, extract the data
         return response.data || response;

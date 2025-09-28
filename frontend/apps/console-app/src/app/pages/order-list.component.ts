@@ -19,7 +19,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog } from '@angular/material/dialog';
 import { Subscription, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { OrderService, OrderRecord, OrderQueryParams } from '../../../../../libs/shared';
+import { OrderService, OrderRecord, OrderQueryParams, LoggingService } from '../../../../../libs/shared';
 import { OrderEditModalComponent } from '../components/order-edit-modal.component';
 import { OrderStatusUpdateModalComponent } from '../components/order-status-update-modal.component';
 
@@ -215,10 +215,6 @@ import { OrderStatusUpdateModalComponent } from '../components/order-status-upda
                 <button mat-button (click)="setDateRange('thisMonth')" class="text-sm">
                   <mat-icon class="text-base mr-1">calendar_month</mat-icon>
                   This Month
-                </button>
-                <button mat-button (click)="setDateRange('sep18')" class="text-sm bg-blue-50 text-blue-600">
-                  <mat-icon class="text-base mr-1">event</mat-icon>
-                  Sep 18 (Test Data)
                 </button>
               </div>
               
@@ -551,7 +547,8 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private logger: LoggingService
   ) {}
 
   ngOnInit(): void {
@@ -600,13 +597,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   loadOrders(): void {
     this.loading = true;
     
-    console.log('🔍 Current filterValues in loadOrders:', JSON.stringify(this.filterValues));
-    console.log('🔍 Individual filter values:');
-    console.log('  - search:', `"${this.filterValues.search}"`);
-    console.log('  - status:', `"${this.filterValues.status}"`);
-    console.log('  - serviceType:', `"${this.filterValues.serviceType}"`);
-    console.log('  - fromDate:', this.filterValues.fromDate);
-    console.log('  - toDate:', this.filterValues.toDate);
+  this.logger.debug('Order filters', { ...this.filterValues });
     
     const queryParams: OrderQueryParams = {
       search: this.filterValues.search && this.filterValues.search.trim() ? this.filterValues.search.trim() : undefined,
@@ -618,7 +609,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
       sort_order: 'desc'
     };
 
-    console.log('🔍 Sending filter parameters:', queryParams);
+  this.logger.debug('Query params', queryParams);
 
     const ordersSub = this.orderService.getOrders(queryParams).subscribe({
       next: (response) => {
@@ -627,7 +618,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
         // Debug: Check value-related fields in the first order
         if (response.content && response.content.length > 0) {
           const firstOrder = response.content[0];
-          console.log('🔍 First order value fields:', {
+          this.logger.debug('First order value fields', {
             total_amount: firstOrder.total_amount,
             declared_value: firstOrder.declared_value,
             cod_amount: firstOrder.cod_amount,
@@ -687,14 +678,12 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onStatusChange(event: any): void {
-    console.log('🔽 Status dropdown changed:', event.value);
-    console.log('📋 filterValues before update:', JSON.stringify(this.filterValues));
+  this.logger.debug('Status change', { value: event.value, before: { ...this.filterValues } });
     
     // Ensure the value is properly set
     this.filterValues.status = event.value || '';
     
-    console.log('📋 filterValues after update:', JSON.stringify(this.filterValues));
-    console.log('✅ About to apply filters with status:', this.filterValues.status);
+  this.logger.debug('Status updated', { after: { ...this.filterValues } });
     
     // Force change detection and apply filters
     this.cdr.detectChanges();
@@ -702,14 +691,12 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onServiceTypeChange(event: any): void {
-    console.log('🚚 Service type dropdown changed:', event.value);
-    console.log('📋 filterValues before update:', JSON.stringify(this.filterValues));
+  this.logger.debug('Service type change', { value: event.value, before: { ...this.filterValues } });
     
     // Ensure the value is properly set
     this.filterValues.serviceType = event.value || '';
     
-    console.log('📋 filterValues after update:', JSON.stringify(this.filterValues));
-    console.log('✅ About to apply filters with serviceType:', this.filterValues.serviceType);
+  this.logger.debug('Service type updated', { after: { ...this.filterValues } });
     
     // Force change detection and apply filters
     this.cdr.detectChanges();
@@ -717,15 +704,12 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onDateChange(): void {
-    console.log('📅 Date filter changed:', {
-      fromDate: this.filterValues.fromDate,
-      toDate: this.filterValues.toDate
-    });
+    this.logger.debug('Date filter changed', { fromDate: this.filterValues.fromDate, toDate: this.filterValues.toDate });
     
     // Validate date range
     if (this.filterValues.fromDate && this.filterValues.toDate) {
       if (this.filterValues.fromDate > this.filterValues.toDate) {
-        console.warn('⚠️ From date is after to date, swapping them');
+  this.logger.warn('From date is after to date, swapping values');
         const temp = this.filterValues.fromDate;
         this.filterValues.fromDate = this.filterValues.toDate;
         this.filterValues.toDate = temp;
@@ -756,7 +740,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     
     const isoString = adjustedDate.toISOString();
-    console.log(`📅 Formatted ${isEndDate ? 'end' : 'start'} date:`, date, '→', isoString);
+  this.logger.debug(`Formatted ${isEndDate ? 'end' : 'start'} date`, { input: date, iso: isoString });
     return isoString;
   }
 
@@ -811,22 +795,12 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
         fromDate = new Date(startOfMonth);
         toDate = new Date(today);
         break;
-      
-      case 'sep18':
-        // Special test case for September 18, 2025 (where our test data is)
-        const sep18 = new Date(2025, 8, 18); // Month is 0-based, so 8 = September
-        fromDate = new Date(sep18);
-        toDate = new Date(sep18);
-        break;
     }
 
     this.filterValues.fromDate = fromDate;
     this.filterValues.toDate = toDate;
     
-    console.log(`📅 Set date range for "${range}":`, {
-      fromDate: fromDate,
-      toDate: toDate
-    });
+    this.logger.debug('Date range set', { range, fromDate, toDate });
     
     this.cdr.detectChanges();
     this.applyFilters();
@@ -839,7 +813,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
       delivered: orders.filter(order => order.status === 'DELIVERED').length,
       total: orders.length
     };
-    console.log('📊 Status counts updated:', this.statusCounts);
+  this.logger.debug('Status counts', this.statusCounts);
   }
 
   refreshOrders(): void {
@@ -891,12 +865,12 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   viewOrderDetails(order: OrderRecord): void {
-    console.log('View order details:', order);
+  this.logger.debug('View order details', { id: order.id });
     // TODO: Open order detail modal
   }
 
   editOrder(order: OrderRecord): void {
-    console.log('Edit order:', order);
+  this.logger.debug('Edit order', { id: order.id });
     
     const dialogRef = this.dialog.open(OrderEditModalComponent, {
       data: { order },
@@ -908,7 +882,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        console.log('Order updated:', result);
+  this.logger.info('Order updated', { id: result?.id });
         // Refresh the orders list to show updated data
         this.refreshOrders();
       }
@@ -916,12 +890,12 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   trackOrder(order: OrderRecord): void {
-    console.log('Track order:', order);
+  this.logger.debug('Track order', { id: order.id });
     // TODO: Open tracking interface
   }
 
   updateOrderStatus(order: OrderRecord): void {
-    console.log('Update status for order:', order);
+  this.logger.debug('Open update status', { id: order.id });
     
     const dialogRef = this.dialog.open(OrderStatusUpdateModalComponent, {
       data: { order },
@@ -933,7 +907,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        console.log('Order status updated:', result);
+  this.logger.info('Order status updated', { id: result?.id });
         // Refresh the orders list to show updated data
         this.refreshOrders();
       }
@@ -941,7 +915,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   printOrder(order: OrderRecord): void {
-    console.log('Print order:', order);
+  this.logger.debug('Print order', { id: order.id });
     // TODO: Generate and print order document
   }
 
