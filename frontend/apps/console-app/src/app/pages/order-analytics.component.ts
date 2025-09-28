@@ -12,7 +12,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { OrderService, OrderAnalytics } from '../../../../../libs/shared';
+import { OrderService, OrderAnalytics, LoggingService } from '../../../../../libs/shared';
 
 @Component({
   selector: 'app-order-analytics',
@@ -410,9 +410,9 @@ export class OrderAnalyticsComponent implements OnInit, OnDestroy {
 
   constructor(
     private orderService: OrderService,
-    private router: Router
-  ) {
-  }
+    private router: Router,
+    private logger: LoggingService
+  ) {}
 
   ngOnInit(): void {
   // Defer default date range setup to avoid ExpressionChangedAfterItHasBeenCheckedError
@@ -430,7 +430,7 @@ export class OrderAnalyticsComponent implements OnInit, OnDestroy {
         this.analytics = analytics;
       },
       error: (error) => {
-        console.error('Error loading analytics:', error);
+        this.logger.error('Error loading analytics', error);
       }
     });
 

@@ -16,9 +16,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCardModule } from '@angular/material/card';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog } from '@angular/material/dialog';
 import { Subscription, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { OrderService, OrderRecord, OrderQueryParams } from '../../../../../libs/shared';
+import { OrderService, OrderRecord, OrderQueryParams, LoggingService } from '../../../../../libs/shared';
+import { OrderEditModalComponent } from '../components/order-edit-modal.component';
+import { OrderStatusUpdateModalComponent } from '../components/order-status-update-modal.component';
 
 @Component({
   selector: 'app-order-list',
@@ -178,17 +181,41 @@ import { OrderService, OrderRecord, OrderQueryParams } from '../../../../../libs
 
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>From Date</mat-label>
-                  <input matInput [matDatepicker]="fromDatePicker" [(ngModel)]="filterValues.fromDate" (dateChange)="applyFilters()">
+                  <input matInput [matDatepicker]="fromDatePicker" [(ngModel)]="filterValues.fromDate" (dateChange)="onDateChange()">
                   <mat-datepicker-toggle matSuffix [for]="fromDatePicker"></mat-datepicker-toggle>
                   <mat-datepicker #fromDatePicker></mat-datepicker>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>To Date</mat-label>
-                  <input matInput [matDatepicker]="toDatePicker" [(ngModel)]="filterValues.toDate" (dateChange)="applyFilters()">
+                  <input matInput [matDatepicker]="toDatePicker" [(ngModel)]="filterValues.toDate" (dateChange)="onDateChange()">
                   <mat-datepicker-toggle matSuffix [for]="toDatePicker"></mat-datepicker-toggle>
                   <mat-datepicker #toDatePicker></mat-datepicker>
                 </mat-form-field>
+              </div>
+              
+              <!-- Quick Date Range Buttons -->
+              <div class="mt-4 flex flex-wrap gap-2">
+                <button mat-button (click)="setDateRange('today')" class="text-sm">
+                  <mat-icon class="text-base mr-1">today</mat-icon>
+                  Today
+                </button>
+                <button mat-button (click)="setDateRange('yesterday')" class="text-sm">
+                  <mat-icon class="text-base mr-1">calendar_today</mat-icon>
+                  Yesterday  
+                </button>
+                <button mat-button (click)="setDateRange('thisWeek')" class="text-sm">
+                  <mat-icon class="text-base mr-1">date_range</mat-icon>
+                  This Week
+                </button>
+                <button mat-button (click)="setDateRange('lastWeek')" class="text-sm">
+                  <mat-icon class="text-base mr-1">date_range</mat-icon>
+                  Last Week
+                </button>
+                <button mat-button (click)="setDateRange('thisMonth')" class="text-sm">
+                  <mat-icon class="text-base mr-1">calendar_month</mat-icon>
+                  This Month
+                </button>
               </div>
               
               <!-- Clear Filters Button -->
@@ -293,14 +320,6 @@ import { OrderService, OrderRecord, OrderQueryParams } from '../../../../../libs
                         </div>
                         <div class="flex items-center text-sm">
                           <mat-icon class="text-red-600 text-base mr-1">location_on</mat-icon>
-                                                    <span class="text-slate-600 truncate max-w-[200px]" matTooltip="{{order.sender_address}}">
-                            {{order.sender_name}}
-                          </span>
-                        </div>
-                        <div class="text-right">
-                          <i class="fas fa-arrow-right text-slate-400 mx-2"></i>
-                        </div>
-                        <div class="max-w-[200px]">
                           <span class="text-slate-600 truncate max-w-[200px]" matTooltip="{{order.receiver_address}}">
                             {{order.receiver_name}}, {{order.receiver_city}}
                           </span>
@@ -316,11 +335,11 @@ import { OrderService, OrderRecord, OrderQueryParams } from '../../../../../libs
                       <div>
                         <span class="inline-flex items-center px-3 py-1 text-sm rounded-full font-medium" 
                               [ngClass]="getServiceClass(order.service_type)">
-                          <mat-icon class="mr-1" style="font-size: 16px;">{{getServiceIcon(order.serviceType)}}</mat-icon>
-                          {{order.serviceType | titlecase}}
+                          <mat-icon class="mr-1" style="font-size: 16px;">{{getServiceIcon(order.service_type)}}</mat-icon>
+                          {{order.service_type | titlecase}}
                         </span>
-                        <div class="text-sm text-slate-500 mt-1">{{order.carrierName}}</div>
-                        <div class="text-xs text-slate-400" *ngIf="order.trackingNumber">{{order.trackingNumber}}</div>
+                        <div class="text-sm text-slate-500 mt-1">{{order.carrier_name}}</div>
+                        <div class="text-xs text-slate-400" *ngIf="order.tracking_number">{{order.tracking_number}}</div>
                       </div>
                     </td>
                   </ng-container>
@@ -527,7 +546,9 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     private orderService: OrderService,
     private router: Router,
     private route: ActivatedRoute,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private dialog: MatDialog,
+    private logger: LoggingService
   ) {}
 
   ngOnInit(): void {
@@ -576,27 +597,34 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   loadOrders(): void {
     this.loading = true;
     
-    console.log('🔍 Current filterValues in loadOrders:', JSON.stringify(this.filterValues));
-    console.log('🔍 Individual filter values:');
-    console.log('  - search:', `"${this.filterValues.search}"`);
-    console.log('  - status:', `"${this.filterValues.status}"`);
-    console.log('  - serviceType:', `"${this.filterValues.serviceType}"`);
+  this.logger.debug('Order filters', { ...this.filterValues });
     
     const queryParams: OrderQueryParams = {
       search: this.filterValues.search && this.filterValues.search.trim() ? this.filterValues.search.trim() : undefined,
       status: this.filterValues.status && this.filterValues.status !== '' ? this.filterValues.status : undefined,
       service_type: this.filterValues.serviceType && this.filterValues.serviceType !== '' ? this.filterValues.serviceType : undefined,
-      from_date: this.filterValues.fromDate?.toISOString().split('T')[0] || undefined,
-      to_date: this.filterValues.toDate?.toISOString().split('T')[0] || undefined,
+      from_date: this.filterValues.fromDate ? this.formatDateRangeForAPI(this.filterValues.fromDate, false) : undefined,
+      to_date: this.filterValues.toDate ? this.formatDateRangeForAPI(this.filterValues.toDate, true) : undefined,
       sort_by: 'created_at',
       sort_order: 'desc'
     };
 
-    console.log('🔍 Sending filter parameters:', queryParams);
+  this.logger.debug('Query params', queryParams);
 
     const ordersSub = this.orderService.getOrders(queryParams).subscribe({
       next: (response) => {
         this.dataSource.data = response.content || [];
+        
+        // Debug: Check value-related fields in the first order
+        if (response.content && response.content.length > 0) {
+          const firstOrder = response.content[0];
+          this.logger.debug('First order value fields', {
+            total_amount: firstOrder.total_amount,
+            declared_value: firstOrder.declared_value,
+            cod_amount: firstOrder.cod_amount,
+            payment_status: firstOrder.payment_status
+          });
+        }
         
         // Calculate live status counts
         this.calculateStatusCounts(response.content || []);
@@ -650,14 +678,12 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onStatusChange(event: any): void {
-    console.log('🔽 Status dropdown changed:', event.value);
-    console.log('📋 filterValues before update:', JSON.stringify(this.filterValues));
+  this.logger.debug('Status change', { value: event.value, before: { ...this.filterValues } });
     
     // Ensure the value is properly set
     this.filterValues.status = event.value || '';
     
-    console.log('📋 filterValues after update:', JSON.stringify(this.filterValues));
-    console.log('✅ About to apply filters with status:', this.filterValues.status);
+  this.logger.debug('Status updated', { after: { ...this.filterValues } });
     
     // Force change detection and apply filters
     this.cdr.detectChanges();
@@ -665,18 +691,57 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onServiceTypeChange(event: any): void {
-    console.log('🚚 Service type dropdown changed:', event.value);
-    console.log('📋 filterValues before update:', JSON.stringify(this.filterValues));
+  this.logger.debug('Service type change', { value: event.value, before: { ...this.filterValues } });
     
     // Ensure the value is properly set
     this.filterValues.serviceType = event.value || '';
     
-    console.log('📋 filterValues after update:', JSON.stringify(this.filterValues));
-    console.log('✅ About to apply filters with serviceType:', this.filterValues.serviceType);
+  this.logger.debug('Service type updated', { after: { ...this.filterValues } });
     
     // Force change detection and apply filters
     this.cdr.detectChanges();
     this.applyFilters();
+  }
+
+  onDateChange(): void {
+    this.logger.debug('Date filter changed', { fromDate: this.filterValues.fromDate, toDate: this.filterValues.toDate });
+    
+    // Validate date range
+    if (this.filterValues.fromDate && this.filterValues.toDate) {
+      if (this.filterValues.fromDate > this.filterValues.toDate) {
+  this.logger.warn('From date is after to date, swapping values');
+        const temp = this.filterValues.fromDate;
+        this.filterValues.fromDate = this.filterValues.toDate;
+        this.filterValues.toDate = temp;
+      }
+    }
+    
+    // Force change detection and apply filters
+    this.cdr.detectChanges();
+    this.applyFilters();
+  }
+
+  formatDateForAPI(date: Date): string {
+    if (!date) return '';
+    // Format as full ISO datetime for the backend API (Instant format)
+    return date.toISOString();
+  }
+
+  formatDateRangeForAPI(date: Date, isEndDate: boolean = false): string {
+    if (!date) return '';
+    
+    const adjustedDate = new Date(date);
+    if (isEndDate) {
+      // Set to end of day (23:59:59.999) for end date
+      adjustedDate.setHours(23, 59, 59, 999);
+    } else {
+      // Set to start of day (00:00:00.000) for start date
+      adjustedDate.setHours(0, 0, 0, 0);
+    }
+    
+    const isoString = adjustedDate.toISOString();
+  this.logger.debug(`Formatted ${isEndDate ? 'end' : 'start'} date`, { input: date, iso: isoString });
+    return isoString;
   }
 
   clearFilters(): void {
@@ -691,6 +756,56 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  setDateRange(range: string): void {
+    const today = new Date();
+    let fromDate: Date | null = null;
+    let toDate: Date | null = null;
+
+    switch (range) {
+      case 'today':
+        fromDate = new Date(today);
+        toDate = new Date(today);
+        break;
+      
+      case 'yesterday':
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        fromDate = new Date(yesterday);
+        toDate = new Date(yesterday);
+        break;
+      
+      case 'thisWeek':
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        fromDate = new Date(startOfWeek);
+        toDate = new Date(today);
+        break;
+      
+      case 'lastWeek':
+        const startOfLastWeek = new Date(today);
+        startOfLastWeek.setDate(today.getDate() - today.getDay() - 7);
+        const endOfLastWeek = new Date(startOfLastWeek);
+        endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
+        fromDate = new Date(startOfLastWeek);
+        toDate = new Date(endOfLastWeek);
+        break;
+      
+      case 'thisMonth':
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        fromDate = new Date(startOfMonth);
+        toDate = new Date(today);
+        break;
+    }
+
+    this.filterValues.fromDate = fromDate;
+    this.filterValues.toDate = toDate;
+    
+    this.logger.debug('Date range set', { range, fromDate, toDate });
+    
+    this.cdr.detectChanges();
+    this.applyFilters();
+  }
+
   calculateStatusCounts(orders: OrderRecord[]): void {
     this.statusCounts = {
       pending: orders.filter(order => order.status === 'PENDING').length,
@@ -698,7 +813,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
       delivered: orders.filter(order => order.status === 'DELIVERED').length,
       total: orders.length
     };
-    console.log('📊 Status counts updated:', this.statusCounts);
+  this.logger.debug('Status counts', this.statusCounts);
   }
 
   refreshOrders(): void {
@@ -750,27 +865,57 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   viewOrderDetails(order: OrderRecord): void {
-    console.log('View order details:', order);
+  this.logger.debug('View order details', { id: order.id });
     // TODO: Open order detail modal
   }
 
   editOrder(order: OrderRecord): void {
-    console.log('Edit order:', order);
-    // TODO: Navigate to edit order page
+  this.logger.debug('Edit order', { id: order.id });
+    
+    const dialogRef = this.dialog.open(OrderEditModalComponent, {
+      data: { order },
+      width: '800px',
+      maxWidth: '90vw',
+      disableClose: true,
+      autoFocus: false
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+  this.logger.info('Order updated', { id: result?.id });
+        // Refresh the orders list to show updated data
+        this.refreshOrders();
+      }
+    });
   }
 
   trackOrder(order: OrderRecord): void {
-    console.log('Track order:', order);
+  this.logger.debug('Track order', { id: order.id });
     // TODO: Open tracking interface
   }
 
   updateOrderStatus(order: OrderRecord): void {
-    console.log('Update status for order:', order);
-    // TODO: Open status update modal
+  this.logger.debug('Open update status', { id: order.id });
+    
+    const dialogRef = this.dialog.open(OrderStatusUpdateModalComponent, {
+      data: { order },
+      width: '600px',
+      maxWidth: '90vw',
+      disableClose: true,
+      autoFocus: false
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+  this.logger.info('Order status updated', { id: result?.id });
+        // Refresh the orders list to show updated data
+        this.refreshOrders();
+      }
+    });
   }
 
   printOrder(order: OrderRecord): void {
-    console.log('Print order:', order);
+  this.logger.debug('Print order', { id: order.id });
     // TODO: Generate and print order document
   }
 

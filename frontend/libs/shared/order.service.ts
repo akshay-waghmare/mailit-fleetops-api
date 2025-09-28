@@ -11,12 +11,13 @@ import {
 } from './order.interface';
 import { PaginatedResponse } from './pickup.interface';
 import { ApiService } from './api.service';
+import { LoggingService } from './logging.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class OrderService {
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private logger: LoggingService) {}
 
   /**
    * Get paginated orders with filtering and sorting
@@ -28,18 +29,18 @@ export class OrderService {
       size: params.size ?? 20
     };
 
-    // Add filter parameters if provided
+    // Add filter parameters if provided - map frontend names to backend names
     if (params.search) queryParams.search = params.search;
     if (params.status) queryParams.status = params.status;
-    if (params.service_type) queryParams.service_type = params.service_type;
-    if (params.client_id) queryParams.client_id = params.client_id;
-    if (params.assigned_staff_id) queryParams.assigned_staff_id = params.assigned_staff_id;
-    if (params.from_date) queryParams.from_date = params.from_date;
-    if (params.to_date) queryParams.to_date = params.to_date;
+    if (params.service_type) queryParams.serviceType = params.service_type; // Map service_type to serviceType
+    if (params.client_id) queryParams.clientId = params.client_id; // Map client_id to clientId
+    if (params.assigned_staff_id) queryParams.assignedStaffId = params.assigned_staff_id; // Map assigned_staff_id to assignedStaffId
+    if (params.from_date) queryParams.startDate = params.from_date; // Map from_date to startDate
+    if (params.to_date) queryParams.endDate = params.to_date; // Map to_date to endDate
     if (params.sort_by) queryParams.sort_by = params.sort_by;
     if (params.sort_order) queryParams.sort_order = params.sort_order;
 
-    console.log('🔧 OrderService sending parameters to API:', queryParams);
+  this.logger.debug('OrderService sending parameters', queryParams);
 
     return this.api.getOrders(queryParams).pipe(
       map(resp => {
@@ -58,7 +59,14 @@ export class OrderService {
    * Get order by ID
    */
   getOrderById(id: string): Observable<OrderRecord> {
-  return this.api.getOrder(id) as unknown as Observable<OrderRecord>;
+    return this.api.getOrder(id).pipe(
+      map((response: any) => {
+  this.logger.debug('OrderService raw API response', response);
+        // If the response is already the order object, return it directly
+        // If it's wrapped in ApiResponse, extract the data
+        return response.data || response;
+      })
+    );
   }
 
   /**
@@ -82,10 +90,40 @@ export class OrderService {
   }
 
   /**
+   * Update order details (full update)
+   */
+  updateOrder(orderId: string, orderData: Partial<OrderRecord>): Observable<OrderRecord> {
+    // Map order data to backend format
+    return this.api.updateOrder(orderId, orderData as any) as unknown as Observable<OrderRecord>;
+  }
+
+  /**
+   * Partially update order details (patch)
+   */
+  patchOrder(orderId: string, orderData: Partial<OrderRecord>): Observable<OrderRecord> {
+  this.logger.debug('OrderService.patchOrder', { orderId, orderData });
+    return this.api.patchOrder(orderId, orderData).pipe(
+      map((response: any) => {
+  this.logger.debug('OrderService raw PATCH response', response);
+        // If the response is already the order object, return it directly
+        // If it's wrapped in ApiResponse, extract the data
+        return response.data || response;
+      })
+    );
+  }
+
+  /**
    * Get order analytics
    */
   getOrderAnalytics(): Observable<OrderAnalytics> {
-  return this.api.getOrderAnalytics() as unknown as Observable<OrderAnalytics>;
+    return this.api.getOrderAnalytics().pipe(
+      map((response: any) => {
+  this.logger.debug('OrderService raw analytics response', response);
+        // If the response is already the analytics object, return it directly
+        // If it's wrapped in ApiResponse, extract the data
+        return response.data || response;
+      })
+    );
   }
 
   /**
