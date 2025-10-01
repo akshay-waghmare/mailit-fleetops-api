@@ -20,6 +20,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { Subscription, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { OrderService, OrderRecord, OrderQueryParams, LoggingService } from '../../../../../libs/shared';
+import { OrderDetailModalComponent } from '../components/order-detail-modal.component';
 import { OrderEditModalComponent } from '../components/order-edit-modal.component';
 import { OrderStatusUpdateModalComponent } from '../components/order-status-update-modal.component';
 
@@ -417,13 +418,13 @@ import { OrderStatusUpdateModalComponent } from '../components/order-status-upda
                       <div class="flex items-center gap-2">
                         <button mat-icon-button 
                                 matTooltip="View Details" 
-                                (click)="viewOrderDetails(order)"
+                                (click)="viewOrderDetails(order); $event.stopPropagation()"
                                 class="text-blue-600 hover:bg-blue-50">
                           <mat-icon>visibility</mat-icon>
                         </button>
                         <button mat-icon-button 
                                 matTooltip="Track Order" 
-                                (click)="trackOrder(order)"
+                                (click)="trackOrder(order); $event.stopPropagation()"
                                 *ngIf="order.trackingNumber"
                                 class="text-green-600 hover:bg-green-50">
                           <mat-icon>my_location</mat-icon>
@@ -431,24 +432,25 @@ import { OrderStatusUpdateModalComponent } from '../components/order-status-upda
                         <button mat-icon-button 
                                 [matMenuTriggerFor]="orderMenu" 
                                 matTooltip="More Actions"
+                                (click)="$event.stopPropagation()"
                                 class="text-slate-600 hover:bg-slate-50">
                           <mat-icon>more_vert</mat-icon>
                         </button>
                         <mat-menu #orderMenu="matMenu">
-                          <button mat-menu-item (click)="editOrder(order)">
+                          <button mat-menu-item (click)="editOrder(order); $event.stopPropagation()">
                             <mat-icon>edit</mat-icon>
                             <span>Edit Order</span>
                           </button>
-                          <button mat-menu-item (click)="updateOrderStatus(order)">
+                          <button mat-menu-item (click)="updateOrderStatus(order); $event.stopPropagation()">
                             <mat-icon>update</mat-icon>
                             <span>Update Status</span>
                           </button>
-                          <button mat-menu-item (click)="printOrder(order)">
+                          <button mat-menu-item (click)="printOrder(order); $event.stopPropagation()">
                             <mat-icon>print</mat-icon>
                             <span>Print</span>
                           </button>
                           <mat-divider></mat-divider>
-                          <button mat-menu-item (click)="cancelOrder(order)" class="text-red-600">
+                          <button mat-menu-item (click)="cancelOrder(order); $event.stopPropagation()" class="text-red-600">
                             <mat-icon>cancel</mat-icon>
                             <span>Cancel Order</span>
                           </button>
@@ -865,8 +867,21 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   viewOrderDetails(order: OrderRecord): void {
-  this.logger.debug('View order details', { id: order.id });
-    // TODO: Open order detail modal
+    this.logger.debug('View order details', { id: order.id });
+    
+    const dialogRef = this.dialog.open(OrderDetailModalComponent, {
+      width: '90vw',
+      maxWidth: '900px',
+      maxHeight: '90vh',
+      data: order,
+      panelClass: 'order-detail-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.action === 'track') {
+        this.trackOrder(result.order);
+      }
+    });
   }
 
   editOrder(order: OrderRecord): void {

@@ -44,7 +44,7 @@ export class ConfigService {
     return {
       apiBaseUrl: this.getApiBaseUrl(),
       mapStyle: 'https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
-      defaultMapCenter: [-74.0059, 40.7128],
+      defaultMapCenter: [72.8777, 19.0760], // Mumbai, India
       defaultMapZoom: 12,
       enableSSR: true,
       environment: this.getEnvironment()
