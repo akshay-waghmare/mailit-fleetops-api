@@ -372,7 +372,7 @@ export class OrderEditComponent implements OnInit {
       updateData.service_type = formValue.serviceType;
     }
     
-    const formDate = formValue.estimatedDeliveryDate ? formValue.estimatedDeliveryDate.toISOString().split('T')[0] : null;
+    const formDate = this.formatDateForBackend(formValue.estimatedDeliveryDate);
     const originalDate = this.order?.estimated_delivery_date;
     if (formDate !== originalDate) {
       updateData.estimated_delivery_date = formDate;
@@ -466,5 +466,19 @@ export class OrderEditComponent implements OnInit {
       const control = this.orderForm!.get(key);
       control?.markAsTouched();
     });
+  }
+
+  /**
+   * Formats a Date object to ISO date string (YYYY-MM-DD) for backend API.
+   * Returns null if the date is null or undefined.
+   * 
+   * @param date - The date to format
+   * @returns ISO date string (YYYY-MM-DD) or null
+   */
+  private formatDateForBackend(date: Date | null): string | null {
+    if (!date) {
+      return null;
+    }
+    return date.toISOString().split('T')[0];
   }
 }

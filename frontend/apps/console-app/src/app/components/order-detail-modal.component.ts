@@ -7,6 +7,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCardModule } from '@angular/material/card';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { OrderRecord } from '../../../../../libs/shared';
 
 @Component({
@@ -21,7 +22,8 @@ import { OrderRecord } from '../../../../../libs/shared';
     MatDividerModule,
     MatChipsModule,
     MatTooltipModule,
-    MatCardModule
+    MatCardModule,
+    MatSnackBarModule
   ],
   template: `
     <div class="order-detail-modal">
@@ -359,12 +361,40 @@ import { OrderRecord } from '../../../../../libs/shared';
       background-color: #fee2e2;
       color: #dc2626;
     }
+
+    /* Snackbar custom styles */
+    ::ng-deep .success-snackbar {
+      background-color: #10b981 !important;
+      color: white !important;
+    }
+
+    ::ng-deep .success-snackbar .mat-mdc-snack-bar-label {
+      color: white !important;
+    }
+
+    ::ng-deep .success-snackbar .mat-mdc-button {
+      color: white !important;
+    }
+
+    ::ng-deep .error-snackbar {
+      background-color: #ef4444 !important;
+      color: white !important;
+    }
+
+    ::ng-deep .error-snackbar .mat-mdc-snack-bar-label {
+      color: white !important;
+    }
+
+    ::ng-deep .error-snackbar .mat-mdc-button {
+      color: white !important;
+    }
   `]
 })
 export class OrderDetailModalComponent implements OnInit {
   constructor(
     public dialogRef: MatDialogRef<OrderDetailModalComponent>,
-    @Inject(MAT_DIALOG_DATA) public order: OrderRecord
+    @Inject(MAT_DIALOG_DATA) public order: OrderRecord,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
@@ -446,14 +476,25 @@ export class OrderDetailModalComponent implements OnInit {
   }
 
   hasDimensions(): boolean {
-    return !!(this.order.length_cm || this.order.width_cm || this.order.height_cm);
+    return Boolean(this.order.length_cm || this.order.width_cm || this.order.height_cm);
   }
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
-      console.log('✅ Tracking number copied to clipboard');
-    }).catch(() => {
-      console.log('❌ Failed to copy tracking number');
+      this.snackBar.open('✅ Tracking number copied to clipboard!', 'Close', {
+        duration: 3000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+        panelClass: ['success-snackbar']
+      });
+    }).catch((error) => {
+      console.error('Failed to copy tracking number:', error);
+      this.snackBar.open('❌ Failed to copy tracking number', 'Close', {
+        duration: 3000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+        panelClass: ['error-snackbar']
+      });
     });
   }
 }
