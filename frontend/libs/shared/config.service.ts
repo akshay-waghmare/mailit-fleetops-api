@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { LoggingService } from './logging.service';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { catchError, of } from 'rxjs';
@@ -19,14 +20,14 @@ export class ConfigService {
   private configSubject = new BehaviorSubject<AppConfig>(this.getDefaultConfig());
   private configLoaded = false;
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private logger: LoggingService) {
     // Only try to load config if we might be in Docker environment
     if (this.mightBeDockerEnvironment()) {
       this.loadConfig().catch(error => {
-        console.log('⚠️ Config loading failed, using defaults:', error.message);
+        this.logger.warn('Config loading failed, using defaults', (error as any)?.message);
       });
     } else {
-      console.log('📱 Local development detected, using default config');
+      this.logger.debug('Local development detected, using default config');
     }
   }
 
@@ -43,7 +44,7 @@ export class ConfigService {
     return {
       apiBaseUrl: this.getApiBaseUrl(),
       mapStyle: 'https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
-      defaultMapCenter: [-74.0059, 40.7128],
+      defaultMapCenter: [72.8777, 19.0760], // Mumbai, India
       defaultMapZoom: 12,
       enableSSR: true,
       environment: this.getEnvironment()
@@ -51,21 +52,17 @@ export class ConfigService {
   }
 
   private getApiBaseUrl(): string {
+    // SSR / non-browser fallback
     if (typeof window === 'undefined') {
-      return '/api'; // SSR fallback
+      return '/api';
     }
 
-    // Check if we're in Docker (served by nginx on port 80 or no port)
-    const isDockerEnvironment = 
-      window.location.port === '80' || 
+    const isDockerEnvironment =
+      window.location.port === '80' ||
       window.location.port === '' ||
       window.location.hostname !== 'localhost';
 
-    if (isDockerEnvironment) {
-      return '/api'; // Use nginx proxy
-    } else {
-      return 'http://localhost:8080/api'; // Local development - direct to backend
-    }
+    return isDockerEnvironment ? '/api' : 'http://localhost:8081/api';
   }
 
   private getEnvironment(): 'development' | 'production' | 'staging' | 'docker' {
@@ -96,18 +93,18 @@ export class ConfigService {
       if (config) {
         this.configSubject.next(config);
         this.configLoaded = true;
-        console.log('✅ Loaded config from nginx:', config);
+        this.logger.info('Loaded config from nginx', config);
         return config;
       }
     } catch (error) {
-      console.log('⚠️ Failed to load config from nginx, using defaults');
+      this.logger.warn('Failed to load config from nginx, using defaults');
     }
 
     // Fallback to default config
     const defaultConfig = this.getDefaultConfig();
     this.configSubject.next(defaultConfig);
     this.configLoaded = true;
-    console.log('✅ Using default config:', defaultConfig);
+    this.logger.debug('Using default config', defaultConfig);
     return defaultConfig;
   }
 

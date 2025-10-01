@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -54,12 +55,12 @@ import { OrderRecord, OrderService } from '../../../../../libs/shared';
         </div>
 
         <!-- Loading State -->
-        <div *ngIf="loading && !orderForm" class="flex justify-center py-12">
+        <div *ngIf="loading && !isFormReady" class="flex justify-center py-12">
           <mat-spinner diameter="40"></mat-spinner>
         </div>
 
         <!-- Error State -->
-        <div *ngIf="error && !orderForm" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <div *ngIf="error && !isFormReady" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div class="flex items-center gap-2 text-red-800">
             <mat-icon class="text-red-600">error</mat-icon>
             <span class="font-medium">Error loading order</span>
@@ -72,7 +73,7 @@ import { OrderRecord, OrderService } from '../../../../../libs/shared';
         </div>
 
         <!-- Edit Form -->
-        <mat-card *ngIf="orderForm && !loading" class="shadow-lg">
+        <mat-card *ngIf="isFormReady && !loading" class="shadow-lg">
           <mat-card-header class="pb-4">
             <mat-card-title class="text-xl font-semibold text-slate-900">
               Order Information
@@ -83,7 +84,7 @@ import { OrderRecord, OrderService } from '../../../../../libs/shared';
           </mat-card-header>
           
           <mat-card-content>
-            <form [formGroup]="orderForm" (ngSubmit)="onSave()" class="space-y-6">
+            <form [formGroup]="orderForm!" (ngSubmit)="onSave()" class="space-y-6">
               
               <!-- Basic Information -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -96,13 +97,13 @@ import { OrderRecord, OrderService } from '../../../../../libs/shared';
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Status</mat-label>
                   <mat-select formControlName="status" required>
-                    <mat-option value="pending">Pending</mat-option>
-                    <mat-option value="confirmed">Confirmed</mat-option>
-                    <mat-option value="picked-up">Picked Up</mat-option>
-                    <mat-option value="in-transit">In Transit</mat-option>
-                    <mat-option value="delivered">Delivered</mat-option>
-                    <mat-option value="cancelled">Cancelled</mat-option>
-                    <mat-option value="returned">Returned</mat-option>
+                    <mat-option value="PENDING">Pending</mat-option>
+                    <mat-option value="CONFIRMED">Confirmed</mat-option>
+                    <mat-option value="PICKED_UP">Picked Up</mat-option>
+                    <mat-option value="IN_TRANSIT">In Transit</mat-option>
+                    <mat-option value="DELIVERED">Delivered</mat-option>
+                    <mat-option value="CANCELLED">Cancelled</mat-option>
+                    <mat-option value="RETURNED">Returned</mat-option>
                   </mat-select>
                 </mat-form-field>
               </div>
@@ -112,9 +113,9 @@ import { OrderRecord, OrderService } from '../../../../../libs/shared';
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Service Type</mat-label>
                   <mat-select formControlName="serviceType" required>
-                    <mat-option value="express">Express</mat-option>
-                    <mat-option value="standard">Standard</mat-option>
-                    <mat-option value="economy">Economy</mat-option>
+                    <mat-option value="EXPRESS">Express</mat-option>
+                    <mat-option value="STANDARD">Standard</mat-option>
+                    <mat-option value="ECONOMY">Economy</mat-option>
                   </mat-select>
                 </mat-form-field>
                 
@@ -167,6 +168,39 @@ import { OrderRecord, OrderService } from '../../../../../libs/shared';
                 </mat-form-field>
               </div>
 
+              <!-- Financial Information -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Declared Value (₹)</mat-label>
+                  <input matInput formControlName="declaredValue" type="number" min="0" step="0.01" />
+                  <mat-hint>Value of the items being shipped</mat-hint>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Total Amount (₹)</mat-label>
+                  <input matInput formControlName="totalAmount" type="number" min="0" step="0.01" />
+                  <mat-hint>Total shipping cost</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>COD Amount (₹)</mat-label>
+                  <input matInput formControlName="codAmount" type="number" min="0" step="0.01" />
+                  <mat-hint>Cash on Delivery amount</mat-hint>
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Payment Status</mat-label>
+                  <mat-select formControlName="paymentStatus" required>
+                    <mat-option value="PENDING">Pending</mat-option>
+                    <mat-option value="PAID">Paid</mat-option>
+                    <mat-option value="COD">Cash on Delivery</mat-option>
+                    <mat-option value="FAILED">Failed</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
             </form>
           </mat-card-content>
 
@@ -177,7 +211,7 @@ import { OrderRecord, OrderService } from '../../../../../libs/shared';
                 <mat-icon>close</mat-icon>
                 Cancel
               </button>
-              <button mat-flat-button color="primary" (click)="onSave()" [disabled]="orderForm.invalid || submitting">
+              <button mat-flat-button color="primary" (click)="onSave()" [disabled]="!isFormReady || !isFormValid || submitting">
                 <mat-spinner *ngIf="submitting" diameter="20" class="mr-2"></mat-spinner>
                 <mat-icon *ngIf="!submitting">save</mat-icon>
                 <span class="ml-2">{{submitting ? 'Saving...' : 'Save Changes'}}</span>
@@ -204,7 +238,7 @@ import { OrderRecord, OrderService } from '../../../../../libs/shared';
   `]
 })
 export class OrderEditComponent implements OnInit {
-  orderForm!: FormGroup;
+  orderForm: FormGroup | null = null;
   loading = false;
   submitting = false;
   error: string | null = null;
@@ -216,37 +250,59 @@ export class OrderEditComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private orderService: OrderService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
+  get isFormValid(): boolean {
+    return this.orderForm ? this.orderForm.valid : false;
+  }
+
+  get isFormReady(): boolean {
+    return !!this.orderForm;
+  }
+
   ngOnInit(): void {
-    this.route.params.subscribe(params => {
-      this.orderId = params['id'];
-      if (this.orderId) {
-        this.loadOrder();
-      } else {
-        this.error = 'Order ID not found';
-      }
-    });
+    // Only load data in browser, not during SSR
+    if (isPlatformBrowser(this.platformId)) {
+      this.route.params.subscribe(params => {
+        this.orderId = params['id'];
+        if (this.orderId) {
+          this.loadOrder();
+        } else {
+          this.error = 'Order ID not found';
+        }
+      });
+    }
   }
 
   loadOrder(): void {
     this.loading = true;
     this.error = null;
     
+    console.log('🔄 Loading order with ID:', this.orderId);
+    
     this.orderService.getOrderById(this.orderId).subscribe({
       next: (order) => {
+        console.log('✅ Order loaded successfully:', order);
         if (order) {
           this.order = order;
           this.initializeForm(order);
           this.loading = false;
+          this.cdr.detectChanges(); // Force change detection
+          console.log('🔄 Component state after loading:', {
+            loading: this.loading,
+            hasOrderForm: !!this.orderForm,
+            hasError: !!this.error
+          });
         } else {
           this.error = 'Order not found';
           this.loading = false;
         }
       },
       error: (error) => {
-        console.error('Error loading order:', error);
+        console.error('❌ Error loading order:', error);
         this.error = 'Failed to load order details. Please try again.';
         this.loading = false;
       }
@@ -254,6 +310,8 @@ export class OrderEditComponent implements OnInit {
   }
 
   initializeForm(order: OrderRecord): void {
+    console.log('🔧 Initializing form with order:', order);
+    
     this.orderForm = this.fb.group({
       orderId: [{ value: order.order_id, disabled: true }],
       status: [order.status, Validators.required],
@@ -265,10 +323,29 @@ export class OrderEditComponent implements OnInit {
       receiverCity: [order.receiver_city, Validators.required],
       receiverAddress: [order.receiver_address, Validators.required],
       specialInstructions: [order.special_instructions || ''],
+      // Financial Fields
+      declaredValue: [order.declared_value || 0, [Validators.min(0)]],
+      totalAmount: [order.total_amount || 0, [Validators.min(0)]],
+      codAmount: [order.cod_amount || 0, [Validators.min(0)]],
+      paymentStatus: [order.payment_status || 'PENDING', Validators.required],
     });
+    
+    console.log('✅ Form initialized:', this.orderForm.value);
+    console.log('📝 Form valid:', this.orderForm.valid);
   }
 
   onSave(): void {
+    // Only save in browser, not during SSR
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
+    // Early return if form is not available or invalid
+    if (!this.orderForm) {
+      console.error('❌ Form not initialized');
+      return;
+    }
+
     if (this.orderForm.invalid) {
       this.markFormGroupTouched();
       return;
@@ -278,19 +355,86 @@ export class OrderEditComponent implements OnInit {
     this.error = null;
 
     const formValue = this.orderForm.getRawValue();
-    const updateData = {
-      status: formValue.status,
-      serviceType: formValue.serviceType,
-      estimatedDeliveryDate: formValue.estimatedDeliveryDate ? formValue.estimatedDeliveryDate.toISOString().split('T')[0] : null,
-      clientName: formValue.clientName,
-      contactNumber: formValue.contactNumber,
-      receiverName: formValue.receiverName,
-      receiverCity: formValue.receiverCity,
-      receiverAddress: formValue.receiverAddress,
-      specialInstructions: formValue.specialInstructions,
-    };
+    
+    console.log('🔧 Form Value:', formValue);
+    console.log('🔧 Original Order:', this.order);
+    
+    // Only send fields that have actually changed (partial update)
+    // NOTE: Backend expects snake_case field names due to @JsonProperty annotations
+    const updateData: any = {};
+    
+    // Check each field and only add it if it's different from original
+    if (formValue.status !== this.order?.status) {
+      updateData.status = formValue.status;
+    }
+    
+    if (formValue.serviceType !== this.order?.service_type) {
+      updateData.service_type = formValue.serviceType;
+    }
+    
+    const formDate = formValue.estimatedDeliveryDate ? formValue.estimatedDeliveryDate.toISOString().split('T')[0] : null;
+    const originalDate = this.order?.estimated_delivery_date;
+    if (formDate !== originalDate) {
+      updateData.estimated_delivery_date = formDate;
+    }
+    
+    if (formValue.clientName !== this.order?.client_name) {
+      updateData.client_name = formValue.clientName;
+    }
+    
+    if (formValue.contactNumber !== (this.order?.contact_number || '')) {
+      updateData.contact_number = formValue.contactNumber;
+    }
+    
+    if (formValue.receiverName !== this.order?.receiver_name) {
+      updateData.receiver_name = formValue.receiverName;
+    }
+    
+    if (formValue.receiverCity !== this.order?.receiver_city) {
+      updateData.receiver_city = formValue.receiverCity;
+    }
+    
+    if (formValue.receiverAddress !== this.order?.receiver_address) {
+      updateData.receiver_address = formValue.receiverAddress;
+    }
+    
+    if (formValue.specialInstructions !== (this.order?.special_instructions || '')) {
+      updateData.special_instructions = formValue.specialInstructions;
+    }
+    
+    if (formValue.declaredValue !== (this.order?.declared_value || 0)) {
+      updateData.declared_value = formValue.declaredValue;
+    }
+    
+    if (formValue.totalAmount !== (this.order?.total_amount || 0)) {
+      updateData.total_amount = formValue.totalAmount;
+    }
+    
+    if (formValue.codAmount !== (this.order?.cod_amount || 0)) {
+      updateData.cod_amount = formValue.codAmount;
+    }
+    
+    if (formValue.paymentStatus !== this.order?.payment_status) {
+      updateData.payment_status = formValue.paymentStatus;
+    }
+    
+    // Check if any fields were actually changed
+    const changedFields = Object.keys(updateData);
+    
+    if (changedFields.length === 0) {
+      console.log('⚠️ No changes detected, skipping update');
+      this.submitting = false;
+      this.snackBar.open('No changes to save.', 'Close', {
+        duration: 3000,
+        panelClass: ['info-snackbar']
+      });
+      return;
+    }
+    
+    console.log('🚀 Sending updateData (changed fields):', changedFields);
+    console.log('🚀 Full updateData:', updateData);
 
-    this.orderService.updateOrder(this.orderId, updateData).subscribe({
+    this.orderService.patchOrder(this.orderId, updateData).subscribe({
       next: (updatedOrder: OrderRecord) => {
         this.submitting = false;
         this.snackBar.open('Order updated successfully!', 'Close', {
@@ -316,8 +460,10 @@ export class OrderEditComponent implements OnInit {
   }
 
   private markFormGroupTouched(): void {
+    if (!this.orderForm) return;
+    
     Object.keys(this.orderForm.controls).forEach(key => {
-      const control = this.orderForm.get(key);
+      const control = this.orderForm!.get(key);
       control?.markAsTouched();
     });
   }
