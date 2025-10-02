@@ -146,6 +146,7 @@ application-*.yml
 !application-dev.yml
 !application-staging.yml
 !application-prod.yml
+!backend/src/main/resources/application-docker.yml
 
 # Database
 *.db
