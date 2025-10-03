@@ -379,3 +379,48 @@ input[type="password"] {
     box-shadow: none !important;
   }
 }
+
+/* Custom Modal Styles */
+.custom-dialog-container .mat-mdc-dialog-container {
+  border-radius: 12px !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  overflow: hidden !important;
+}
+
+.custom-dialog-container .mat-mdc-dialog-content {
+  max-height: 70vh !important;
+  overflow-y: auto !important;
+  padding: 0 24px !important;
+}
+
+.custom-dialog-container .mat-mdc-dialog-title {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.custom-dialog-container .mat-mdc-dialog-actions {
+  padding: 16px 24px !important;
+  margin: 0 !important;
+  min-height: 52px !important;
+}
+
+/* Snackbar Styles */
+.success-snackbar {
+  background-color: #4caf50 !important;
+  color: white !important;
+}
+
+.error-snackbar {
+  background-color: #f44336 !important;
+  color: white !important;
+}
+
+/* Form Validation Styles */
+.mat-mdc-form-field-error {
+  color: #f44336 !important;
+  font-size: 0.75rem !important;
+}
+
+.mat-mdc-form-field.mat-form-field-invalid .mat-mdc-text-field-wrapper {
+  border-color: #f44336 !important;
+}

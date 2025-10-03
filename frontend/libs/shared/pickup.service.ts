@@ -33,7 +33,14 @@ export class PickupService {
   }
 
   updatePickup(id: string, data: Partial<PickupRecord>): Observable<PickupRecord> {
-    return this.http.put<PickupRecord>(`${this.baseUrl}/pickups/${id}`, data);
+    return this.http.put<any>(`${this.baseUrl}/v1/pickups/${id}`, data, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + btoa('admin:admin')
+      }
+    }).pipe(
+      map(backendPickup => this.mapBackendPickupToFrontend(backendPickup))
+    );
   }
 
   updatePickupStatus(id: string, status: string, notes?: string): Observable<PickupRecord> {
@@ -68,6 +75,7 @@ export class PickupService {
     // Map frontend SchedulePickupData to backend CreatePickupDto
     const createPickupDto = {
       clientId: parseInt(scheduleData.client.id) || 12, // Convert to number, fallback to 12
+      clientName: scheduleData.client.clientName, // Fix: Include client name
       pickupAddress: scheduleData.client.address,
       pickupDate: scheduleData.pickupDate || new Date().toISOString().split('T')[0],
       pickupTime: scheduleData.pickupTime || '10:00',
