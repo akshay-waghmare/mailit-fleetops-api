@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -80,29 +81,41 @@ public class BulkUploadService {
             Long orderId = null;
             
             if (existing.isPresent()) {
+                // Duplicate found - don't create a new row, just count it
                 status = RowStatus.SKIPPED_DUPLICATE;
                 orderId = existing.get().getOrderId();
                 skipped++;
                 logger.debug("Row {} skipped - duplicate idempotency key: {}", i + 1, idem.getIdempotencyKey());
-            } else {
-                // Actually create order via OrderService
-                try {
-                    com.fleetops.order.dto.CreateOrderDto orderDto = bulkOrderMapper.toOrderCreateDto(dto);
-                    com.fleetops.order.dto.OrderDto createdOrder = orderService.createOrder(orderDto);
-                    
-                    status = RowStatus.CREATED;
-                    orderId = createdOrder.getId();
-                    created++;
-                    logger.info("Row {} created order successfully - orderId: {}", i + 1, orderId);
-                } catch (Exception e) {
-                    // If order creation fails, mark row as failed
-                    status = RowStatus.FAILED_VALIDATION;
-                    failed++;
-                    logger.error("Row {} failed to create order: {}", i + 1, e.getMessage(), e);
-                }
+                
+                // Build response DTO from existing row (no new DB entry)
+                RowOutcomeDto outcome = new RowOutcomeDto(
+                        i + 1,
+                        status.name(),
+                        idem.getBasis().name(),
+                        orderId,
+                        Collections.<ValidationErrorDto>emptyList()
+                );
+                outcomes.add(outcome);
+                continue; // Skip to next row
             }
             
-            // Persist row outcome
+            // Not a duplicate - create new order
+            try {
+                com.fleetops.order.dto.CreateOrderDto orderDto = bulkOrderMapper.toOrderCreateDto(dto);
+                com.fleetops.order.dto.OrderDto createdOrder = orderService.createOrder(orderDto);
+                
+                status = RowStatus.CREATED;
+                orderId = createdOrder.getId();
+                created++;
+                logger.info("Row {} created order successfully - orderId: {}", i + 1, orderId);
+            } catch (Exception e) {
+                // If order creation fails, mark row as failed
+                status = RowStatus.FAILED_VALIDATION;
+                failed++;
+                logger.error("Row {} failed to create order: {}", i + 1, e.getMessage(), e);
+            }
+            
+            // Persist row outcome (only for non-duplicates)
             BulkUploadRow rowEntity = new BulkUploadRow();
             rowEntity.setBatch(batch);
             rowEntity.setRowIndex(i + 1);
@@ -110,8 +123,8 @@ public class BulkUploadService {
             rowEntity.setIdempotencyBasis(idem.getBasis());
             rowEntity.setStatus(status);
             rowEntity.setOrderId(orderId);
-            rowEntity.setErrorMessages("[]"); // No validation errors in minimal impl
-            rowEntity.setRawData("{}"); // TODO: Serialize DTO to JSON if needed
+            rowEntity.setErrorMessages(new ArrayList<>()); // No validation errors in minimal impl
+            rowEntity.setRawData(new HashMap<>()); // TODO: Populate with row data if needed
             rowRepository.save(rowEntity);
             
             // Build response DTO
@@ -127,6 +140,7 @@ public class BulkUploadService {
         
         // 4. Update batch with final counts and mark completed
         long duration = System.currentTimeMillis() - startTime;
+        batch.setTotalRows(rows.size()); // Set total rows to satisfy constraint
         batch.setCreatedCount(created);
         batch.setFailedCount(failed);
         batch.setSkippedDuplicateCount(skipped);
@@ -163,7 +177,7 @@ public class BulkUploadService {
         }
         
         batch.setStatus(BulkUploadStatus.PROCESSING);
-        batch.setTotalRows(totalRows);
+        batch.setTotalRows(0); // Set to 0 initially to satisfy constraint; updated at end
         batch.setUploadedAt(LocalDateTime.now());
         batch.setProcessingStartedAt(LocalDateTime.now());
         
@@ -171,8 +185,10 @@ public class BulkUploadService {
     }
     
     private String generateBatchId() {
-        // Format: BU{YYYYMMDD}{HHMM} e.g., BU20251004-1430
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmm"));
-        return "BU" + timestamp;
+        // Format: BU{YYYYMMDDHHmmss} + 2-digit random suffix for uniqueness
+        // e.g., BU2025100414302547 (16 characters total: BU + 14 digits)
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        int randomSuffix = (int) (Math.random() * 100); // 00-99
+        return String.format("BU%s%02d", timestamp, randomSuffix);
     }
 }

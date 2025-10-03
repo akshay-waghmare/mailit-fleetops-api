@@ -3,8 +3,12 @@ package com.fleetops.bulkupload.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Entity representing a bulk upload batch
@@ -74,8 +78,9 @@ public class BulkUploadBatch {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata", columnDefinition = "jsonb")
-    private String metadata = "{}"; // JSONB stored as String, parsed as needed
+    private Map<String, Object> metadata = new HashMap<>();
 
     // Lifecycle callback to update updatedAt
     @PreUpdate

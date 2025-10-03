@@ -39,24 +39,49 @@ public class ExcelParserService {
                 Row row = sheet.getRow(r);
                 if (row == null) continue;
                 CreateOrderDto dto = new CreateOrderDto();
+                
+                // Client Information
                 dto.setClientReference(getString(row, idx.get("clientReference")));
+                dto.setClientId(getLong(row, idx.get("clientId")));
+                dto.setClientName(getString(row, idx.get("clientName")));
+                dto.setClientCompany(getString(row, idx.get("clientCompany")));
+                dto.setContactNumber(getString(row, idx.get("contactNumber")));
+                
+                // Sender Information
                 dto.setSenderName(getString(row, idx.get("senderName")));
                 dto.setSenderAddress(getString(row, idx.get("senderAddress")));
                 dto.setSenderContact(getString(row, idx.get("senderContact")));
                 dto.setSenderEmail(getString(row, idx.get("senderEmail")));
+                
+                // Receiver Information
                 dto.setReceiverName(getString(row, idx.get("receiverName")));
                 dto.setReceiverAddress(getString(row, idx.get("receiverAddress")));
                 dto.setReceiverContact(getString(row, idx.get("receiverContact")));
+                dto.setReceiverEmail(getString(row, idx.get("receiverEmail")));
                 dto.setReceiverPincode(getString(row, idx.get("receiverPincode")));
                 dto.setReceiverCity(getString(row, idx.get("receiverCity")));
+                dto.setReceiverState(getString(row, idx.get("receiverState")));
+                
+                // Package Details
                 dto.setItemCount(getInteger(row, idx.get("itemCount")));
                 dto.setTotalWeight(getBigDecimal(row, idx.get("totalWeight")));
+                dto.setLengthCm(getBigDecimal(row, idx.get("lengthCm")));
+                dto.setWidthCm(getBigDecimal(row, idx.get("widthCm")));
+                dto.setHeightCm(getBigDecimal(row, idx.get("heightCm")));
                 dto.setItemDescription(getString(row, idx.get("itemDescription")));
                 dto.setDeclaredValue(getBigDecimal(row, idx.get("declaredValue")));
+                
+                // Service Details
                 dto.setServiceType(getString(row, idx.get("serviceType")));
                 dto.setCarrierName(getString(row, idx.get("carrierName")));
+                dto.setCarrierId(getString(row, idx.get("carrierId")));
+                
+                // Financial Information
                 dto.setCodAmount(getBigDecimal(row, idx.get("codAmount")));
+                
+                // Additional Fields
                 dto.setSpecialInstructions(getString(row, idx.get("specialInstructions")));
+                
                 out.add(dto);
             }
             return out;
@@ -94,6 +119,11 @@ public class ExcelParserService {
     private Integer getInteger(Row row, Integer idx) {
         if (idx == null || row.getCell(idx) == null) return null;
         try { return (int) Math.round(row.getCell(idx).getNumericCellValue()); } catch (Exception e) { return null; }
+    }
+    
+    private Long getLong(Row row, Integer idx) {
+        if (idx == null || row.getCell(idx) == null) return null;
+        try { return Math.round(row.getCell(idx).getNumericCellValue()); } catch (Exception e) { return null; }
     }
 
     private BigDecimal getBigDecimal(Row row, Integer idx) {

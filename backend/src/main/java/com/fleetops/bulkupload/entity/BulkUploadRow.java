@@ -3,8 +3,14 @@ package com.fleetops.bulkupload.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Entity representing a single row outcome in a bulk upload
@@ -45,11 +51,13 @@ public class BulkUploadRow {
     @Column(name = "order_id")
     private Long orderId; // Foreign key to orders(id) - SET NULL on delete
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "error_messages", columnDefinition = "jsonb")
-    private String errorMessages; // JSONB array as JSON string
+    private List<String> errorMessages = new ArrayList<>();
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "raw_data", columnDefinition = "jsonb")
-    private String rawData; // JSONB object as JSON string
+    private Map<String, Object> rawData = new HashMap<>();
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();

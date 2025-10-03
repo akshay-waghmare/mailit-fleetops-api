@@ -1,6 +1,6 @@
 # 🚀 Bulk Upload - Next Steps
 
-## ✅ Phase 1 Complete (Current State)
+## ✅ Phase 1 Complete
 
 - [x] Excel parser with header validation
 - [x] Idempotency service (CLIENT_REFERENCE + HASH)
@@ -11,25 +11,28 @@
 - [x] Build passing
 - [x] Documentation complete
 
+## ✅ Phase 2 Complete
+
+- [x] **Order Creation Integration** ← JUST COMPLETED!
+- [x] BulkOrderMapper (DTO conversion)
+- [x] OrderService integration
+- [x] Real order IDs in response
+- [x] Error handling for failed order creation
+- [x] Logging for tracking
+- [x] Build and tests passing
+
 ---
 
-## 🎯 Phase 2 - Priority Tasks
+## 🎯 Phase 3 - Priority Tasks
 
 ### 🔴 Critical (Week 1)
-- [ ] **Manual Testing**
+- [ ] **Manual End-to-End Testing**
   - [ ] Create sample Excel file with 2-3 rows
-  - [ ] Test happy path (all rows created)
-  - [ ] Test duplicate detection (same clientReference)
-  - [ ] Test hash-based deduplication (no clientReference)
-  - [ ] Verify database records (batch + rows)
+  - [ ] Test happy path (all rows create orders)
+  - [ ] Verify orders in database with real IDs
+  - [ ] Test duplicate detection (same file twice)
+  - [ ] Verify batch and row records
   - [ ] Test with Postman/cURL
-  
-- [ ] **Actual Order Creation**
-  - [ ] Create OrderService with `createOrder(CreateOrderDto)` method
-  - [ ] Add Order entity (or reuse existing from order management)
-  - [ ] Wire OrderService into BulkUploadService
-  - [ ] Update RowOutcomeDto to include real orderId
-  - [ ] Update test cases
 
 - [ ] **Bean Validation**
   - [ ] Enable `@Valid` on CreateOrderDto in service

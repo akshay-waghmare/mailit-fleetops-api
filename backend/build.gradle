@@ -54,8 +54,8 @@ dependencies {
     implementation 'org.mapstruct:mapstruct:1.6.2'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.2'
     
-    // Hibernate Types for JSONB mapping (PostgreSQL)
-    implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
+    // Hibernate Types for JSONB mapping (PostgreSQL) - Temporarily removed due to Hibernate 6.5 compatibility
+    // implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
     
     // Apache POI for Excel processing
     implementation 'org.apache.poi:poi-ooxml:5.2.5'
