@@ -98,28 +98,20 @@ class BulkUploadBatchTest {
     }
 
     @Test
-    @DisplayName("Should support OneToMany relationship with BulkUploadRow")
-    void testOneToManyRelationship() {
+    @DisplayName("Should support batch fields validation")
+    void testBatchFieldsValidation() {
         // Given
         BulkUploadBatch batch = new BulkUploadBatch();
         batch.setBatchId("BU202510040001");
-        
-        BulkUploadRow row1 = new BulkUploadRow();
-        row1.setRowIndex(1);
-        row1.setBatch(batch);
-        
-        BulkUploadRow row2 = new BulkUploadRow();
-        row2.setRowIndex(2);
-        row2.setBatch(batch);
-        
-        batch.getRows().add(row1);
-        batch.getRows().add(row2);
+        batch.setUploaderUserId(1L);
+        batch.setFileName("test.xlsx");
+        batch.setFileSizeBytes(1024L);
+        batch.setFileChecksum("abc123");
         
         // Then
-        assertThat(batch.getRows()).hasSize(2);
-        assertThat(batch.getRows()).containsExactly(row1, row2);
-        assertThat(row1.getBatch()).isEqualTo(batch);
-        assertThat(row2.getBatch()).isEqualTo(batch);
+        assertThat(batch.getBatchId()).isEqualTo("BU202510040001");
+        assertThat(batch.getUploaderUserId()).isEqualTo(1L);
+        assertThat(batch.getFileName()).isEqualTo("test.xlsx");
     }
 
     @Test

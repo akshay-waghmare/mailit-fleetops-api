@@ -6,8 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Entity representing a bulk upload batch
@@ -81,25 +79,9 @@ public class BulkUploadBatch {
     @Column(name = "metadata", columnDefinition = "jsonb")
     private String metadata = "{}"; // JSONB stored as String, parsed as needed
 
-    // OneToMany relationship with BulkUploadRow
-    @OneToMany(mappedBy = "batch", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<BulkUploadRow> rows = new ArrayList<>();
-
     // Lifecycle callback to update updatedAt
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
-    }
-
-    // Helper method to add a row
-    public void addRow(BulkUploadRow row) {
-        rows.add(row);
-        row.setBatch(this);
-    }
-
-    // Helper method to remove a row
-    public void removeRow(BulkUploadRow row) {
-        rows.remove(row);
-        row.setBatch(null);
     }
 }

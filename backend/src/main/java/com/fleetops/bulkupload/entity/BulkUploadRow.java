@@ -48,10 +48,10 @@ public class BulkUploadRow {
     private Long orderId; // Foreign key to orders(id) - SET NULL on delete
 
     @Column(name = "error_messages", columnDefinition = "jsonb")
-    private String errorMessages; // JSONB array: [{"code": "...", "field": "...", "message": "..."}]
+    private String errorMessages; // JSONB array as JSON string
 
     @Column(name = "raw_data", columnDefinition = "jsonb")
-    private String rawData; // JSONB object: original Excel row data
+    private String rawData; // JSONB object as JSON string
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
