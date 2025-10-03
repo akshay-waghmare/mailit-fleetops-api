@@ -51,6 +51,12 @@ Shared DTO fields and naming conventions remain aligned; mismatches trigger imme
 - Feature branches: `feature/<seq>-<kebab>` (e.g., `feature/007-order-cancellations`).
 - Hotfix: `hotfix/<issue-ref>`; Maintenance: `maintenance/<scope>`.
 
+### Version Control During Spec Phase
+- Work through `/specify` → `/clarify` → `/plan` → `/tasks` **without committing after each step**.
+- Commit the **complete spec suite** (spec.md + plan.md + tasks.md at minimum) together once planning phase is stable.
+- Implementation commits reference the spec directory (e.g., `feat(001): implement batch upload endpoint`).
+- Open PR only when feature is complete, referencing spec path (e.g., `Specs: specs/001-bulk-order-upload`).
+
 ### Required Artifacts Before Implementation
 | Artifact | Mandatory For |
 |----------|---------------|
