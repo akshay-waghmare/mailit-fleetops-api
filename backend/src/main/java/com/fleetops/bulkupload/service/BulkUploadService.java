@@ -1,0 +1,153 @@
+package com.fleetops.bulkupload.service;
+
+import com.fleetops.bulkupload.dto.BulkUploadResponseDto;
+import com.fleetops.bulkupload.dto.CreateOrderDto;
+import com.fleetops.bulkupload.dto.RowOutcomeDto;
+import com.fleetops.bulkupload.dto.ValidationErrorDto;
+import com.fleetops.bulkupload.entity.*;
+import com.fleetops.bulkupload.parser.ExcelParserService;
+import com.fleetops.bulkupload.repository.BulkUploadBatchRepository;
+import com.fleetops.bulkupload.repository.BulkUploadRowRepository;
+import com.fleetops.bulkupload.util.HashUtil;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class BulkUploadService {
+
+    private final ExcelParserService excelParserService;
+    private final IdempotencyService idempotencyService;
+    private final BulkUploadBatchRepository batchRepository;
+    private final BulkUploadRowRepository rowRepository;
+
+    public BulkUploadService(
+            ExcelParserService excelParserService,
+            IdempotencyService idempotencyService,
+            BulkUploadBatchRepository batchRepository,
+            BulkUploadRowRepository rowRepository) {
+        this.excelParserService = excelParserService;
+        this.idempotencyService = idempotencyService;
+        this.batchRepository = batchRepository;
+        this.rowRepository = rowRepository;
+    }
+
+    @Transactional
+    public BulkUploadResponseDto process(MultipartFile file) {
+        long startTime = System.currentTimeMillis();
+        
+        // 1. Parse Excel file
+        List<CreateOrderDto> rows = excelParserService.parseExcel(file);
+        
+        // 2. Create batch record
+        BulkUploadBatch batch = createBatchRecord(file, rows.size(), startTime);
+        batch = batchRepository.save(batch);
+        
+        // 3. Process rows and persist outcomes
+        List<RowOutcomeDto> outcomes = new ArrayList<>();
+        int created = 0;
+        int failed = 0;
+        int skipped = 0;
+        
+        for (int i = 0; i < rows.size(); i++) {
+            CreateOrderDto dto = rows.get(i);
+            IdempotencyService.IdempotencyResult idem = idempotencyService.computeIdempotencyKey(dto);
+            
+            // Check for duplicates
+            Optional<BulkUploadRow> existing = rowRepository.findByIdempotencyKey(idem.getIdempotencyKey());
+            RowStatus status;
+            Long orderId = null;
+            
+            if (existing.isPresent()) {
+                status = RowStatus.SKIPPED_DUPLICATE;
+                orderId = existing.get().getOrderId();
+                skipped++;
+            } else {
+                // In Phase 1: mark as created (actual order creation deferred to Phase 2)
+                status = RowStatus.CREATED;
+                created++;
+                // TODO Phase 2: Actually create order entity here and get real orderId
+            }
+            
+            // Persist row outcome
+            BulkUploadRow rowEntity = new BulkUploadRow();
+            rowEntity.setBatch(batch);
+            rowEntity.setRowIndex(i + 1);
+            rowEntity.setIdempotencyKey(idem.getIdempotencyKey());
+            rowEntity.setIdempotencyBasis(idem.getBasis());
+            rowEntity.setStatus(status);
+            rowEntity.setOrderId(orderId);
+            rowEntity.setErrorMessages("[]"); // No validation errors in minimal impl
+            rowEntity.setRawData("{}"); // TODO: Serialize DTO to JSON if needed
+            rowRepository.save(rowEntity);
+            
+            // Build response DTO
+            RowOutcomeDto outcome = new RowOutcomeDto(
+                    i + 1,
+                    status.name(),
+                    idem.getBasis().name(),
+                    orderId,
+                    Collections.<ValidationErrorDto>emptyList()
+            );
+            outcomes.add(outcome);
+        }
+        
+        // 4. Update batch with final counts and mark completed
+        long duration = System.currentTimeMillis() - startTime;
+        batch.setCreatedCount(created);
+        batch.setFailedCount(failed);
+        batch.setSkippedDuplicateCount(skipped);
+        batch.setStatus(BulkUploadStatus.COMPLETED);
+        batch.setProcessingCompletedAt(LocalDateTime.now());
+        batch.setProcessingDurationMs(duration);
+        batchRepository.save(batch);
+        
+        // 5. Return response
+        return new BulkUploadResponseDto(
+                batch.getBatchId(),
+                rows.size(),
+                created,
+                failed,
+                skipped,
+                duration,
+                outcomes
+        );
+    }
+    
+    private BulkUploadBatch createBatchRecord(MultipartFile file, int totalRows, long startTimeMs) {
+        BulkUploadBatch batch = new BulkUploadBatch();
+        batch.setBatchId(generateBatchId());
+        batch.setUploaderUserId(1L); // Hardcoded for Phase 1 (no auth yet)
+        batch.setUploaderName("system"); // Hardcoded for Phase 1
+        batch.setFileName(file.getOriginalFilename());
+        batch.setFileSizeBytes(file.getSize());
+        
+        try {
+            String checksum = HashUtil.sha256Hex(file.getBytes());
+            batch.setFileChecksum(checksum);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to compute file checksum", e);
+        }
+        
+        batch.setStatus(BulkUploadStatus.PROCESSING);
+        batch.setTotalRows(totalRows);
+        batch.setUploadedAt(LocalDateTime.now());
+        batch.setProcessingStartedAt(LocalDateTime.now());
+        
+        return batch;
+    }
+    
+    private String generateBatchId() {
+        // Format: BU{YYYYMMDD}{HHMM} e.g., BU20251004-1430
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmm"));
+        return "BU" + timestamp;
+    }
+}

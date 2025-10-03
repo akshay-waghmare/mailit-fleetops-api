@@ -14,7 +14,7 @@ Operations teams currently create orders individually, which is slow for batch s
   - A1: Prefer `clientReference` when present; if absent compute deterministic SHA-256 hash over canonical fields `(clientId|senderName|receiverName|receiverPincode|itemCount|totalWeight|serviceType)`. Use that as idempotency key. Re-uploads with identical basis become `SKIPPED_DUPLICATE`.
   - Impact: `clientReference` becomes *recommended* not strictly required; idempotency always available. Spec sections updated: Functional Requirements (Required vs Recommended), Validation Layers (Idempotency), Acceptance Criteria, Glossary.
 - Q2: What retention policy for batch & row records?
-  - A2: Adopt balanced retention: Row details retained 30 days; batch metadata retained 180 days. Both windows configurable via properties (`bulk.upload.retention.rows.days`, `bulk.upload.retention.batches.days`). Scheduled cleanup job runs daily (off-peak) removing expired rows then pruning empty batches. Metrics exclude purged historical data beyond retention.
+  - A2: Adopt unified retention: Row details retained 180 days; batch metadata retained 180 days. Both windows configurable via properties (`bulk.upload.retention.rows.days`, `bulk.upload.retention.batches.days`). Scheduled cleanup job runs daily (off-peak) removing expired rows then pruning empty batches. Metrics exclude purged historical data beyond retention.
   - Impact: Constraints & Assumptions updated (retention + config keys); Acceptance Criteria adds verification of cleanup scheduling; Risks updated (misconfiguration). Open Questions list pruned.
 - Q3: Case sensitivity rule for duplicate in-file detection (receiverName / receiverCity)?
   - A3: Apply case-insensitive comparison for `receiverName` and `receiverCity` only. Normalization: trim whitespace, collapse internal whitespace to single space, lowercase for comparison. Store original values. This limits scope vs full address normalization while preventing obvious duplicates (`"ACME Corp" vs "acme corp"` or `"New York  " vs "new york"`).
@@ -82,7 +82,7 @@ Operations teams currently create orders individually, which is slow for batch s
 - Multi-tenant (clientId) context available from authenticated session or provided explicitly in request.
 - Ordering of rows preserved in result output for user correlation.
 - No partial rollback option; each successful row commits independently.
-- Retention: row-level details (failed, duplicate, optionally success) retained **30 days**; batch metadata **180 days**. Configurable via `bulk.upload.retention.rows.days` & `bulk.upload.retention.batches.days` (integers >0). Daily cleanup job (cron/off-peak) required.
+- Retention: row-level details (failed, duplicate, optionally success) retained **180 days**; batch metadata **180 days**. Configurable via `bulk.upload.retention.rows.days` & `bulk.upload.retention.batches.days` (integers >0). Daily cleanup job (cron/off-peak) required.
 - Normalization scope: Limited to `receiverName` and `receiverCity` (trim, collapse whitespace, lowercase for comparison only). Full postal address normalization out of scope Phase 1.
 - Access control: Feature flag `bulk.upload.enabled` (default `true`). Optional role whitelist `bulk.upload.allowedRoles` (comma-separated; if empty: all authenticated users; if populated: user must have ≥1 listed role). Supported roles: `ROLE_OPERATIONS`, `ROLE_SUPERVISOR`, `ROLE_ADMIN`.
 - Declared value limit: Configurable `bulk.upload.declaredValue.max` (default `100000`). Rows exceeding threshold fail validation.
