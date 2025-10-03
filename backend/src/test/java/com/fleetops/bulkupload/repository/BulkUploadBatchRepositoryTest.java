@@ -5,7 +5,6 @@ import com.fleetops.bulkupload.entity.BulkUploadStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.TestPropertySource;
@@ -24,13 +23,10 @@ import static org.assertj.core.api.Assertions.*;
  * TDD: This test MUST FAIL FIRST (repository doesn't exist yet)
  */
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:postgresql://localhost:5432/fleetops_dev",
-    "spring.datasource.username=fleetops",
-    "spring.datasource.password=fleetops",
-    "spring.jpa.hibernate.ddl-auto=none",
-    "spring.flyway.enabled=false"
+        "spring.flyway.enabled=false",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.jpa.show-sql=true"
 })
 @DisplayName("BulkUploadBatch Repository Tests")
 class BulkUploadBatchRepositoryTest {
