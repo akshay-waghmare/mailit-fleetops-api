@@ -580,15 +580,24 @@ export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Apply multiple filters simultaneously
   private applyMultipleFilters() {
-    this.dataSource.filterPredicate = (data: PickupRecord) => {
-      const statusMatch = !this.selectedStatusFilter || data.status === this.selectedStatusFilter;
-      const typeMatch = !this.selectedTypeFilter || data.pickupType === this.selectedTypeFilter;
-      
+    this.dataSource.filterPredicate = (data: PickupRecord, filter: string) => {
+      // Parse filter string as JSON
+      let filterObj: { status: string; type: string };
+      try {
+        filterObj = JSON.parse(filter);
+      } catch {
+        filterObj = { status: '', type: '' };
+      }
+      const statusMatch = !filterObj.status || data.status === filterObj.status;
+      const typeMatch = !filterObj.type || data.pickupType === filterObj.type;
       return statusMatch && typeMatch;
     };
     
-    // Trigger filtering
-    this.dataSource.filter = Math.random().toString(); // Force update
+    // Set filter to a string representing the current filter state
+    this.dataSource.filter = JSON.stringify({
+      status: this.selectedStatusFilter,
+      type: this.selectedTypeFilter
+    });
     
     if (this.dataSource.paginator) {
       this.dataSource.paginator.firstPage();

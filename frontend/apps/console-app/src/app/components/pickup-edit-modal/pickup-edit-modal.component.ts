@@ -10,6 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { PickupService } from '../../../../../../libs/shared/pickup.service';
 import { PickupRecord } from '../../../../../../libs/shared/pickup.interface';
 
@@ -27,7 +28,8 @@ import { PickupRecord } from '../../../../../../libs/shared/pickup.interface';
     MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatChipsModule
+    MatChipsModule,
+    MatSnackBarModule
   ],
   template: `
     <div class="pickup-edit-modal">
@@ -252,6 +254,25 @@ import { PickupRecord } from '../../../../../../libs/shared/pickup.interface';
       width: 18px;
       height: 18px;
     }
+
+    /* Snackbar styles */
+    ::ng-deep .success-snackbar {
+      background-color: #10b981 !important;
+      color: white !important;
+    }
+
+    ::ng-deep .success-snackbar .mat-mdc-button {
+      color: white !important;
+    }
+
+    ::ng-deep .error-snackbar {
+      background-color: #ef4444 !important;
+      color: white !important;
+    }
+
+    ::ng-deep .error-snackbar .mat-mdc-button {
+      color: white !important;
+    }
   `]
 })
 export class PickupEditModalComponent implements OnInit {
@@ -263,7 +284,8 @@ export class PickupEditModalComponent implements OnInit {
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<PickupEditModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { pickup: PickupRecord },
-    private pickupService: PickupService
+    private pickupService: PickupService,
+    private snackBar: MatSnackBar
   ) {
     // Extract pickup from data object
     this.pickup = data.pickup;
@@ -305,7 +327,7 @@ export class PickupEditModalComponent implements OnInit {
         if (typeof timeValue === 'string' && !timeValue.includes(':')) {
           // Handle cases like "1400" -> "14:00"
           if (timeValue.length === 4) {
-            timeValue = timeValue.substr(0, 2) + ':' + timeValue.substr(2, 2);
+            timeValue = timeValue.slice(0, 2) + ':' + timeValue.slice(2, 4);
           }
         }
         this.editForm.patchValue({
@@ -352,6 +374,19 @@ export class PickupEditModalComponent implements OnInit {
         next: (updatedPickup) => {
           this.isSaving = false;
           console.log('Pickup updated successfully:', updatedPickup);
+          
+          // Show success notification
+          this.snackBar.open(
+            'Pickup updated successfully!',
+            'Close',
+            {
+              duration: 3000,
+              horizontalPosition: 'end',
+              verticalPosition: 'top',
+              panelClass: ['success-snackbar']
+            }
+          );
+          
           // Close dialog and return the updated pickup data
           this.dialogRef.close({
             action: 'updated',
@@ -361,8 +396,18 @@ export class PickupEditModalComponent implements OnInit {
         error: (error) => {
           this.isSaving = false;
           console.error('Error updating pickup:', error);
-          // You might want to show a snackbar or error message here
-          alert('Error updating pickup. Please try again.');
+          
+          // Show Material Design snackbar for error notification
+          this.snackBar.open(
+            'Error updating pickup. Please try again.',
+            'Close',
+            {
+              duration: 5000,
+              horizontalPosition: 'end',
+              verticalPosition: 'top',
+              panelClass: ['error-snackbar']
+            }
+          );
         }
       });
     } else {
