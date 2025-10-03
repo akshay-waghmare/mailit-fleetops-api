@@ -86,4 +86,4 @@ Shared DTO fields and naming conventions remain aligned; mismatches trigger imme
 4. Any waiver (e.g., skipping `/clarify`) recorded in `plan.md` Progress/Complexity section with justification.
 5. Automated CI enforcement (future) will parse tasks ensuring test-before-implementation ordering.
 
-**Version**: 0.1.0 | **Ratified**: 2025-10-03 | **Last Amended**: 2025-10-03
+**Version**: 0.1.1 | **Ratified**: 2025-10-03 | **Last Amended**: 2025-10-03
