@@ -5,10 +5,15 @@ import com.fleetops.bulkupload.dto.CreateOrderDto;
 import com.fleetops.bulkupload.dto.RowOutcomeDto;
 import com.fleetops.bulkupload.dto.ValidationErrorDto;
 import com.fleetops.bulkupload.entity.*;
+import com.fleetops.bulkupload.mapper.BulkOrderMapper;
 import com.fleetops.bulkupload.parser.ExcelParserService;
 import com.fleetops.bulkupload.repository.BulkUploadBatchRepository;
 import com.fleetops.bulkupload.repository.BulkUploadRowRepository;
 import com.fleetops.bulkupload.util.HashUtil;
+import com.fleetops.order.dto.OrderDto;
+import com.fleetops.order.service.OrderService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,21 +28,29 @@ import java.util.Optional;
 
 @Service
 public class BulkUploadService {
+    
+    private static final Logger logger = LoggerFactory.getLogger(BulkUploadService.class);
 
     private final ExcelParserService excelParserService;
     private final IdempotencyService idempotencyService;
     private final BulkUploadBatchRepository batchRepository;
     private final BulkUploadRowRepository rowRepository;
+    private final OrderService orderService;
+    private final BulkOrderMapper bulkOrderMapper;
 
     public BulkUploadService(
             ExcelParserService excelParserService,
             IdempotencyService idempotencyService,
             BulkUploadBatchRepository batchRepository,
-            BulkUploadRowRepository rowRepository) {
+            BulkUploadRowRepository rowRepository,
+            OrderService orderService,
+            BulkOrderMapper bulkOrderMapper) {
         this.excelParserService = excelParserService;
         this.idempotencyService = idempotencyService;
         this.batchRepository = batchRepository;
         this.rowRepository = rowRepository;
+        this.orderService = orderService;
+        this.bulkOrderMapper = bulkOrderMapper;
     }
 
     @Transactional
@@ -70,11 +83,23 @@ public class BulkUploadService {
                 status = RowStatus.SKIPPED_DUPLICATE;
                 orderId = existing.get().getOrderId();
                 skipped++;
+                logger.debug("Row {} skipped - duplicate idempotency key: {}", i + 1, idem.getIdempotencyKey());
             } else {
-                // In Phase 1: mark as created (actual order creation deferred to Phase 2)
-                status = RowStatus.CREATED;
-                created++;
-                // TODO Phase 2: Actually create order entity here and get real orderId
+                // Actually create order via OrderService
+                try {
+                    com.fleetops.order.dto.CreateOrderDto orderDto = bulkOrderMapper.toOrderCreateDto(dto);
+                    com.fleetops.order.dto.OrderDto createdOrder = orderService.createOrder(orderDto);
+                    
+                    status = RowStatus.CREATED;
+                    orderId = createdOrder.getId();
+                    created++;
+                    logger.info("Row {} created order successfully - orderId: {}", i + 1, orderId);
+                } catch (Exception e) {
+                    // If order creation fails, mark row as failed
+                    status = RowStatus.FAILED_VALIDATION;
+                    failed++;
+                    logger.error("Row {} failed to create order: {}", i + 1, e.getMessage(), e);
+                }
             }
             
             // Persist row outcome
