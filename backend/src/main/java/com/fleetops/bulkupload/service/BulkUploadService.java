@@ -214,16 +214,16 @@ public class BulkUploadService {
             headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
             headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
             
-            // Create header row
+            // Create header row (exact column names that ExcelParserService expects)
             Row headerRow = sheet.createRow(0);
             String[] headers = {
-                "Client ID", "Client Name", "Sender Name", "Sender Address",
-                "Sender Contact", "Sender Email", "Receiver Name", "Receiver Address",
-                "Receiver Contact", "Receiver Pincode", "Receiver City",
-                "Receiver State", "Receiver Country", "Item Count", "Total Weight (kg)",
-                "Length (cm)", "Width (cm)", "Height (cm)", "Item Description",
-                "Declared Value", "Service Type", "Carrier Name", "Carrier ID",
-                "COD Amount", "Special Instructions", "Client Reference", "Scheduled Pickup Date"
+                "clientReference", "clientId", "clientName", "clientCompany",
+                "contactNumber", "senderName", "senderAddress", "senderContact",
+                "senderEmail", "receiverName", "receiverAddress", "receiverContact",
+                "receiverEmail", "receiverPincode", "receiverCity", "receiverState",
+                "itemCount", "totalWeight", "lengthCm", "widthCm",
+                "heightCm", "itemDescription", "declaredValue", "serviceType",
+                "carrierName", "carrierId", "codAmount", "specialInstructions"
             };
             
             for (int i = 0; i < headers.length; i++) {
@@ -236,13 +236,13 @@ public class BulkUploadService {
             // Create example row
             Row exampleRow = sheet.createRow(1);
             String[] exampleData = {
-                "1001", "ACME Corp", "John Sender", "123 Main St, Mumbai",
-                "9876543210", "john@example.com", "Jane Receiver", "456 Park Ave, Delhi",
-                "9876543211", "110001", "Delhi",
-                "Delhi", "India", "2", "5.5",
-                "30", "20", "10", "Electronics - Laptop",
-                "50000", "express", "BlueDart", "BD001",
-                "0", "Handle with care", "REF-12345", "2025-10-05"
+                "REF-12345", "1001", "ACME Corp", "ACME Corporation Ltd",
+                "9876543210", "John Sender", "123 Main St, Mumbai", "9876543210",
+                "john@example.com", "Jane Receiver", "456 Park Ave, Delhi", "9876543211",
+                "jane@example.com", "110001", "Delhi", "Delhi",
+                "2", "5.5", "30", "20",
+                "10", "Electronics - Laptop", "50000", "express",
+                "BlueDart", "BD001", "0", "Handle with care"
             };
             
             for (int i = 0; i < exampleData.length; i++) {
@@ -251,20 +251,29 @@ public class BulkUploadService {
             
             // Create notes sheet
             Sheet notesSheet = workbook.createSheet("Instructions");
-            Row notesRow1 = notesSheet.createRow(0);
-            notesRow1.createCell(0).setCellValue("Instructions:");
+            Row notesRow0 = notesSheet.createRow(0);
+            notesRow0.createCell(0).setCellValue("BULK ORDER UPLOAD - INSTRUCTIONS");
             
-            Row notesRow2 = notesSheet.createRow(1);
-            notesRow2.createCell(0).setCellValue("1. Fill all required fields (marked with * in documentation)");
+            Row notesRow1 = notesSheet.createRow(2);
+            notesRow1.createCell(0).setCellValue("Required Fields (minimum):");
             
-            Row notesRow3 = notesSheet.createRow(2);
-            notesRow3.createCell(0).setCellValue("2. Service Type must be: express, standard, or economy");
+            Row notesRow2 = notesSheet.createRow(3);
+            notesRow2.createCell(0).setCellValue("  • senderName, receiverName");
             
-            Row notesRow4 = notesSheet.createRow(3);
-            notesRow4.createCell(0).setCellValue("3. Pincode must be 6 digits");
+            Row notesRow3 = notesSheet.createRow(5);
+            notesRow3.createCell(0).setCellValue("Validation Rules:");
             
-            Row notesRow5 = notesSheet.createRow(4);
-            notesRow5.createCell(0).setCellValue("4. Date format: YYYY-MM-DD");
+            Row notesRow4 = notesSheet.createRow(6);
+            notesRow4.createCell(0).setCellValue("  • serviceType must be: express, standard, or economy");
+            
+            Row notesRow5 = notesSheet.createRow(7);
+            notesRow5.createCell(0).setCellValue("  • receiverPincode should be 6 digits");
+            
+            Row notesRow6 = notesSheet.createRow(8);
+            notesRow6.createCell(0).setCellValue("  • totalWeight must be greater than 0");
+            
+            Row notesRow7 = notesSheet.createRow(10);
+            notesRow7.createCell(0).setCellValue("Note: Column names are case-sensitive. Do not modify header row.");
             
             notesSheet.setColumnWidth(0, 15000);
             

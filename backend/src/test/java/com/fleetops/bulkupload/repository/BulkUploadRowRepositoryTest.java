@@ -11,6 +11,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -202,8 +203,8 @@ class BulkUploadRowRepositoryTest {
         row.setIdempotencyBasis(IdempotencyBasis.CLIENT_REFERENCE);
         row.setStatus(RowStatus.FAILED_VALIDATION);
         row.setOrderId(null); // No order created
-        row.setErrorMessages("[{\"code\":\"MISSING_PINCODE\",\"field\":\"receiverPincode\",\"message\":\"Required field\"}]");
-        row.setRawData("{\"senderName\":\"John\",\"receiverName\":\"Jane\"}");
+        row.setErrorMessages(List.of("MISSING_PINCODE: Required field receiverPincode"));
+        row.setRawData(Map.of("senderName", "John", "receiverName", "Jane"));
 
         // When
         BulkUploadRow saved = repository.save(row);
@@ -213,7 +214,7 @@ class BulkUploadRowRepositoryTest {
         // Then
         BulkUploadRow found = repository.findById(saved.getId()).orElseThrow();
         assertThat(found.getErrorMessages()).contains("MISSING_PINCODE");
-        assertThat(found.getRawData()).contains("John");
+        assertThat(found.getRawData()).containsEntry("senderName", "John");
         assertThat(found.getStatus()).isEqualTo(RowStatus.FAILED_VALIDATION);
     }
 
