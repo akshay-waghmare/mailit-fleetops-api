@@ -1,0 +1,521 @@
+openapi: 3.0.3
+info:
+  title: Bulk Order Upload API
+  description: |
+    API for uploading Excel files containing multiple orders for bulk creation.
+    Supports synchronous processing with per-row validation feedback, idempotency,
+    and retention-based cleanup.
+  version: 1.0.0
+  contact:
+    name: FleetOps API Team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.fleetops.example.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Bulk Upload
+    description: Bulk order upload operations
+
+paths:
+  /api/v1/bulk-upload:
+    post:
+      summary: Upload Excel file for bulk order creation
+      description: |
+        Accepts a .xlsx Excel file containing order data (10-500 rows).
+        Validates each row and creates orders synchronously. Returns summary
+        with per-row outcomes (created/failed/duplicate).
+        
+        **Idempotency**: Rows are deduplicated using clientReference (if present)
+        or SHA-256 hash over canonical fields. Re-uploading same data will skip
+        duplicates.
+        
+        **Performance**: Target ≤15s p95 for 500 rows.
+      operationId: uploadOrders
+      tags:
+        - Bulk Upload
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Excel file (.xlsx) with order data
+            encoding:
+              file:
+                contentType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        '200':
+          description: Upload processed successfully (may contain row-level failures)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkUploadResponse'
+              examples:
+                allSuccess:
+                  summary: All rows created successfully
+                  value:
+                    batchId: BU202510040001
+                    totalRows: 50
+                    createdCount: 50
+                    failedCount: 0
+                    skippedDuplicateCount: 0
+                    processingDurationMs: 4235
+                    rows:
+                      - rowIndex: 1
+                        status: CREATED
+                        idempotencyBasis: CLIENT_REFERENCE
+                        orderId: ORD000567
+                        errorMessages: []
+                      - rowIndex: 2
+                        status: CREATED
+                        idempotencyBasis: HASH
+                        orderId: ORD000568
+                        errorMessages: []
+                mixedResults:
+                  summary: Mixed valid/invalid rows
+                  value:
+                    batchId: BU202510040002
+                    totalRows: 50
+                    createdCount: 45
+                    failedCount: 3
+                    skippedDuplicateCount: 2
+                    processingDurationMs: 4890
+                    rows:
+                      - rowIndex: 5
+                        status: FAILED_VALIDATION
+                        idempotencyBasis: null
+                        orderId: null
+                        errorMessages:
+                          - code: MISSING_RECEIVER_PINCODE
+                            field: receiverPincode
+                            message: Receiver pincode is required
+                      - rowIndex: 12
+                        status: SKIPPED_DUPLICATE
+                        idempotencyBasis: HASH
+                        orderId: null
+                        errorMessages: []
+                      - rowIndex: 20
+                        status: FAILED_VALIDATION
+                        idempotencyBasis: null
+                        orderId: null
+                        errorMessages:
+                          - code: DECLARED_VALUE_EXCEEDS_LIMIT
+                            field: declaredValue
+                            message: Declared value 150000 exceeds maximum allowed 100000
+        '400':
+          description: Bad request (file validation errors, missing headers, too many rows)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingHeaders:
+                  summary: Required headers missing
+                  value:
+                    timestamp: '2025-10-04T10:15:30Z'
+                    status: 400
+                    error: Bad Request
+                    message: 'Missing required headers: receiverPincode, serviceType'
+                    path: /api/v1/bulk-upload
+                tooManyRows:
+                  summary: Row limit exceeded
+                  value:
+                    timestamp: '2025-10-04T10:15:30Z'
+                    status: 400
+                    error: Bad Request
+                    message: 'File contains 650 rows; maximum allowed is 500'
+                    path: /api/v1/bulk-upload
+                fileTooLarge:
+                  summary: File size limit exceeded
+                  value:
+                    timestamp: '2025-10-04T10:15:30Z'
+                    status: 400
+                    error: Bad Request
+                    message: 'File size 3.2 MB exceeds maximum allowed 2 MB'
+                    path: /api/v1/bulk-upload
+        '403':
+          description: Forbidden (feature disabled or insufficient role)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                featureDisabled:
+                  summary: Feature flag disabled
+                  value:
+                    timestamp: '2025-10-04T10:15:30Z'
+                    status: 403
+                    error: Forbidden
+                    message: 'Bulk upload feature is currently disabled'
+                    path: /api/v1/bulk-upload
+                insufficientRole:
+                  summary: User lacks required role
+                  value:
+                    timestamp: '2025-10-04T10:15:30Z'
+                    status: 403
+                    error: Forbidden
+                    message: 'User does not have required role: ROLE_OPERATIONS'
+                    path: /api/v1/bulk-upload
+        '413':
+          description: Payload too large (file size exceeds server limit)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '415':
+          description: Unsupported media type (not a .xlsx file)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error (unexpected processing failure)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/bulk-upload/template:
+    get:
+      summary: Download Excel template
+      description: |
+        Returns a pre-formatted Excel (.xlsx) file with:
+        - Headers row (all required column names)
+        - Example data row (sample order)
+        - Notes sheet (idempotency guidance, field descriptions)
+      operationId: downloadTemplate
+      tags:
+        - Bulk Upload
+      responses:
+        '200':
+          description: Template file
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: Attachment filename
+              schema:
+                type: string
+                example: attachment; filename="bulk_upload_template.xlsx"
+        '500':
+          description: Template generation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/bulk-upload/batches:
+    get:
+      summary: List bulk upload batches
+      description: |
+        Retrieves paginated list of bulk upload batches with summary statistics.
+        Supports filtering by uploaderUserId.
+      operationId: listBatches
+      tags:
+        - Bulk Upload
+      parameters:
+        - name: page
+          in: query
+          description: Page number (0-based)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: uploaderUserId
+          in: query
+          description: Filter by uploader user ID
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: sort
+          in: query
+          description: Sort criteria (e.g., "uploadedAt,desc")
+          required: false
+          schema:
+            type: string
+            default: uploadedAt,desc
+      responses:
+        '200':
+          description: Paginated batch list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchPage'
+              example:
+                content:
+                  - batchId: BU202510040001
+                    uploaderUserId: 123
+                    originalFilename: orders_oct.xlsx
+                    uploadedAt: '2025-10-04T10:15:30Z'
+                    totalRows: 50
+                    createdCount: 45
+                    failedCount: 3
+                    skippedDuplicateCount: 2
+                    processingDurationMs: 4235
+                    status: COMPLETED
+                  - batchId: BU202510030005
+                    uploaderUserId: 123
+                    originalFilename: campaign_orders.xlsx
+                    uploadedAt: '2025-10-03T14:22:10Z'
+                    totalRows: 200
+                    createdCount: 200
+                    failedCount: 0
+                    skippedDuplicateCount: 0
+                    processingDurationMs: 12890
+                    status: COMPLETED
+                page:
+                  number: 0
+                  size: 20
+                  totalElements: 5
+                  totalPages: 1
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    BulkUploadResponse:
+      type: object
+      required:
+        - batchId
+        - totalRows
+        - createdCount
+        - failedCount
+        - skippedDuplicateCount
+        - processingDurationMs
+        - rows
+      properties:
+        batchId:
+          type: string
+          description: Business ID of the upload batch (format BU{YYYYMMDD}{seq})
+          example: BU202510040001
+        totalRows:
+          type: integer
+          description: Total data rows in uploaded file
+          example: 50
+        createdCount:
+          type: integer
+          description: Number of successfully created orders
+          example: 45
+        failedCount:
+          type: integer
+          description: Number of rows that failed validation
+          example: 3
+        skippedDuplicateCount:
+          type: integer
+          description: Number of duplicate rows skipped
+          example: 2
+        processingDurationMs:
+          type: integer
+          format: int64
+          description: Processing time in milliseconds
+          example: 4235
+        rows:
+          type: array
+          description: Per-row outcomes
+          items:
+            $ref: '#/components/schemas/RowOutcome'
+
+    RowOutcome:
+      type: object
+      required:
+        - rowIndex
+        - status
+        - errorMessages
+      properties:
+        rowIndex:
+          type: integer
+          description: Excel row number (1-based, excluding header)
+          example: 5
+        status:
+          type: string
+          enum:
+            - CREATED
+            - FAILED_VALIDATION
+            - SKIPPED_DUPLICATE
+          description: Processing outcome for this row
+        idempotencyBasis:
+          type: string
+          enum:
+            - CLIENT_REFERENCE
+            - HASH
+          nullable: true
+          description: Which idempotency mechanism was used (null if failed validation before idempotency check)
+        orderId:
+          type: string
+          nullable: true
+          description: Created order ID (null if row failed or skipped)
+          example: ORD000567
+        errorMessages:
+          type: array
+          description: Validation errors (empty if status=CREATED or SKIPPED_DUPLICATE)
+          items:
+            $ref: '#/components/schemas/ValidationError'
+
+    ValidationError:
+      type: object
+      required:
+        - code
+        - field
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code for programmatic handling
+          example: MISSING_RECEIVER_PINCODE
+        field:
+          type: string
+          description: Field name that failed validation
+          example: receiverPincode
+        message:
+          type: string
+          description: Human-readable error message
+          example: Receiver pincode is required
+
+    BatchSummary:
+      type: object
+      required:
+        - batchId
+        - uploaderUserId
+        - originalFilename
+        - uploadedAt
+        - totalRows
+        - createdCount
+        - failedCount
+        - skippedDuplicateCount
+        - processingDurationMs
+        - status
+      properties:
+        batchId:
+          type: string
+          example: BU202510040001
+        uploaderUserId:
+          type: integer
+          format: int64
+          example: 123
+        originalFilename:
+          type: string
+          example: orders_oct.xlsx
+        uploadedAt:
+          type: string
+          format: date-time
+          example: '2025-10-04T10:15:30Z'
+        totalRows:
+          type: integer
+          example: 50
+        createdCount:
+          type: integer
+          example: 45
+        failedCount:
+          type: integer
+          example: 3
+        skippedDuplicateCount:
+          type: integer
+          example: 2
+        processingDurationMs:
+          type: integer
+          format: int64
+          example: 4235
+        status:
+          type: string
+          enum:
+            - PROCESSING
+            - COMPLETED
+            - FAILED
+          example: COMPLETED
+
+    BatchPage:
+      type: object
+      required:
+        - content
+        - page
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchSummary'
+        page:
+          type: object
+          required:
+            - number
+            - size
+            - totalElements
+            - totalPages
+          properties:
+            number:
+              type: integer
+              description: Current page number (0-based)
+              example: 0
+            size:
+              type: integer
+              description: Page size
+              example: 20
+            totalElements:
+              type: integer
+              description: Total number of batches across all pages
+              example: 5
+            totalPages:
+              type: integer
+              description: Total number of pages
+              example: 1
+
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Error occurrence timestamp
+        status:
+          type: integer
+          description: HTTP status code
+        error:
+          type: string
+          description: HTTP status text
+        message:
+          type: string
+          description: Error message
+        path:
+          type: string
+          description: Request path that caused the error

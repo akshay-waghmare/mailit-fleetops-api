@@ -1,0 +1,5 @@
+# Test Data Directory
+
+This directory contains generated test Excel files for bulk order upload testing.
+
+Files here are ignored by git (see .gitignore).

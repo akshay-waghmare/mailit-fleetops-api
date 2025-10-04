@@ -1,0 +1,13 @@
+{
+  "name": "bulk-upload-test-utils",
+  "version": "1.0.0",
+  "description": "Testing utilities for bulk order upload",
+  "scripts": {
+    "generate-test-excel": "node scripts/generate-test-excel.js",
+    "test-upload": "node scripts/test-upload.js"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "axios": "^1.6.0"
+  }
+}
