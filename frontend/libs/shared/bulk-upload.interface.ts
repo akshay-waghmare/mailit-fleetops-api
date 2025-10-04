@@ -37,8 +37,16 @@ export interface BatchSummaryDto {
   skippedDuplicateCount: number;
   uploadedAt: string;
   uploaderUserId?: number;
+  uploaderName?: string;
   fileName?: string;
   fileSizeBytes?: number;
+  fileChecksum?: string;
+  processingStartedAt?: string;
+  processingCompletedAt?: string;
+  processingDurationMs?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  metadata?: any;
 }
 
 export interface BulkUploadProgress {
