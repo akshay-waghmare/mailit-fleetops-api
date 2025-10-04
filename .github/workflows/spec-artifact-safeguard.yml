@@ -18,8 +18,16 @@ jobs:
         id: diff
         run: |
           set -e
-          git fetch origin ${{ github.base_ref }} --depth=1 || true
-          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          git fetch origin ${{ github.base_ref }} --depth=50 || true
+          
+          # Try three-dot diff first (merge base), fallback to two-dot (direct comparison)
+          if git merge-base origin/${{ github.base_ref }} HEAD >/dev/null 2>&1; then
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          else
+            echo "::warning::No merge base found, using direct diff comparison"
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}..HEAD || git diff --name-only origin/${{ github.base_ref }} HEAD)
+          fi
+          
           echo "changed_files<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGED" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
