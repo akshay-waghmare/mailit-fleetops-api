@@ -41,6 +41,17 @@ Shared DTO fields and naming conventions remain aligned; mismatches trigger imme
 - Use semantic naming: `*_at` timestamps (UTC), `*_id` foreign references, `*_status` enumerations.
 - Enumerations documented in `data-model.md` and mirrored in TypeScript union types when consumed by frontend.
 
+### Reusable Patterns & Frameworks
+- **Bulk Upload Framework**: When implementing bulk operations for new entity types (Pickups, Customers, Shipments, etc.), follow the established pattern documented in `docs/implementation/BULK-UPLOAD-FRAMEWORK-GUIDE.md`:
+  - Use dual idempotency strategy (CLIENT_REFERENCE + HASH fallback)
+  - Implement Batch + Row persistence pattern for audit trail
+  - Follow phase-based approach (Phase 1: upload + persistence, Phase 2: entity creation + validation)
+  - Reuse generic components: ExcelParser, IdempotencyService, ValidationPipeline
+  - Generate Excel templates with examples and validation notes
+  - Include retention policy with automated cleanup jobs
+  - Reference implementation checklist: `docs/implementation/BULK-UPLOAD-IMPLEMENTATION-CHECKLIST.md`
+- New patterns emerging from >2 similar implementations should be documented in `docs/implementation/` and referenced here.
+
 ### Security & Input Validation
 - Validate external inputs at API boundary (length, format, enum domain). Re-validate critical invariants in service layer.
 - No sensitive logs; redact PII except where operationally essential (IDs, coarse location, statuses).
@@ -92,4 +103,27 @@ Shared DTO fields and naming conventions remain aligned; mismatches trigger imme
 4. Any waiver (e.g., skipping `/clarify`) recorded in `plan.md` Progress/Complexity section with justification.
 5. Automated CI enforcement (future) will parse tasks ensuring test-before-implementation ordering.
 
-**Version**: 0.1.1 | **Ratified**: 2025-10-03 | **Last Amended**: 2025-10-03
+**Version**: 0.1.2 | **Ratified**: 2025-10-03 | **Last Amended**: 2025-10-04
+
+---
+
+## Amendments Log
+
+### v0.1.2 (2025-10-04)
+**Type**: MINOR - New reusable pattern guidance added
+
+**Changes**:
+- Added "Reusable Patterns & Frameworks" section under "Additional Constraints & Standards"
+- Established Bulk Upload Framework as the first documented reusable pattern
+- Referenced implementation guides: `BULK-UPLOAD-FRAMEWORK-GUIDE.md` and `BULK-UPLOAD-IMPLEMENTATION-CHECKLIST.md`
+
+**Rationale**: Order bulk upload (feature/001-bulk-order-upload) established patterns applicable to future entity types (Pickups, Customers, Shipments). Documenting this in the constitution ensures consistency when similar features are specified.
+
+**Impact**: Future bulk upload specifications should reference and follow the documented framework patterns.
+
+---
+
+### v0.1.1 (2025-10-03)
+**Type**: Initial ratification
+
+**Changes**: Original constitution established with core principles and development workflow.
