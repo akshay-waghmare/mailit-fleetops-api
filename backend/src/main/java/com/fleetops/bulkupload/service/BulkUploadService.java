@@ -12,12 +12,17 @@ import com.fleetops.bulkupload.repository.BulkUploadRowRepository;
 import com.fleetops.bulkupload.util.HashUtil;
 import com.fleetops.order.dto.OrderDto;
 import com.fleetops.order.service.OrderService;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -190,5 +195,92 @@ public class BulkUploadService {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         int randomSuffix = (int) (Math.random() * 100); // 00-99
         return String.format("BU%s%02d", timestamp, randomSuffix);
+    }
+
+    /**
+     * Generates an Excel template with headers and example row.
+     */
+    public byte[] generateTemplate() {
+        try (Workbook workbook = new XSSFWorkbook(); 
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            
+            Sheet sheet = workbook.createSheet("Orders");
+            
+            // Create header style
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            
+            // Create header row
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {
+                "Client ID", "Client Name", "Sender Name", "Sender Address",
+                "Sender Contact", "Sender Email", "Receiver Name", "Receiver Address",
+                "Receiver Contact", "Receiver Pincode", "Receiver City",
+                "Receiver State", "Receiver Country", "Item Count", "Total Weight (kg)",
+                "Length (cm)", "Width (cm)", "Height (cm)", "Item Description",
+                "Declared Value", "Service Type", "Carrier Name", "Carrier ID",
+                "COD Amount", "Special Instructions", "Client Reference", "Scheduled Pickup Date"
+            };
+            
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+                sheet.setColumnWidth(i, 4000);
+            }
+            
+            // Create example row
+            Row exampleRow = sheet.createRow(1);
+            String[] exampleData = {
+                "1001", "ACME Corp", "John Sender", "123 Main St, Mumbai",
+                "9876543210", "john@example.com", "Jane Receiver", "456 Park Ave, Delhi",
+                "9876543211", "110001", "Delhi",
+                "Delhi", "India", "2", "5.5",
+                "30", "20", "10", "Electronics - Laptop",
+                "50000", "express", "BlueDart", "BD001",
+                "0", "Handle with care", "REF-12345", "2025-10-05"
+            };
+            
+            for (int i = 0; i < exampleData.length; i++) {
+                exampleRow.createCell(i).setCellValue(exampleData[i]);
+            }
+            
+            // Create notes sheet
+            Sheet notesSheet = workbook.createSheet("Instructions");
+            Row notesRow1 = notesSheet.createRow(0);
+            notesRow1.createCell(0).setCellValue("Instructions:");
+            
+            Row notesRow2 = notesSheet.createRow(1);
+            notesRow2.createCell(0).setCellValue("1. Fill all required fields (marked with * in documentation)");
+            
+            Row notesRow3 = notesSheet.createRow(2);
+            notesRow3.createCell(0).setCellValue("2. Service Type must be: express, standard, or economy");
+            
+            Row notesRow4 = notesSheet.createRow(3);
+            notesRow4.createCell(0).setCellValue("3. Pincode must be 6 digits");
+            
+            Row notesRow5 = notesSheet.createRow(4);
+            notesRow5.createCell(0).setCellValue("4. Date format: YYYY-MM-DD");
+            
+            notesSheet.setColumnWidth(0, 15000);
+            
+            workbook.write(out);
+            return out.toByteArray();
+            
+        } catch (IOException e) {
+            logger.error("Failed to generate Excel template", e);
+            throw new RuntimeException("Failed to generate template", e);
+        }
+    }
+
+    /**
+     * Lists bulk upload batches with pagination.
+     */
+    public Page<BulkUploadBatch> listBatches(Pageable pageable) {
+        return batchRepository.findAll(pageable);
     }
 }
