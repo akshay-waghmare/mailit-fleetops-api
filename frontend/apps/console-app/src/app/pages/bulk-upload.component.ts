@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -383,7 +383,8 @@ export class BulkUploadComponent implements OnInit {
   constructor(
     private bulkUploadService: BulkUploadService,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -443,22 +444,26 @@ export class BulkUploadComponent implements OnInit {
 
     this.isUploading = true;
     this.uploadProgress = 0;
+    this.cdr.detectChanges(); // Force change detection
 
     this.bulkUploadService.uploadWithProgress(this.selectedFile).subscribe({
       next: (event) => {
         if ('percentage' in event) {
           // Progress event
           this.uploadProgress = event.percentage;
+          this.cdr.detectChanges();
         } else {
           // Response event
           this.uploadResponse = event as BulkUploadResponseDto;
           this.isUploading = false;
+          this.cdr.detectChanges();
           this.showSuccessMessage();
         }
       },
       error: (error) => {
         this.isUploading = false;
         this.uploadProgress = 0;
+        this.cdr.detectChanges();
         this.handleError(error);
       }
     });
