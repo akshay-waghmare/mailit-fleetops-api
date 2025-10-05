@@ -37,8 +37,8 @@ dependencies {
     // H2 for development and testing
     runtimeOnly 'com.h2database:h2'
     
-    // Spatial data support
-    implementation 'org.hibernate:hibernate-spatial:6.4.4.Final'
+    // Spatial data support (let Spring Boot manage the version)
+    implementation 'org.hibernate.orm:hibernate-spatial'
     implementation 'org.locationtech.jts:jts-core:1.19.0'
     
     // JWT and Security
