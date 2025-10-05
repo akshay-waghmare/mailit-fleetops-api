@@ -222,6 +222,7 @@ public class PlaceServiceImpl implements PlaceService {
         place.setContactPerson(request.getContactPerson());
         place.setType(request.getType());
         place.setOrganizationId(request.getOrganizationId());
+        place.setActive(request.getActive());
     }
     
     private PlaceResponse mapEntityToResponse(Place place) {
@@ -242,6 +243,7 @@ public class PlaceServiceImpl implements PlaceService {
         response.setContactPerson(place.getContactPerson());
         response.setType(place.getType());
         response.setOrganizationId(place.getOrganizationId());
+        response.setActive(place.getActive());
         response.setCreatedAt(place.getCreatedAt());
         response.setUpdatedAt(place.getUpdatedAt());
         

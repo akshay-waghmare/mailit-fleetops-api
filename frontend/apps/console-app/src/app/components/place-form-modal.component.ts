@@ -1,12 +1,13 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
 
 // Angular Material imports
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -14,7 +15,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-import { PlaceRecord, PlaceFormData, PlaceService } from '../../../../../libs/shared';
+import { PlaceRecord, PlaceFormData, PlaceService, CountriesService, Country } from '../../../../../libs/shared';
 
 @Component({
   selector: 'app-place-form-modal',
@@ -26,6 +27,7 @@ import { PlaceRecord, PlaceFormData, PlaceService } from '../../../../../libs/sh
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatButtonModule,
     MatIconModule,
     MatSlideToggleModule,
@@ -202,20 +204,36 @@ import { PlaceRecord, PlaceFormData, PlaceService } from '../../../../../libs/sh
 
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Country *</mat-label>
-                  <mat-select formControlName="country" placeholder="Select Country">
-                    <mat-option value="">Select a country</mat-option>
-                    <mat-option value="US">🇺🇸 United States</mat-option>
-                    <mat-option value="CA">🇨🇦 Canada</mat-option>
-                    <mat-option value="GB">🇬🇧 United Kingdom</mat-option>
-                    <mat-option value="AU">🇦🇺 Australia</mat-option>
-                    <mat-option value="IN">🇮🇳 India</mat-option>
-                    <mat-option value="DE">🇩🇪 Germany</mat-option>
-                    <mat-option value="FR">🇫🇷 France</mat-option>
-                    <mat-option value="JP">🇯🇵 Japan</mat-option>
-                    <mat-option value="BR">🇧🇷 Brazil</mat-option>
-                    <mat-option value="MX">🇲🇽 Mexico</mat-option>
-                  </mat-select>
-                  <mat-hint>Select your country</mat-hint>
+                  <input type="text" 
+                         matInput 
+                         [formControl]="countrySearchControl"
+                         [matAutocomplete]="countryAutocomplete"
+                         placeholder="Search and select country">
+                  <mat-autocomplete #countryAutocomplete="matAutocomplete" 
+                                   [displayWith]="displayCountryFn"
+                                   (optionSelected)="onCountrySelected($event.option.value)">
+                    
+                    <!-- Popular Countries Section -->
+                    <mat-optgroup *ngIf="popularCountries.length > 0 && !isSearching()" 
+                                  label="Popular Countries">
+                      <mat-option *ngFor="let country of popularCountries" [value]="country">
+                        {{country.flag}} {{country.name}}
+                      </mat-option>
+                    </mat-optgroup>
+                    
+                    <!-- Filtered Countries Section -->
+                    <mat-optgroup [label]="getCountriesGroupLabel()">
+                      <mat-option *ngFor="let country of filteredCountries" [value]="country">
+                        {{country.flag}} {{country.name}}
+                      </mat-option>
+                    </mat-optgroup>
+                    
+                    <!-- No Results -->
+                    <mat-option *ngIf="filteredCountries.length === 0 && isSearching()" disabled>
+                      No countries found for "{{getSearchTerm()}}"
+                    </mat-option>
+                  </mat-autocomplete>
+                  <mat-hint>Type to search for countries</mat-hint>
                   <mat-error *ngIf="placeForm.get('country')?.hasError('required')">
                     Country is required
                   </mat-error>
@@ -341,25 +359,6 @@ import { PlaceRecord, PlaceFormData, PlaceService } from '../../../../../libs/sh
 
         <!-- Footer Actions -->
         <div class="modal-footer">
-          <!-- Debug info (remove in production) -->
-          <div class="debug-info" *ngIf="true" style="font-size: 12px; color: #666; margin-bottom: 15px; background: #f5f5f5; padding: 10px; border-radius: 4px;">
-            <div style="margin-bottom: 5px;">
-              <strong>Form Status:</strong> {{ getValidationStatus() }} | 
-              <strong>Valid:</strong> {{ placeForm.valid }} | 
-              <strong>Dirty:</strong> {{ placeForm.dirty }} | 
-              <strong>Touched:</strong> {{ placeForm.touched }} |
-              <strong>Submitting:</strong> {{ isSubmitting }}
-              <button type="button" style="margin-left: 10px; font-size: 10px;" (click)="refreshFormValidation()">Refresh Validation</button>
-            </div>
-            <div style="margin-bottom: 5px;"><strong>Invalid Fields:</strong></div>
-            <div *ngFor="let error of getInvalidFieldsList()" style="color: #d32f2f; font-size: 11px;">
-              • {{ error }}
-            </div>
-            <div *ngIf="getInvalidFieldsList().length === 0" style="color: #2e7d32; font-size: 11px;">
-              ✓ All fields are valid!
-            </div>
-          </div>
-          
           <div class="footer-actions">
             <button mat-stroked-button (click)="onClose()" 
                     [disabled]="isSubmitting">
@@ -387,20 +386,24 @@ import { PlaceRecord, PlaceFormData, PlaceService } from '../../../../../libs/sh
       bottom: 0;
       background: rgba(0, 0, 0, 0.5);
       display: flex;
-      justify-content: flex-end;
-      align-items: stretch;
+      justify-content: center;
+      align-items: center;
       z-index: 1000;
       animation: fadeIn 0.3s ease;
+      padding: 20px;
     }
 
     .place-modal {
       width: 600px;
       max-width: 90vw;
+      max-height: 90vh;
       background: white;
+      border-radius: 12px;
       display: flex;
       flex-direction: column;
-      animation: slideInRight 0.3s ease;
-      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+      animation: slideInCenter 0.3s ease;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
     }
 
     .modal-header {
@@ -676,16 +679,27 @@ import { PlaceRecord, PlaceFormData, PlaceService } from '../../../../../libs/sh
       to { opacity: 1; }
     }
 
-    @keyframes slideInRight {
-      from { transform: translateX(100%); }
-      to { transform: translateX(0); }
+    @keyframes slideInCenter {
+      from { 
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+      }
+      to { 
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
     }
 
     // Responsive design
     @media (max-width: 768px) {
+      .place-modal-overlay {
+        padding: 10px;
+      }
+      
       .place-modal {
-        width: 100vw;
-        max-width: 100vw;
+        width: 100%;
+        max-width: 100%;
+        max-height: 95vh;
       }
       
       .form-row {
@@ -709,13 +723,25 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
 
   placeForm: FormGroup;
   isSubmitting = false;
+  
+  // Countries data
+  countries: Country[] = [];
+  popularCountries: Country[] = [];
+  filteredCountries: Country[] = [];
+  
+  // Country search
+  countrySearchControl: FormControl;
+  selectedCountry: Country | null = null;
 
   constructor(
     private formBuilder: FormBuilder,
     private snackBar: MatSnackBar,
-    private placeService: PlaceService
+    private placeService: PlaceService,
+    private countriesService: CountriesService
   ) {
     this.placeForm = this.createForm();
+    this.countrySearchControl = new FormControl('');
+    this.loadCountries();
   }
 
   ngOnInit(): void {
@@ -725,11 +751,88 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
     // Debug form validation status only when needed
   }
 
+  private loadCountries(): void {
+    this.countries = this.countriesService.sortCountriesAlphabetically();
+    this.popularCountries = this.countriesService.getPopularCountries();
+    this.filteredCountries = this.countries;
+    
+    // Set up search functionality
+    this.setupCountrySearch();
+  }
+
+  private setupCountrySearch(): void {
+    // Listen to search input changes
+    this.countrySearchControl.valueChanges.subscribe(value => {
+      // Handle both string input (user typing) and object input (selection)
+      if (typeof value === 'string') {
+        // User is typing - filter countries
+        this.filterCountries(value);
+      } else if (value && typeof value === 'object') {
+        // Country was selected - reset filter to show all countries
+        this.filteredCountries = this.countries;
+      } else if (value === null || value === undefined) {
+        // Value was cleared - reset filter
+        this.filteredCountries = this.countries;
+      }
+    });
+  }
+
+  private filterCountries(searchTerm: string): void {
+    if (!searchTerm || searchTerm.trim() === '') {
+      this.filteredCountries = this.countries;
+      return;
+    }
+
+    const term = searchTerm.toLowerCase().trim();
+    this.filteredCountries = this.countries.filter(country =>
+      country.name.toLowerCase().includes(term) ||
+      country.code.toLowerCase().includes(term)
+    );
+  }
+
+  onCountrySelected(country: Country): void {
+    if (country && country.code && country.name && country.flag) {
+      this.selectedCountry = country;
+      this.placeForm.patchValue({ country: country.code });
+      // Don't set the search control value here, let displayWith handle it
+    }
+  }
+
+  displayCountryFn = (country: Country | null): string => {
+    if (!country) return '';
+    // Ensure all required properties exist
+    if (country.flag && country.name) {
+      return `${country.flag} ${country.name}`;
+    }
+    // Fallback if properties are missing
+    return country.name || '';
+  }
+
+  isSearching(): boolean {
+    const value = this.countrySearchControl.value;
+    // User is searching when they're typing (string) and it's not empty
+    // or when they have text but no selected country
+    if (typeof value === 'string') {
+      return value.trim().length > 0;
+    }
+    // If value is an object (selected country), user is not actively searching
+    return false;
+  }
+
+  getSearchTerm(): string {
+    const value = this.countrySearchControl.value;
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  getCountriesGroupLabel(): string {
+    return this.isSearching() ? `Search Results (${this.filteredCountries.length})` : `All Countries (${this.filteredCountries.length})`;
+  }
+
   ngOnChanges(): void {
     if (this.isOpen && !this.isEditMode) {
       // Always reset form when opening for create
       this.resetForm();
-    } else if (this.placeData && this.isEditMode) {
+    } else if (this.placeData && this.isEditMode && this.isOpen) {
       this.populateForm();
     }
   }
@@ -778,10 +881,44 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
 
       console.log('Submitting form data:', formData);
 
-      if (this.isEditMode) {
-        // Handle update
-        this.placeUpdated.emit(formData as any);
-        this.showSuccessAndClose('Place updated successfully');
+      if (this.isEditMode && this.placeData?.id) {
+        // Handle update using PlaceService
+        console.log('Updating place with ID:', this.placeData.id);
+        console.log('Update data:', formData);
+        this.placeService.updatePlace(this.placeData.id, formData).subscribe({
+          next: (updatedPlace) => {
+            console.log('Place updated successfully:', updatedPlace);
+            this.placeUpdated.emit(updatedPlace);
+            this.showSuccessAndClose('Place updated successfully');
+          },
+          error: (error) => {
+            console.error('Error updating place:', error);
+            console.error('Error status:', error.status);
+            console.error('Error message:', error.message);
+            console.error('Error details:', error.error);
+            
+            // Show more specific error message
+            let errorMessage = 'Error updating place. Please try again.';
+            if (error.status === 400) {
+              errorMessage = 'Invalid data provided. Please check all required fields.';
+              if (error.error && error.error.message) {
+                errorMessage += ` (${error.error.message})`;
+              }
+            }
+            
+            this.snackBar.open(errorMessage, 'Close', { duration: 8000 });
+            
+            // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+            setTimeout(() => {
+              this.isSubmitting = false;
+            }, 0);
+          }
+        });
+      } else if (this.isEditMode) {
+        // Handle case where we're in edit mode but don't have place ID
+        console.error('Edit mode but no place ID available:', this.placeData);
+        this.snackBar.open('Error: Unable to update place - missing place ID', 'Close', { duration: 5000 });
+        this.isSubmitting = false;
       } else {
         // Handle create using PlaceService
         this.placeService.createPlace(formData).subscribe({
@@ -926,7 +1063,7 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
 
   private populateForm(): void {
     if (this.placeData) {
-      this.placeForm.patchValue({
+      const formData = {
         name: this.placeData.name,
         description: this.placeData.description || '',
         addressLine1: this.placeData.addressLine1,
@@ -940,7 +1077,18 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
         phoneNumber: this.placeData.phoneNumber || '',
         active: this.placeData.active,
         type: this.placeData.type || 'OTHER'
-      });
+      };
+      
+      this.placeForm.patchValue(formData);
+      
+      // Set the country search control for editing
+      if (this.placeData.country) {
+        const selectedCountry = this.countriesService.getCountryByCode(this.placeData.country);
+        if (selectedCountry) {
+          this.selectedCountry = selectedCountry;
+          this.countrySearchControl.setValue(selectedCountry);
+        }
+      }
     }
   }
 
@@ -964,6 +1112,11 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
       type: 'OTHER'
     });
     this.isSubmitting = false;
+    
+    // Reset country search
+    this.selectedCountry = null;
+    this.countrySearchControl.setValue(null);
+    this.filteredCountries = this.countries;
     
     // Mark all fields as untouched to ensure proper label behavior
     Object.keys(this.placeForm.controls).forEach(key => {
@@ -992,35 +1145,6 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
   // Helper method to check if form is ready for submission
   isFormValid(): boolean {
     return this.placeForm.valid && !this.isSubmitting;
-  }
-
-  // Helper method to get validation status for debugging
-  getValidationStatus(): string {
-    if (this.placeForm.pending) return 'PENDING';
-    if (this.placeForm.valid) return 'VALID';
-    if (this.placeForm.invalid) return 'INVALID';
-    return 'UNKNOWN';
-  }
-
-  // Helper method to get list of invalid fields for debugging
-  getInvalidFieldsList(): string[] {
-    const invalidFields: string[] = [];
-    Object.keys(this.placeForm.controls).forEach(key => {
-      const control = this.placeForm.get(key);
-      if (control && control.invalid && control.errors) {
-        const errors = Object.keys(control.errors).join(', ');
-        invalidFields.push(`${key}: ${errors} (value: '${control.value}')`);
-      }
-    });
-    return invalidFields;
-  }
-
-  // Method to manually refresh form validation
-  refreshFormValidation(): void {
-    this.placeForm.updateValueAndValidity();
-    Object.keys(this.placeForm.controls).forEach(key => {
-      this.placeForm.get(key)?.updateValueAndValidity();
-    });
   }
 
   // Helper method to show success message and close modal

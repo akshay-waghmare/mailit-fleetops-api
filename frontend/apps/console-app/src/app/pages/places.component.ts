@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 
 // Angular Material imports
@@ -11,6 +11,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -26,7 +27,9 @@ import {
   PlaceRecord, 
   PlaceListFilters, 
   PlaceTableColumn, 
-  PlaceStatusMetrics 
+  PlaceStatusMetrics,
+  CountriesService,
+  Country
 } from '../../../../../libs/shared';
 
 import { PlaceFormModalComponent } from '../components/place-form-modal.component';
@@ -37,6 +40,7 @@ import { PlaceFormModalComponent } from '../components/place-form-modal.componen
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
@@ -44,6 +48,7 @@ import { PlaceFormModalComponent } from '../components/place-form-modal.componen
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
@@ -148,13 +153,38 @@ import { PlaceFormModalComponent } from '../components/place-form-modal.componen
           <div class="filter-grid">
             <mat-form-field appearance="outline">
               <mat-label>Country</mat-label>
-              <mat-select [(ngModel)]="filters.country" (selectionChange)="applyFilters()">
-                <mat-option value="">All Countries</mat-option>
-                <mat-option value="US">United States</mat-option>
-                <mat-option value="CA">Canada</mat-option>
-                <mat-option value="IN">India</mat-option>
-                <mat-option value="GB">United Kingdom</mat-option>
-              </mat-select>
+              <input matInput 
+                     [formControl]="countryFilterControl"
+                     [matAutocomplete]="countryFilterAuto"
+                     placeholder="Search and select country">
+              <mat-icon matSuffix>search</mat-icon>
+              <button matSuffix mat-icon-button *ngIf="selectedCountryForFilter" 
+                      (click)="clearCountryFilter()" matTooltip="Clear selection">
+                <mat-icon>clear</mat-icon>
+              </button>
+              
+              <mat-autocomplete #countryFilterAuto="matAutocomplete" 
+                               [displayWith]="displayCountryForFilter">
+                
+                <!-- Show "All Countries" option when not searching -->
+                <mat-optgroup *ngIf="!isSearchingCountryFilter()" label="Quick Selection">
+                  <mat-option (click)="clearCountryFilter()">
+                    🌍 All Countries
+                  </mat-option>
+                </mat-optgroup>
+                
+                <!-- Filtered Countries Section -->
+                <mat-optgroup [label]="isSearchingCountryFilter() ? 'Search Results (' + filteredCountriesForFilter.length + ')' : 'All Countries (' + filteredCountriesForFilter.length + ')'">
+                  <mat-option *ngFor="let country of filteredCountriesForFilter" [value]="country">
+                    {{country.flag}} {{country.name}}
+                  </mat-option>
+                </mat-optgroup>
+                
+                <!-- No Results -->
+                <mat-option *ngIf="filteredCountriesForFilter.length === 0 && isSearchingCountryFilter()" disabled>
+                  No countries found
+                </mat-option>
+              </mat-autocomplete>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
@@ -171,8 +201,9 @@ import { PlaceFormModalComponent } from '../components/place-form-modal.componen
 
             <mat-form-field appearance="outline">
               <mat-label>Status</mat-label>
-              <mat-select [(ngModel)]="filters.active" (selectionChange)="applyFilters()">
-                <mat-option [value]="undefined">All Status</mat-option>
+              <mat-select [(ngModel)]="statusFilterValue" (selectionChange)="onStatusFilterChange($event)" 
+                         placeholder="All Status">
+                <mat-option value="all">All Status</mat-option>
                 <mat-option [value]="true">Active</mat-option>
                 <mat-option [value]="false">Inactive</mat-option>
               </mat-select>
@@ -269,8 +300,8 @@ import { PlaceFormModalComponent } from '../components/place-form-modal.componen
               <ng-container matColumnDef="statusLabel">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
                 <td mat-cell *matCellDef="let place">
-                  <span class="status-badge" [class.active]="place.isActive" 
-                        [class.inactive]="!place.isActive">
+                  <span class="status-badge" [class.active]="place.active" 
+                        [class.inactive]="!place.active">
                     {{ place.statusLabel }}
                   </span>
                 </td>
@@ -285,25 +316,25 @@ import { PlaceFormModalComponent } from '../components/place-form-modal.componen
               <!-- Actions Column -->
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef>Actions</th>
-                <td mat-cell *matCellDef="let place">
-                  <button mat-icon-button [matMenuTriggerFor]="actionMenu">
+                <td mat-cell *matCellDef="let place" (click)="$event.stopPropagation()">
+                  <button mat-icon-button [matMenuTriggerFor]="actionMenu" (click)="$event.stopPropagation()">
                     <mat-icon>more_vert</mat-icon>
                   </button>
                   <mat-menu #actionMenu="matMenu">
-                    <button mat-menu-item (click)="editPlace(place)">
+                    <button mat-menu-item (click)="editPlace(place); $event.stopPropagation()">
                       <mat-icon>edit</mat-icon>
                       Edit
                     </button>
-                    <button mat-menu-item (click)="viewPlace(place)">
+                    <button mat-menu-item (click)="viewPlace(place); $event.stopPropagation()">
                       <mat-icon>visibility</mat-icon>
                       View
                     </button>
-                    <button mat-menu-item (click)="duplicatePlace(place)">
+                    <button mat-menu-item (click)="duplicatePlace(place); $event.stopPropagation()">
                       <mat-icon>content_copy</mat-icon>
                       Duplicate
                     </button>
                     <mat-divider></mat-divider>
-                    <button mat-menu-item (click)="deletePlace(place)" class="delete-action">
+                    <button mat-menu-item (click)="deletePlace(place); $event.stopPropagation()" class="delete-action">
                       <mat-icon>delete</mat-icon>
                       Delete
                     </button>
@@ -387,6 +418,133 @@ import { PlaceFormModalComponent } from '../components/place-form-modal.componen
       (placeCreated)="onPlaceCreated($event)"
       (placeUpdated)="onPlaceUpdated($event)">
     </app-place-form-modal>
+
+    <!-- View Place Modal -->
+    <div class="modal-overlay" *ngIf="showViewModal" (click)="closeViewModal()">
+      <div class="view-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="header-content">
+            <div class="header-title">
+              <mat-icon>visibility</mat-icon>
+              <h2>{{ selectedPlaceForView?.name || 'Place Details' }}</h2>
+            </div>
+            <button mat-icon-button (click)="closeViewModal()" class="close-button">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-body" *ngIf="selectedPlaceForView">
+          <div class="details-grid">
+            <!-- Basic Information -->
+            <div class="detail-section">
+              <h3>Basic Information</h3>
+              <div class="detail-item">
+                <label>ID</label>
+                <span>{{ selectedPlaceForView.id }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Name</label>
+                <span>{{ selectedPlaceForView.name }}</span>
+              </div>
+              <div class="detail-item" *ngIf="selectedPlaceForView.description">
+                <label>Description</label>
+                <span>{{ selectedPlaceForView.description }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Type</label>
+                <span>{{ selectedPlaceForView.type }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Status</label>
+                <span class="status-badge" [class.active]="selectedPlaceForView.active" 
+                      [class.inactive]="!selectedPlaceForView.active">
+                  {{ selectedPlaceForView.statusLabel }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Address Information -->
+            <div class="detail-section">
+              <h3>Address Information</h3>
+              <div class="detail-item">
+                <label>Address Line 1</label>
+                <span>{{ selectedPlaceForView.addressLine1 }}</span>
+              </div>
+              <div class="detail-item" *ngIf="selectedPlaceForView.addressLine2">
+                <label>Address Line 2</label>
+                <span>{{ selectedPlaceForView.addressLine2 }}</span>
+              </div>
+              <div class="detail-item">
+                <label>City</label>
+                <span>{{ selectedPlaceForView.city }}</span>
+              </div>
+              <div class="detail-item">
+                <label>State</label>
+                <span>{{ selectedPlaceForView.state }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Postal Code</label>
+                <span>{{ selectedPlaceForView.postalCode }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Country</label>
+                <span>{{ selectedPlaceForView.country }}</span>
+              </div>
+            </div>
+
+            <!-- Location Information -->
+            <div class="detail-section">
+              <h3>Location Information</h3>
+              <div class="detail-item">
+                <label>Coordinates</label>
+                <span>{{ selectedPlaceForView.coordinatesFormatted }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Latitude</label>
+                <span>{{ selectedPlaceForView.location.latitude }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Longitude</label>
+                <span>{{ selectedPlaceForView.location.longitude }}</span>
+              </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="detail-section" *ngIf="selectedPlaceForView.phoneNumber">
+              <h3>Contact Information</h3>
+              <div class="detail-item">
+                <label>Phone Number</label>
+                <span>{{ selectedPlaceForView.phoneNumber }}</span>
+              </div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="detail-section">
+              <h3>Metadata</h3>
+              <div class="detail-item">
+                <label>Created At</label>
+                <span>{{ selectedPlaceForView.createdAtFormatted }}</span>
+              </div>
+              <div class="detail-item">
+                <label>Display Address</label>
+                <span>{{ selectedPlaceForView.displayAddress }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button mat-stroked-button (click)="closeViewModal()">
+            Close
+          </button>
+          <button mat-raised-button color="primary" (click)="editPlaceFromView()">
+            <mat-icon>edit</mat-icon>
+            Edit Place
+          </button>
+        </div>
+      </div>
+    </div>
   `,
   styles: [`
     .places-page {
@@ -429,7 +587,13 @@ import { PlaceFormModalComponent } from '../components/place-form-modal.componen
           flex-wrap: wrap;
           
           .search-field {
-            min-width: 300px;
+            width: 320px;
+            height: 56px;
+            
+            ::ng-deep .mat-mdc-form-field-infix {
+              padding-top: 14px;
+              padding-bottom: 14px;
+            }
           }
           
           .action-btn {
@@ -687,6 +851,156 @@ import { PlaceFormModalComponent } from '../components/place-form-modal.componen
       }
     }
 
+    // View Modal Styles
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+      padding: 20px;
+    }
+
+    .view-modal {
+      width: 800px;
+      max-width: 90vw;
+      max-height: 90vh;
+      background: white;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      animation: slideInCenter 0.3s ease;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 24px 24px 0;
+      border-bottom: 1px solid #e2e8f0;
+      
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 16px;
+      }
+      
+      .header-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        
+        mat-icon {
+          color: #2563eb;
+          font-size: 28px;
+          width: 28px;
+          height: 28px;
+        }
+        
+        h2 {
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: #1e293b;
+        }
+      }
+      
+      .close-button {
+        color: #64748b;
+        
+        &:hover {
+          color: #334155;
+        }
+      }
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 24px;
+    }
+
+    .detail-section {
+      h3 {
+        margin: 0 0 16px 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1e293b;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #f1f5f9;
+      }
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 16px;
+      
+      label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 4px;
+      }
+      
+      span {
+        font-size: 0.9rem;
+        color: #1e293b;
+        word-break: break-word;
+        
+        &.status-badge {
+          display: inline-block;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          
+          &.active {
+            background: #dcfce7;
+            color: #166534;
+          }
+          
+          &.inactive {
+            background: #fee2e2;
+            color: #991b1b;
+          }
+        }
+      }
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    @keyframes slideInCenter {
+      from { 
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+      }
+      to { 
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
     // Responsive design
     @media (max-width: 768px) {
       .places-page {
@@ -701,7 +1015,7 @@ import { PlaceFormModalComponent } from '../components/place-form-modal.componen
           justify-content: center;
           
           .search-field {
-            min-width: 100%;
+            width: 100%;
             order: -1;
           }
         }
@@ -748,9 +1062,11 @@ export class PlacesComponent implements OnInit, OnDestroy {
   // UI state
   loading = false;
   showCreateModal = false;
+  showViewModal = false;
   showFilters = false;
   isEditMode = false;
   selectedPlaceForEdit?: PlaceRecord;
+  selectedPlaceForView?: PlaceRecord;
   
   // Pagination
   currentPage = 0;
@@ -760,6 +1076,7 @@ export class PlacesComponent implements OnInit, OnDestroy {
   // Filter state
   searchTerm = '';
   filters: PlaceListFilters = {};
+  statusFilterValue: string | boolean = 'all'; // Separate UI state for mat-select
   
   // Status metrics
   statusMetrics?: PlaceStatusMetrics;
@@ -776,17 +1093,25 @@ export class PlacesComponent implements OnInit, OnDestroy {
     { key: 'createdAtFormatted', label: 'Created At', sortable: true, visible: true },
     { key: 'actions', label: 'Actions', sortable: false, visible: true, width: '80px' }
   ];
+  
+  // Countries for filter dropdown
+  countries: Country[] = [];
+  filteredCountriesForFilter: Country[] = [];
+  countryFilterControl = new FormControl('');
+  selectedCountryForFilter: Country | null = null;
 
   private destroy$ = new Subject<void>();
 
   constructor(
     private placeService: PlaceService,
     private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private countriesService: CountriesService
   ) {}
 
   ngOnInit(): void {
     this.initializeComponent();
+    this.loadCountries();
     this.loadPlaces();
   }
 
@@ -839,7 +1164,11 @@ export class PlacesComponent implements OnInit, OnDestroy {
       if (this.filters.country && place.country !== this.filters.country) return false;
       if (this.filters.state && !place.state.toLowerCase().includes(this.filters.state.toLowerCase())) return false;
       if (this.filters.city && !place.city.toLowerCase().includes(this.filters.city.toLowerCase())) return false;
-      if (this.filters.active !== undefined && place.active !== this.filters.active) return false;
+      
+      // Handle active filter: only apply if a specific true/false value is selected (not undefined)
+      if (this.filters.active !== undefined) {
+        if (place.active !== this.filters.active) return false;
+      }
 
       return true;
     });
@@ -848,9 +1177,24 @@ export class PlacesComponent implements OnInit, OnDestroy {
     this.updateStatusMetrics();
   }
 
+  onStatusFilterChange(event: any): void {
+    this.statusFilterValue = event.value;
+    
+    // Update the actual filter
+    if (event.value === true || event.value === 'true') {
+      this.filters.active = true;
+    } else if (event.value === false || event.value === 'false') {
+      this.filters.active = false;
+    } else {
+      this.filters.active = undefined; // 'all' means show all
+    }
+    this.applyFilters();
+  }
+
   clearFilters(): void {
     this.searchTerm = '';
     this.filters = {};
+    this.statusFilterValue = 'all'; // Reset UI state
     this.applyFilters();
   }
 
@@ -923,14 +1267,41 @@ export class PlacesComponent implements OnInit, OnDestroy {
 
   editPlace(place: PlaceRecord): void {
     this.isEditMode = true;
-    this.selectedPlaceForEdit = place;
+    this.selectedPlaceForEdit = { ...place }; // Create a new object to ensure change detection
     this.showCreateModal = true;
     this.cdr.detectChanges();
   }
 
+  editPlaceFromView(): void {
+    if (!this.selectedPlaceForView) {
+      return;
+    }
+
+    // Capture the data BEFORE clearing view state
+    const placeToEdit: PlaceRecord = { ...this.selectedPlaceForView };
+
+    // Close view modal (tears down *ngIf)
+    this.showViewModal = false;
+    this.selectedPlaceForView = undefined;
+
+    // Defer to next frame so Angular completes DOM removal cleanly
+    requestAnimationFrame(() => {
+      // Set edit state in a clean frame
+      this.isEditMode = true;
+      this.selectedPlaceForEdit = placeToEdit;
+      this.showCreateModal = true;
+      this.cdr.detectChanges();
+    });
+  }
+
   viewPlace(place: PlaceRecord): void {
-    console.log('View place:', place);
-    this.snackBar.open('Place details view coming soon', 'Close', { duration: 2000 });
+    this.selectedPlaceForView = place;
+    this.showViewModal = true;
+  }
+
+  closeViewModal(): void {
+    this.showViewModal = false;
+    this.selectedPlaceForView = undefined;
   }
 
   duplicatePlace(place: PlaceRecord): void {
@@ -1037,5 +1408,59 @@ export class PlacesComponent implements OnInit, OnDestroy {
 
   private updateStatusMetrics(): void {
     this.statusMetrics = this.placeService.getStatusMetrics(this.filteredPlaces);
+  }
+
+  private loadCountries(): void {
+    this.countries = this.countriesService.sortCountriesAlphabetically();
+    this.filteredCountriesForFilter = this.countries;
+    this.setupCountryFilterSearch();
+  }
+
+  private setupCountryFilterSearch(): void {
+    this.countryFilterControl.valueChanges.subscribe((value: any) => {
+      if (typeof value === 'string') {
+        // User is typing - filter countries
+        this.filterCountriesForFilter(value);
+      } else if (value && typeof value === 'object') {
+        // Country was selected - update the actual filter
+        this.selectedCountryForFilter = value as Country;
+        this.filters.country = (value as Country).code;
+        this.applyFilters();
+        // Reset the display to show all countries for next search
+        this.filteredCountriesForFilter = this.countries;
+      } else if (value === null || value === undefined || value === '') {
+        // Value was cleared - clear the filter
+        this.selectedCountryForFilter = null;
+        this.filters.country = '';
+        this.applyFilters();
+        this.filteredCountriesForFilter = this.countries;
+      }
+    });
+  }
+
+  private filterCountriesForFilter(searchTerm: string): void {
+    if (!searchTerm || searchTerm.trim() === '') {
+      this.filteredCountriesForFilter = this.countries;
+      return;
+    }
+
+    const term = searchTerm.toLowerCase().trim();
+    this.filteredCountriesForFilter = this.countries.filter(country =>
+      country.name.toLowerCase().includes(term) ||
+      country.code.toLowerCase().includes(term)
+    );
+  }
+
+  displayCountryForFilter(country: Country): string {
+    return country ? `${country.flag} ${country.name}` : '';
+  }
+
+  isSearchingCountryFilter(): boolean {
+    const value = this.countryFilterControl.value;
+    return typeof value === 'string' && value.trim().length > 0;
+  }
+
+  clearCountryFilter(): void {
+    this.countryFilterControl.setValue('');
   }
 }
