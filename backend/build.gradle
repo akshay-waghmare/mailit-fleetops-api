@@ -37,8 +37,8 @@ dependencies {
     // H2 for development and testing
     runtimeOnly 'com.h2database:h2'
     
-    // Spatial data support
-    implementation 'org.hibernate:hibernate-spatial:6.4.4.Final'
+    // Spatial data support (let Spring Boot manage the version)
+    implementation 'org.hibernate.orm:hibernate-spatial'
     implementation 'org.locationtech.jts:jts-core:1.19.0'
     
     // JWT and Security
@@ -53,6 +53,12 @@ dependencies {
     // MapStruct (optional)
     implementation 'org.mapstruct:mapstruct:1.6.2'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.2'
+    
+    // Hibernate Types for JSONB mapping (PostgreSQL) - Temporarily removed due to Hibernate 6.5 compatibility
+    // implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
+    
+    // Apache POI for Excel processing
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
     
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

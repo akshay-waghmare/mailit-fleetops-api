@@ -11,6 +11,8 @@ export const routes: Routes = [
   // Order edit is now available via modal in order-list - remove route to prevent confusion
   // { path: 'order-edit/:id', loadComponent: () => import('./pages/order-edit.component').then(m => m.OrderEditComponent) },
   { path: 'order-analytics', loadComponent: () => import('./pages/order-analytics.component').then(m => m.OrderAnalyticsComponent) },
+  { path: 'bulk-upload', loadComponent: () => import('./pages/bulk-upload.component').then(m => m.BulkUploadComponent) },
+  { path: 'bulk-upload-history', loadComponent: () => import('./pages/bulk-upload-history.component').then(m => m.BulkUploadHistoryComponent) },
   { path: 'pickup', loadComponent: () => import('./pages/pickup.component').then(m => m.PickupComponent) },
   { path: 'pickup-list', loadComponent: () => import('./pages/pickup-list.component').then(m => m.PickupListComponent) },
   // If your file lives in a pickup-analytics folder, point to that file:

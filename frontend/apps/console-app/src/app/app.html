@@ -37,6 +37,10 @@
           <span class="nav-icon">📊</span>
           Order Analytics
         </a>
+        <a routerLink="/bulk-upload" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">☁️</span>
+          Bulk Upload
+        </a>
         <a routerLink="/pickup" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">🚚</span>
           Schedule Pickup
@@ -115,6 +119,11 @@
           <a routerLink="/order-analytics" routerLinkActive="active" class="nav-link">
             <span class="nav-icon">📊</span>
             <span class="nav-text">Order Analytics</span>
+          </a>
+          
+          <a routerLink="/bulk-upload" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">☁️</span>
+            <span class="nav-text">Bulk Upload</span>
           </a>
           
           <a routerLink="/pickup" routerLinkActive="active" class="nav-link">

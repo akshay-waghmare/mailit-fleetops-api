@@ -22,7 +22,8 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.spatial.dialect.postgis.PostgisDialect
+        # Let Hibernate auto-detect PostGIS dialect
+        # dialect: org.hibernate.spatial.dialect.postgis.PostgisDialect
         format_sql: true
         jdbc:
           time_zone: UTC

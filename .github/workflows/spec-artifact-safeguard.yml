@@ -1,0 +1,54 @@
+name: Spec Artifact Safeguard (Placeholder)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-spec-artifacts:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect backend or frontend domain changes
+        id: diff
+        run: |
+          set -e
+          git fetch origin ${{ github.base_ref }} --depth=50 || true
+          
+          # Try three-dot diff first (merge base), fallback to two-dot (direct comparison)
+          if git merge-base origin/${{ github.base_ref }} HEAD >/dev/null 2>&1; then
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          else
+            echo "::warning::No merge base found, using direct diff comparison"
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}..HEAD || git diff --name-only origin/${{ github.base_ref }} HEAD)
+          fi
+          
+          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Require specs for domain-impacting changes (soft fail for now)
+        run: |
+          echo "Changed files:\n${{ steps.diff.outputs.changed_files }}"
+          NEED_SPEC=$(echo "${{ steps.diff.outputs.changed_files }}" | grep -E 'backend/src/main|frontend/apps/console-app' || true)
+          if [ -n "$NEED_SPEC" ]; then
+            HAS_SPEC=$(echo "${{ steps.diff.outputs.changed_files }}" | grep -E '^specs/' || ls specs 2>/dev/null | grep . || true)
+            if [ -z "$HAS_SPEC" ]; then
+              echo "::warning title=Spec Kit Notice::Domain changes detected without spec artifacts (specs/). This will become a failure in a future phase." 
+            else
+              echo "Spec artifacts present."
+            fi
+          else
+            echo "No domain-impacting changes detected."
+          fi
+
+      - name: Summary
+        run: |
+          echo "Spec safeguard placeholder executed."
+
+    # NOTE: Convert warnings to failure by adding an explicit failure condition once governance phase P4 is active.

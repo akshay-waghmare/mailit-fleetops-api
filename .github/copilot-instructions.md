@@ -3,6 +3,14 @@ Purpose
 -------
 Implement comprehensive Pickup and Order Management systems with database integration, providing consistent and professional user experience for managing logistics operations across the FleetOps platform.
 
+Spec-Driven Development Extension
+---------------------------------
+We are adopting GitHub Spec Kit (Specify CLI). See `.github/SPEC-KIT-ADOPTION-PLAN.md` for rollout phases. For any new substantial feature:
+- Create spec & plan under `specs/<NNN-feature>/` using `/specify`, `/clarify` (if needed), `/plan`, `/tasks`.
+- Keep tasks failing-first for contract/integration tests before implementation.
+- Contracts (`contracts/`) and data model (`data-model.md`) are authoritative; update them before changing code.
+- Refer to path-specific instructions in `.github/instructions/specs.instructions.md` for rules & review checklist.
+
 Quick Demo / Current Status
 ---------------------------
 **Pickup Management** ✅ - Fully implemented:
@@ -327,3 +335,10 @@ Key references:
 If a missing backend API or schema prevents implementing a feature, add a TODO in the code and open an issue describing the required endpoint and minimal contract.
 
 This file is intentionally concise — use the referenced implementation plans as the authoritative specification for feature details. Implement incrementally: foundation (list + service) → analytics → details/actions → exports/real-time.
+
+Spec Kit References
+-------------------
+- Adoption Plan: `.github/SPEC-KIT-ADOPTION-PLAN.md`
+- Path-Specific Guidance: `.github/instructions/specs.instructions.md`
+- Constitution (after initialization): `.specify/memory/constitution.md`
+
