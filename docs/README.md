@@ -2,7 +2,35 @@
 
 This documentation is organized into the following categories:
 
+---
+
+## 🎯 **START HERE: Project Planning & Status**
+
+### **Essential Documents**
+
+📊 **[PROJECT-STATUS.md](./planning/PROJECT-STATUS.md)** - **What We've Built**
+- ✅ 9 completed features (Pickup Management, Bulk Upload, Map System, etc.)
+- ❌ 16 missing features with detailed analysis
+- 🎯 6 client-requested features with specifications
+- 📈 Progress tracking and gap analysis
+
+🗺️ **[PRIORITY-ROADMAP.md](./planning/PRIORITY-ROADMAP.md)** - **What's Next**
+- 🚨 P0: Delivery Sheet + RBAC (Sprint 1 - 2 weeks)
+- 🔥 P1: Bulk Status Upload + Runsheet (Q4 2025)
+- ⚡ P2: MIS Dashboard + RTO (Q1 2026)
+- 💰 P3: Billing + Integrations (Q2-Q4 2026)
+- 📅 88-week roadmap with Sprint breakdown
+
+> **New to the project?** Read PROJECT-STATUS.md first to understand what exists, then check PRIORITY-ROADMAP.md to see what's coming next.
+
+---
+
 ## 📁 Directory Structure
+
+### `/planning`
+**Strategic planning and project roadmaps:**
+- **PROJECT-STATUS.md** - Comprehensive feature status (9 completed, 16 missing, 6 client requests)
+- **PRIORITY-ROADMAP.md** - 88-week development roadmap with priorities P0-P3
 
 ### `/infrastructure`
 - **DOCKER-INFRASTRUCTURE-GUIDE.md** - Comprehensive Docker infrastructure setup guide
