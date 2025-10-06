@@ -321,20 +321,20 @@ import { PlaceFormModalComponent } from '../components/place-form-modal.componen
                     <mat-icon>more_vert</mat-icon>
                   </button>
                   <mat-menu #actionMenu="matMenu">
-                    <button mat-menu-item (click)="editPlace(place); $event.stopPropagation()">
+                    <button mat-menu-item (click)="editPlace(place)">
                       <mat-icon>edit</mat-icon>
                       Edit
                     </button>
-                    <button mat-menu-item (click)="viewPlace(place); $event.stopPropagation()">
+                    <button mat-menu-item (click)="viewPlace(place)">
                       <mat-icon>visibility</mat-icon>
                       View
                     </button>
-                    <button mat-menu-item (click)="duplicatePlace(place); $event.stopPropagation()">
+                    <button mat-menu-item (click)="duplicatePlace(place)">
                       <mat-icon>content_copy</mat-icon>
                       Duplicate
                     </button>
                     <mat-divider></mat-divider>
-                    <button mat-menu-item (click)="deletePlace(place); $event.stopPropagation()" class="delete-action">
+                    <button mat-menu-item (click)="deletePlace(place)" class="delete-action">
                       <mat-icon>delete</mat-icon>
                       Delete
                     </button>
