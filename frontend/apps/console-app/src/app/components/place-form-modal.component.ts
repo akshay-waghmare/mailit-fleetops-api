@@ -15,7 +15,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-import { PlaceRecord, PlaceFormData, PlaceService, CountriesService, Country } from '../../../../../libs/shared';
+import { PlaceRecord, PlaceFormData, PlaceService, CountriesService, Country, ConfigService } from '../../../../../libs/shared';
 
 @Component({
   selector: 'app-place-form-modal',
@@ -737,7 +737,8 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
     private formBuilder: FormBuilder,
     private snackBar: MatSnackBar,
     private placeService: PlaceService,
-    private countriesService: CountriesService
+    private countriesService: CountriesService,
+    private configService: ConfigService
   ) {
     this.placeForm = this.createForm();
     this.countrySearchControl = new FormControl('');
@@ -875,8 +876,7 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
         phoneNumber: formValues.phoneNumber,
         type: formValues.type,
         active: formValues.active,
-        // Generate a proper UUID v4 format for organizationId
-        organizationId: '550e8400-e29b-41d4-a716-446655440000' // Default organization UUID
+        organizationId: this.configService.defaultOrganizationId
       };
 
       console.log('Submitting form data:', formData);

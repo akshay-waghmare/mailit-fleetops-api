@@ -1284,14 +1284,14 @@ export class PlacesComponent implements OnInit, OnDestroy {
     this.showViewModal = false;
     this.selectedPlaceForView = undefined;
 
-    // Defer to next frame so Angular completes DOM removal cleanly
-    requestAnimationFrame(() => {
+    // Defer to next tick so Angular completes DOM removal cleanly
+    setTimeout(() => {
       // Set edit state in a clean frame
       this.isEditMode = true;
       this.selectedPlaceForEdit = placeToEdit;
       this.showCreateModal = true;
       this.cdr.detectChanges();
-    });
+    }, 0);
   }
 
   viewPlace(place: PlaceRecord): void {

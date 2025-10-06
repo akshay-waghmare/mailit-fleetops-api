@@ -74,23 +74,23 @@ export class ApiService {
       params = params.set('city', city);
     }
     
-    return this.http.get<PagedResponse<Place>>(`${this.baseUrl}/places`, { params });
+    return this.http.get<PagedResponse<Place>>(`${this.baseUrl}/v1/places`, { params });
   }
 
   getPlace(id: string): Observable<Place> {
-    return this.http.get<Place>(`${this.baseUrl}/places/${id}`);
+    return this.http.get<Place>(`${this.baseUrl}/v1/places/${id}`);
   }
 
   createPlace(place: any): Observable<Place> {
-    return this.http.post<Place>(`${this.baseUrl}/places`, place);
+    return this.http.post<Place>(`${this.baseUrl}/v1/places`, place);
   }
 
   updatePlace(id: string, place: any): Observable<Place> {
-    return this.http.put<Place>(`${this.baseUrl}/places/${id}`, place);
+    return this.http.put<Place>(`${this.baseUrl}/v1/places/${id}`, place);
   }
 
   deletePlace(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/places/${id}`);
+    return this.http.delete<void>(`${this.baseUrl}/v1/places/${id}`);
   }
 
   // Additional place-specific methods
@@ -109,11 +109,11 @@ export class ApiService {
       params = params.set('organizationId', organizationId);
     }
     
-    return this.http.get<Place[]>(`${this.baseUrl}/places/nearby`, { params });
+    return this.http.get<Place[]>(`${this.baseUrl}/v1/places/nearby`, { params });
   }
 
   getPlacesByOrganization(organizationId: string): Observable<Place[]> {
-    return this.http.get<Place[]>(`${this.baseUrl}/places/organization/${organizationId}`);
+    return this.http.get<Place[]>(`${this.baseUrl}/v1/places/organization/${organizationId}`);
   }
 
   checkPlaceNameExists(organizationId: string, name: string): Observable<boolean> {
@@ -121,7 +121,7 @@ export class ApiService {
       .set('organizationId', organizationId)
       .set('name', name);
     
-    return this.http.get<boolean>(`${this.baseUrl}/places/check-name`, { params });
+    return this.http.get<boolean>(`${this.baseUrl}/v1/places/check-name`, { params });
   }
 
   // Geofences

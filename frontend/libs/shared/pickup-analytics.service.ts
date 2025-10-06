@@ -471,7 +471,7 @@ export class PickupAnalyticsService {
     const message: WorkerMessage = {
       type: type as any,
       payload,
-      requestId: Math.random().toString(36).substr(2, 9)
+      requestId: crypto.randomUUID()
     };
 
     this.worker.postMessage(message);
@@ -496,7 +496,7 @@ export class PickupAnalyticsService {
       return pickups$.pipe(
         switchMap(pickups => {
           return new Observable<TrendDataPoint[]>(observer => {
-            const requestId = Math.random().toString(36).substr(2, 9);
+            const requestId = crypto.randomUUID();
             
             const messageHandler = (event: MessageEvent<WorkerResponse>) => {
               if (event.data.requestId === requestId && event.data.type === 'TRENDS_COMPLETE') {
