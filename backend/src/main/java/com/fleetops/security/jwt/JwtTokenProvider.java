@@ -92,10 +92,10 @@ public class JwtTokenProvider {
      */
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
+            Jwts.parser()
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token);
+                .parseSignedClaims(token);
             return true;
         } catch (SecurityException ex) {
             logger.error("Invalid JWT signature: {}", ex.getMessage());
@@ -160,11 +160,11 @@ public class JwtTokenProvider {
      * @return Claims object
      */
     private Claims getClaims(String token) {
-        return Jwts.parserBuilder()
-            .setSigningKey(getSigningKey())
+        return Jwts.parser()
+            .verifyWith(getSigningKey())
             .build()
-            .parseClaimsJws(token)
-            .getBody();
+            .parseSignedClaims(token)
+            .getPayload();
     }
 
     /**
