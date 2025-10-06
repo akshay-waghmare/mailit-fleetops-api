@@ -251,22 +251,22 @@ import { MapComponent } from '@libs/map-widgets/map.component';
 export class DashboardComponent implements OnInit {
   @ViewChild('fleetMap') fleetMap!: MapComponent;
   
-  mapCenter: [number, number] = [-74.0059, 40.7128]; // New York City
+  mapCenter: [number, number] = [72.8777, 19.0760]; // Mumbai, India
   mapZoom = 12;
 
-  // Sample fleet data
+  // Sample fleet data - Mumbai locations
   private sampleVehicles = [
-    { id: 'VH001', name: 'Delivery Truck 1', status: 'active', coordinates: [-74.0059, 40.7128] },
-    { id: 'VH002', name: 'Delivery Van 2', status: 'active', coordinates: [-74.0089, 40.7150] },
-    { id: 'VH003', name: 'Service Vehicle 3', status: 'inactive', coordinates: [-74.0020, 40.7100] },
-    { id: 'VH004', name: 'Delivery Truck 4', status: 'active', coordinates: [-74.0100, 40.7180] },
-    { id: 'VH005', name: 'Emergency Vehicle 5', status: 'active', coordinates: [-74.0030, 40.7160] }
+    { id: 'VH001', name: 'Delivery Truck 1', status: 'active', coordinates: [72.8777, 19.0760] }, // Bandra
+    { id: 'VH002', name: 'Delivery Van 2', status: 'active', coordinates: [72.8258, 18.9750] }, // Nariman Point
+    { id: 'VH003', name: 'Service Vehicle 3', status: 'inactive', coordinates: [72.9081, 19.0728] }, // Kurla
+    { id: 'VH004', name: 'Delivery Truck 4', status: 'active', coordinates: [72.8347, 18.9220] }, // Colaba
+    { id: 'VH005', name: 'Emergency Vehicle 5', status: 'active', coordinates: [72.8682, 19.1197] } // Andheri
   ];
 
   private samplePlaces = [
-    { name: 'Warehouse Central', coordinates: [-74.0045, 40.7140] },
-    { name: 'Customer Location A', coordinates: [-74.0075, 40.7165] },
-    { name: 'Service Center', coordinates: [-74.0015, 40.7115] }
+    { name: 'Mumbai Central Warehouse', coordinates: [72.8205, 18.9707] }, // Mumbai Central
+    { name: 'BKC Corporate Hub', coordinates: [72.8697, 19.0596] }, // Bandra Kurla Complex
+    { name: 'JNPT Service Center', coordinates: [73.0169, 18.9489] } // JNPT Port
   ];
 
   ngOnInit(): void {
@@ -297,8 +297,8 @@ export class DashboardComponent implements OnInit {
 
       // Add a sample geofence marker
       this.fleetMap.addMarker(
-        [-74.0060, 40.7145],
-        '<strong>Downtown Zone</strong><br><small>Geofence Area</small>',
+        [72.8311, 18.9402],
+        '<strong>South Mumbai Zone</strong><br><small>Geofence Area</small>',
         'geofence'
       );
     }

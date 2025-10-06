@@ -5,13 +5,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { OrderService, OrderAnalytics } from '../../../../../libs/shared';
+import { OrderService, OrderAnalytics, LoggingService } from '../../../../../libs/shared';
 
 @Component({
   selector: 'app-order-analytics',
@@ -24,6 +25,7 @@ import { OrderService, OrderAnalytics } from '../../../../../libs/shared';
     MatButtonModule,
     MatTooltipModule,
     MatFormFieldModule,
+    MatInputModule,
     MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule
@@ -408,14 +410,14 @@ export class OrderAnalyticsComponent implements OnInit, OnDestroy {
 
   constructor(
     private orderService: OrderService,
-    private router: Router
-  ) {
-    // Set default date range to current month
-    this.setQuickDateRange('month');
-  }
+    private router: Router,
+    private logger: LoggingService
+  ) {}
 
   ngOnInit(): void {
-    this.loadAnalytics();
+  // Defer default date range setup to avoid ExpressionChangedAfterItHasBeenCheckedError
+  setTimeout(() => this.setQuickDateRange('month'));
+  this.loadAnalytics();
   }
 
   ngOnDestroy(): void {
@@ -428,7 +430,7 @@ export class OrderAnalyticsComponent implements OnInit, OnDestroy {
         this.analytics = analytics;
       },
       error: (error) => {
-        console.error('Error loading analytics:', error);
+        this.logger.error('Error loading analytics', error);
       }
     });
 

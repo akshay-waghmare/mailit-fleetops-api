@@ -5,137 +5,134 @@
 
 export interface OrderRecord {
   // Core Order Information
-  id: string;
-  orderId: string;
-  orderDate: string;
+  id: number;
+  order_id: string;
+  created_at: string;
+  updated_at: string;
   
   // Client Information
-  clientId: string;
-  clientName: string;
-  clientCompany?: string;
-  contactNumber?: string;
+  client_id: number;
+  client_name: string;
+  client_company?: string;
+  contact_number?: string;
   
   // Shipping Information
-  senderName: string;
-  senderAddress: string;
-  senderContact: string;
+  sender_name: string;
+  sender_address: string;
+  sender_contact: string;
+  sender_email?: string;
+  sender_pincode?: string;
+  sender_city?: string;
+  sender_state?: string;
   
-  receiverName: string;
-  receiverAddress: string;
-  receiverContact: string;
-  receiverPincode: string;
-  receiverCity: string;
+  receiver_name: string;
+  receiver_address: string;
+  receiver_contact: string;
+  receiver_email?: string;
+  receiver_pincode: string;
+  receiver_city: string;
+  receiver_state?: string;
   
   // Package Details
-  itemCount: number;
-  totalWeight: number;
-  dimensions?: {
-    length: number;
-    width: number;
-    height: number;
-  };
-  itemDescription?: string;
-  declaredValue?: number;
+  item_count: number;
+  total_weight: number;
+  length_cm?: number;
+  width_cm?: number;
+  height_cm?: number;
+  item_description?: string;
+  declared_value?: number;
   
   // Service Details
-  serviceType: 'express' | 'standard' | 'economy';
-  carrierName: string;
-  carrierId: string;
-  trackingNumber?: string;
+  service_type: 'EXPRESS' | 'STANDARD' | 'ECONOMY';
+  carrier_name: string;
+  carrier_id?: string;
+  tracking_number?: string;
   
   // Status Management
-  status: 'pending' | 'confirmed' | 'picked-up' | 'in-transit' | 'delivered' | 'cancelled' | 'returned';
-  statusUpdatedAt: Date;
-  statusUpdatedBy: string;
+  status: 'PENDING' | 'CONFIRMED' | 'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED' | 'RETURNED';
+  status_updated_at: string;
+  status_updated_by?: string;
   
   // Staff Assignment
-  assignedStaff?: string;
-  staffId?: string;
-  staffDepartment?: string;
+  assigned_staff_name?: string;
+  assigned_staff_id?: number;
+  staff_department?: string;
   
   // Delivery Information
-  estimatedDeliveryDate?: string;
-  actualDeliveryDate?: string;
-  deliveryTime?: string;
+  estimated_delivery_date?: string;
+  actual_delivery_date?: string;
+  delivery_time?: string;
+  delivery_instructions?: string;
   
   // Financial Information
-  estimatedCost: number;
-  actualCost: number;
-  codAmount?: number;
-  paymentStatus: 'pending' | 'paid' | 'cod' | 'failed';
+  shipping_cost?: number;
+  tax_amount?: number;
+  total_amount: number;
+  cod_amount?: number;
+  payment_status: 'PENDING' | 'PAID' | 'COD' | 'FAILED';
   
-  // Timestamps
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy: string;
+  // Timestamps and Audit
+  created_by?: string;
+  updated_by?: string;
   
   // Additional Information
-  specialInstructions?: string;
-  notes?: string;
-  customerFeedback?: string;
+  special_instructions?: string;
+  customer_feedback?: string;
   rating?: number;
+  metadata?: any;
 }
 
 export interface OrderQueryParams {
   page?: number;
-  limit?: number;
+  size?: number;
   search?: string;
   status?: string;
-  serviceType?: string;
-  carrierId?: string;
-  clientId?: string;
-  staffId?: string;
-  fromDate?: string;
-  toDate?: string;
-  sortBy?: keyof OrderRecord;
-  sortOrder?: 'asc' | 'desc';
+  service_type?: string;
+  carrier_id?: string;
+  client_id?: number;
+  assigned_staff_id?: number;
+  from_date?: string;
+  to_date?: string;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
 }
 
 export interface CreateOrderData {
-  client: {
-    id: string;
-    clientName: string;
-    clientCompany?: string;
-    contactNumber?: string;
-  };
+  client_id: number;
+  client_name: string;
+  client_company?: string;
+  contact_number?: string;
   
-  sender: {
-    name: string;
-    address: string;
-    contact: string;
-  };
+  sender_name: string;
+  sender_address: string;
+  sender_contact: string;
+  sender_email?: string;
+  sender_pincode?: string;
+  sender_city?: string;
+  sender_state?: string;
   
-  receiver: {
-    name: string;
-    address: string;
-    contact: string;
-    pincode: string;
-    city: string;
-  };
+  receiver_name: string;
+  receiver_address: string;
+  receiver_contact: string;
+  receiver_email?: string;
+  receiver_pincode: string;
+  receiver_city: string;
+  receiver_state?: string;
   
-  package: {
-    itemCount: number;
-    totalWeight: number;
-    dimensions?: {
-      length: number;
-      width: number;
-      height: number;
-    };
-    itemDescription?: string;
-    declaredValue?: number;
-  };
+  item_count: number;
+  total_weight: number;
+  length_cm?: number;
+  width_cm?: number;
+  height_cm?: number;
+  item_description?: string;
+  declared_value?: number;
   
-  service: {
-    serviceType: 'express' | 'standard' | 'economy';
-    carrier: {
-      id: string;
-      name: string;
-      price: number;
-    };
-  };
+  service_type: 'EXPRESS' | 'STANDARD' | 'ECONOMY';
+  carrier_name: string;
+  carrier_id?: string;
   
-  specialInstructions?: string;
-  codAmount?: number;
+  special_instructions?: string;
+  cod_amount?: number;
 }
 
 export interface OrderAnalytics {
@@ -152,11 +149,10 @@ export interface OrderAnalytics {
 }
 
 export interface OrderStatusUpdate {
-  orderId: string;
-  newStatus: OrderRecord['status'];
-  updatedBy: string;
+  order_id: string;
+  status: OrderRecord['status'];
+  updated_by?: string;
   notes?: string;
-  timestamp: Date;
 }
 
 export interface BulkOrderOperation {

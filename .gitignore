@@ -146,6 +146,7 @@ application-*.yml
 !application-dev.yml
 !application-staging.yml
 !application-prod.yml
+!backend/src/main/resources/application-docker.yml
 
 # Database
 *.db
@@ -178,6 +179,10 @@ coverage/
 test-results/
 junit.xml
 **/test-results/**
+
+# Test data (generated Excel files)
+backend/test-data/*.xlsx
+backend/test-data/*.xls
 
 # Dependency directories
 node_modules/

@@ -15,18 +15,90 @@
     "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && ng serve --port 4200",
     "dev:backend": "cd backend && ./gradlew bootRun --args='--server.port=8081'",
+    
+    "docker:dev": "node scripts/docker-restart.js",
+    "docker:dev:force": "docker-compose up --build",
+    "docker:dev:detached": "docker-compose up --build -d",
+    "docker:dev:logs": "docker-compose logs -f",
+    "docker:dev:clean": "node scripts/cleanup-containers.js && docker-compose up --build -d",
+    
+    "docker:dev:hub": "docker-compose -f docker-compose.hub.yml up -d",
+    "docker:dev:hub:logs": "docker-compose -f docker-compose.hub.yml logs -f",
+    "docker:dev:hub:down": "docker-compose -f docker-compose.hub.yml down",
+    "docker:dev:hub:admin": "docker-compose -f docker-compose.hub.yml --profile admin up -d",
+    
+    "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d",
+    "docker:prod:build": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d",
+    
+    "docker:test": "docker-compose -f docker-compose.yml -f docker-compose.test.yml --profile test up --build --abort-on-container-exit",
+    
+    "docker:admin": "docker-compose --profile admin up -d pgadmin",
+    "docker:admin:stop": "docker-compose stop pgadmin",
+    
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:restart": "node scripts/docker-restart.js",
+    "docker:rebuild": "docker-compose up --build -d",
+    "docker:logs": "docker-compose logs -f",
+    "docker:status": "node scripts/docker-status.js",
+    "docker:cleanup": "node scripts/cleanup-containers.js",
+    
+    "docker:db:start": "docker-compose up -d postgres",
+    "docker:db:stop": "docker-compose stop postgres",
+    "docker:db:logs": "docker-compose logs -f postgres",
+    "docker:db:reset": "docker-compose down -v postgres && docker-compose up -d postgres",
+    
+    "docker:backend:start": "docker-compose up -d backend",
+    "docker:backend:stop": "docker-compose stop backend",
+    "docker:backend:logs": "docker-compose logs -f backend",
+    "docker:backend:restart": "docker-compose restart backend",
+    "docker:backend:shell": "docker-compose exec backend sh",
+    
+    "docker:frontend:start": "docker-compose up -d frontend",
+    "docker:frontend:stop": "docker-compose stop frontend",
+    "docker:frontend:logs": "docker-compose logs -f frontend",
+    "docker:frontend:restart": "docker-compose restart frontend",
+    "docker:frontend:shell": "docker-compose exec frontend sh",
+    
     "build:all": "npm run build:frontend && npm run build:backend",
     "build:frontend": "cd frontend && ng build",
     "build:backend": "cd backend && ./gradlew build",
+    
     "test:all": "npm run test:frontend && npm run test:backend",
     "test:frontend": "cd frontend && ng test",
     "test:backend": "cd backend && ./gradlew test",
+    
     "lint:frontend": "cd frontend && ng lint",
     "install:all": "npm install && npm run install:frontend",
     "install:frontend": "cd frontend && npm install",
+    
     "clean:all": "npm run clean:frontend && npm run clean:backend",
     "clean:frontend": "cd frontend && rimraf dist node_modules",
-    "clean:backend": "cd backend && ./gradlew clean"
+    "clean:backend": "cd backend && ./gradlew clean",
+    
+    "docker:build": "docker-compose build",
+    "docker:build:backend": "docker-compose build backend",
+    "docker:build:frontend": "docker-compose build frontend",
+    
+    "docker:push": "docker-compose push",
+    "docker:push:backend": "docker push macubex/fleetops-backend:latest",
+    "docker:push:frontend": "docker push macubex/fleetops-frontend:latest",
+    
+    "docker:build-push": "npm run docker:build && npm run docker:push",
+    "docker:build-push:backend": "npm run docker:build:backend && npm run docker:push:backend",
+    "docker:build-push:frontend": "npm run docker:build:frontend && npm run docker:push:frontend",
+    
+    "deploy:build": "docker-compose build",
+    "deploy:push": "docker-compose push",
+    "deploy:full": "npm run deploy:build && npm run deploy:push",
+    "deploy:backend": "npm run build:backend && npm run docker:build-push:backend",
+    "deploy:frontend": "npm run build:frontend && npm run docker:build-push:frontend",
+    
+    "docker:clean": "node scripts/cleanup-containers.js && docker-compose down -v && docker system prune -f",
+    "docker:clean:all": "node scripts/cleanup-containers.js && docker-compose down -v --rmi all && docker system prune -af",
+    
+    "docker:run:backend": "docker run --rm -p 8081:8080 -e SPRING_PROFILES_ACTIVE=dev macubex/fleetops-backend:latest",
+    "docker:run:frontend": "docker run --rm -p 4200:80 macubex/fleetops-frontend:latest"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ChangeDetectorRef, NgZone } from '@angular/core';
+  import { Component, OnInit, ViewChild, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
@@ -326,8 +326,8 @@ interface Client {
                   <div class="mb-8">
                     <h4 class="text-lg font-medium text-slate-700 mb-4">Shipment Type</h4>
                     <div class="grid grid-cols-2 gap-4">
-                      <label class="relative cursor-pointer">
-                        <input type="radio" formControlName="shipmentType" value="domestic" class="sr-only">
+                      <label class="relative cursor-pointer" (click)="orderForm.get('shipmentType')?.setValue('domestic')">
+                        <input type="radio" name="shipmentType" formControlName="shipmentType" value="domestic" class="sr-only" (change)="orderForm.get('shipmentType')?.setValue('domestic')">
                         <div class="shipment-type-card p-6 border-2 rounded-xl transition-all duration-200"
                              [class]="getShipmentTypeClasses('domestic')">
                           <div class="text-center">
@@ -338,8 +338,8 @@ interface Client {
                           </div>
                         </div>
                       </label>
-                      <label class="relative cursor-pointer">
-                        <input type="radio" formControlName="shipmentType" value="international" class="sr-only">
+                      <label class="relative cursor-pointer" (click)="orderForm.get('shipmentType')?.setValue('international')">
+                        <input type="radio" name="shipmentType" formControlName="shipmentType" value="international" class="sr-only" (change)="orderForm.get('shipmentType')?.setValue('international')">
                         <div class="shipment-type-card p-6 border-2 rounded-xl transition-all duration-200"
                              [class]="getShipmentTypeClasses('international')">
                           <div class="text-center">
@@ -386,6 +386,37 @@ interface Client {
                       <mat-option value="jewelry">Jewelry</mat-option>
                       <mat-option value="food">Food Items</mat-option>
                       <mat-option value="other">Other</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  
+                  <!-- Financial Details -->
+                  <mat-form-field >
+                    <mat-label>Declared Value (₹)</mat-label>
+                    <input matInput 
+                           formControlName="declaredValue" 
+                           type="number" 
+                           placeholder="5000"
+                           min="1"
+                           step="0.01">
+                  </mat-form-field>
+                  
+                  <mat-form-field >
+                    <mat-label>COD Amount (₹)</mat-label>
+                    <input matInput 
+                           formControlName="codAmount" 
+                           type="number" 
+                           placeholder="0"
+                           min="0"
+                           step="0.01">
+                  </mat-form-field>
+                  
+                  <mat-form-field >
+                    <mat-label>Payment Status</mat-label>
+                    <mat-select formControlName="paymentStatus">
+                      <mat-option value="pending">Pending</mat-option>
+                      <mat-option value="paid">Paid</mat-option>
+                      <mat-option value="cod">Cash on Delivery</mat-option>
+                      <mat-option value="refunded">Refunded</mat-option>
                     </mat-select>
                   </mat-form-field>
                   
@@ -1009,7 +1040,10 @@ export class OrdersComponent implements OnInit {
       senderName: ['FleetOps India Pvt Ltd', Validators.required],
       senderContact: ['9876543210', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
       senderAddress: ['456 Business Park, Mumbai, Maharashtra 400001', Validators.required],
-      selectedCarrier: ['']
+      selectedCarrier: [''],
+      declaredValue: ['5000', [Validators.required, Validators.min(1)]],
+      codAmount: ['0', [Validators.min(0)]],
+      paymentStatus: ['pending', Validators.required]
     });
   }
 
@@ -1199,11 +1233,6 @@ export class OrdersComponent implements OnInit {
     });
   }
 
-  private extractPincode(address: string): string {
-    const pincodeMatch = address.match(/\b\d{6}\b/);
-    return pincodeMatch ? pincodeMatch[0] : '';
-  }
-
   private isServiceableRoute(pickupPin: string, deliveryPin: string, carrierId: string): boolean {
     // Simulate serviceability logic
     if (!pickupPin || !deliveryPin) return Math.random() > 0.3;
@@ -1317,57 +1346,79 @@ export class OrdersComponent implements OnInit {
     if (this.orderForm.valid && this.selectedCarrier?.serviceable && this.selectedClient) {
       const formData = this.orderForm.value;
       
-      // Create order data for the OrderService
-      const orderData: CreateOrderData = {
-        client: {
-          id: this.selectedClient.id,
-          clientName: this.selectedClient.clientName,
-          clientCompany: this.selectedClient.clientName, // Using clientName as company for demo
-          contactNumber: this.selectedClient.contactPerson
-        },
-        sender: {
-          name: formData.senderName || this.selectedClient.contactPerson,
-          address: formData.senderAddress || this.selectedClient.address,
-          contact: formData.senderContact || this.selectedClient.contactPerson
-        },
-        receiver: {
-          name: formData.receiverName,
-          address: formData.receiverAddress,
-          contact: formData.receiverContact,
-          pincode: formData.receiverPincode,
-          city: formData.receiverCity
-        },
-        package: {
-          itemCount: parseInt(formData.itemCount) || 1,
-          totalWeight: parseFloat(formData.actualWeight) || 1,
-          dimensions: formData.length && formData.width && formData.height ? {
-            length: parseFloat(formData.length),
-            width: parseFloat(formData.width),
-            height: parseFloat(formData.height)
-          } : undefined,
-          itemDescription: formData.itemDescription,
-          declaredValue: parseFloat(formData.declaredValue) || undefined
-        },
-        service: {
-          serviceType: this.getServiceType(this.selectedCarrier.type || 'standard'),
-          carrier: {
-            id: this.selectedCarrier.id,
-            name: this.selectedCarrier.name,
-            price: this.selectedCarrier.price
-          }
-        },
-        specialInstructions: formData.specialInstructions,
-        codAmount: formData.codAmount ? parseFloat(formData.codAmount) : undefined
+      // Extract pincode and city from receiver address
+      const receiverAddress = formData.receiverAddress || '';
+      const receiverPincode = this.extractPincode(receiverAddress);
+      const receiverCity = this.extractCity(receiverAddress);
+      
+      // Extract pincode and city from sender address  
+      const senderAddress = formData.senderAddress || this.selectedClient.address;
+      const senderPincode = this.extractPincode(senderAddress);
+      const senderCity = this.extractCity(senderAddress);
+      
+      // Create order data for the backend API (using snake_case as expected by backend)
+      const orderData = {
+        // Client Information (snake_case for backend)
+        client_id: parseInt(this.selectedClient.id.replace('client', '')) || null,
+        client_name: this.selectedClient.clientName,
+        client_company: this.selectedClient.clientName,
+        contact_number: this.selectedClient.contactPerson,
+        
+        // Sender Information
+        sender_name: formData.senderName || this.selectedClient.contactPerson,
+        sender_address: senderAddress,
+        sender_contact: formData.senderContact || '9876543210',
+        sender_email: null,
+        sender_pincode: senderPincode,
+        sender_city: senderCity,
+        sender_state: this.extractState(senderAddress),
+        
+        // Receiver Information  
+        receiver_name: formData.receiverName,
+        receiver_address: receiverAddress,
+        receiver_contact: formData.receiverContact,
+        receiver_email: null,
+        receiver_pincode: receiverPincode,
+        receiver_city: receiverCity,
+        receiver_state: this.extractState(receiverAddress),
+        
+        // Package Details
+        item_count: parseInt(formData.packages) || 1,
+        total_weight: parseFloat(formData.weight) || 1,
+        length_cm: formData.length ? parseFloat(formData.length) : null,
+        width_cm: formData.width ? parseFloat(formData.width) : null,
+        height_cm: formData.height ? parseFloat(formData.height) : null,
+        item_description: formData.commodity || 'General Items',
+        declared_value: formData.declaredValue ? parseFloat(formData.declaredValue) : null,
+        
+        // Service Details
+        service_type: this.getServiceType(this.selectedCarrier.type || 'standard'),
+        carrier_name: this.selectedCarrier.name,
+        carrier_id: this.selectedCarrier.id,
+        tracking_number: this.trackingId,
+        
+        // Financial Information
+        estimated_cost: this.selectedCarrier.price,
+        actual_cost: this.selectedCarrier.price,
+        total_amount: this.selectedCarrier.price,
+        cod_amount: formData.codAmount ? parseFloat(formData.codAmount) : 0,
+        payment_status: formData.paymentStatus || 'pending',
+        
+        // Additional Information
+        special_instructions: null,
+        notes: `Order created via FleetOps Portal for ${this.selectedClient.clientName}`
       };
 
-      // Create the order using OrderService
-      this.orderService.createOrder(orderData).subscribe({
+      // Create the order using direct API call since we need to match backend format
+      console.log('📤 Sending order data to backend:', orderData);
+      
+      this.orderService.createOrder(orderData as any).subscribe({
         next: (createdOrder) => {
           console.log('Order created successfully:', createdOrder);
           
           // Show success message with navigation options
           const snackBarRef = this.snackBar.open(
-            `🚀 Order ${createdOrder.orderId} created successfully!`,
+            `🚀 Order ${createdOrder.order_id} created successfully!`,
             'View Orders',
             {
               duration: 5000,
@@ -1416,21 +1467,6 @@ export class OrdersComponent implements OnInit {
         }
       );
     }
-  }
-
-  private getServiceType(carrierType: string): 'express' | 'standard' | 'economy' {
-    const type = carrierType.toLowerCase();
-    if (type.includes('express')) return 'express';
-    if (type.includes('economy')) return 'economy';
-    return 'standard';
-  }
-
-  private resetForm(): void {
-    this.orderForm.reset();
-    this.selectedCarrier = null;
-    this.selectedClient = null;
-    this.resetServiceability();
-    this.initializeForm();
   }
 
   saveAsDraft() {
@@ -1574,6 +1610,78 @@ export class OrdersComponent implements OnInit {
       serviceabilityChecked: this.serviceabilityChecked,
       availableCarriers: this.availableCarriers.length
     });
+  }
+
+  // Helper methods for address parsing
+  private extractPincode(address: string): string {
+    if (!address) return '';
+    const pincodeMatch = address.match(/\b\d{6}\b/);
+    return pincodeMatch ? pincodeMatch[0] : '';
+  }
+
+  private extractCity(address: string): string {
+    if (!address) return '';
+    
+    // Common patterns to extract city names
+    const patterns = [
+      /,\s*([A-Za-z\s]+)\s*,?\s*\d{6}/, // City before pincode
+      /,\s*([A-Za-z\s]+)\s*-\s*\d{6}/, // City with dash before pincode
+      /([A-Za-z\s]+)\s+\d{6}/, // City directly before pincode
+    ];
+    
+    for (const pattern of patterns) {
+      const match = address.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+    
+    // If no pattern matches, try to extract last meaningful word before numbers
+    const words = address.split(/[,\s]+/).filter(word => word && !/^\d+$/.test(word));
+    return words.length > 0 ? words[words.length - 1] : '';
+  }
+
+  private extractState(address: string): string {
+    if (!address) return '';
+    
+    // Common Indian state names and abbreviations
+    const states = [
+      'Maharashtra', 'MH', 'Delhi', 'DL', 'Karnataka', 'KA', 'Tamil Nadu', 'TN',
+      'Gujarat', 'GJ', 'Rajasthan', 'RJ', 'West Bengal', 'WB', 'Uttar Pradesh', 'UP',
+      'Madhya Pradesh', 'MP', 'Bihar', 'BR', 'Odisha', 'OR', 'Telangana', 'TS',
+      'Andhra Pradesh', 'AP', 'Kerala', 'KL', 'Haryana', 'HR', 'Punjab', 'PB'
+    ];
+    
+    const addressUpper = address.toUpperCase();
+    
+    for (const state of states) {
+      if (addressUpper.includes(state.toUpperCase())) {
+        return state;
+      }
+    }
+    
+    return '';
+  }
+
+  private getServiceType(carrierType: string): string {
+    if (!carrierType) return 'standard';
+    
+    const type = carrierType.toLowerCase();
+    if (type.includes('express') || type.includes('priority')) {
+      return 'express';
+    } else if (type.includes('economy') || type.includes('surface')) {
+      return 'economy';
+    } else {
+      return 'standard';
+    }
+  }
+
+  private resetForm() {
+    this.orderForm.reset();
+    this.selectedClient = null;
+    this.selectedCarrier = null;
+    this.resetServiceability();
+    this.stepper.reset();
   }
 
   // Helper method to check pincode serviceability for different carriers

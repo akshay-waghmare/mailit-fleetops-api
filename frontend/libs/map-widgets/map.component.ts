@@ -1,6 +1,7 @@
 import { Component, ElementRef, OnInit, OnDestroy, ViewChild, Input, Inject, PLATFORM_ID, ChangeDetectorRef } from '@angular/core';
+import { LoggingService } from '../shared/logging.service';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
-import { Map, NavigationControl, GeolocateControl, ScaleControl, FullscreenControl, LngLatLike } from 'maplibre-gl';
+import type { LngLatLike } from 'maplibre-gl';
 
 @Component({
   selector: 'app-map',
@@ -94,12 +95,14 @@ export class MapComponent implements OnInit, OnDestroy {
   @Input() zoom = 12;
   @Input() style = 'https://api.maptiler.com/maps/streets/style.json?key=FqpjPjNhz5yU1vgFWeGi';
 
-  private map: Map | null = null;
+  // Use any for the runtime Map instance so we can dynamically import maplibre-gl
+  private map: any | null = null;
   public mapLoaded = false;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private logger: LoggingService
   ) {}
 
   public isMapLoaded(): boolean {
@@ -107,10 +110,14 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      // Small delay to ensure DOM is ready
-      setTimeout(() => this.initializeMap(), 100);
+    if (!isPlatformBrowser(this.platformId)) {
+      // Skip entirely during SSR
+      return;
     }
+    // Defer a tick to ensure container present & layout settled
+    setTimeout(() => {
+      void this.initializeMap();
+    }, 50);
   }
 
   ngOnDestroy(): void {
@@ -119,9 +126,22 @@ export class MapComponent implements OnInit, OnDestroy {
     }
   }
 
-  private initializeMap(): void {
+  private async initializeMap(): Promise<void> {
     try {
-      this.map = new Map({
+      // Dynamically import maplibre-gl to keep it out of the initial bundle
+      const maplibreModule: any = await import('maplibre-gl');
+      // Some bundlers put constructor on default, ensure consistent reference
+      const maplibregl = maplibreModule.default ?? maplibreModule;
+
+      (window as any).maplibregl = maplibregl;
+
+      const { NavigationControl, GeolocateControl, ScaleControl, FullscreenControl } = maplibregl;
+
+      if (typeof maplibregl.Map !== 'function') {
+        throw new Error('MapLibre Map constructor not available');
+      }
+
+      this.map = new maplibregl.Map({
         container: this.mapContainer.nativeElement,
         style: this.style,
         center: this.center,
@@ -145,7 +165,7 @@ export class MapComponent implements OnInit, OnDestroy {
       }), 'bottom-left');
 
       // Add fullscreen control
-      this.map.addControl(new FullscreenControl(), 'top-right');
+  this.map.addControl(new FullscreenControl(), 'top-right');
 
       // Add geolocate control with better options
       this.map.addControl(
@@ -162,26 +182,26 @@ export class MapComponent implements OnInit, OnDestroy {
 
       // Map event handlers
       this.map.on('load', () => {
-        console.log('FleetOps map loaded successfully');
+        this.logger.info('Map loaded successfully');
         this.mapLoaded = true;
         this.cdr.detectChanges(); // Force Angular to update the template
         this.setupMapStyles();
       });
 
-      this.map.on('error', (e) => {
-        console.error('Map error:', e);
+      this.map.on('error', (e: any) => {
+        this.logger.error('Map error', e);
         // Set mapLoaded = true even on error to hide spinner
         this.mapLoaded = true;
         this.cdr.detectChanges(); // Force Angular to update the template
         // Fallback to basic OpenStreetMap style
         if (this.map && e.error && e.error.message?.includes('401')) {
-          console.log('Switching to fallback map style...');
+          this.logger.warn('Switching to fallback map style due to 401');
           this.map.setStyle('https://demotiles.maplibre.org/style.json');
         }
       });
 
       this.map.on('style.load', () => {
-        console.log('Map style loaded');
+        this.logger.debug('Map style loaded');
         this.mapLoaded = true;
         this.cdr.detectChanges(); // Force Angular to update the template
         this.setupMapStyles();
@@ -190,14 +210,14 @@ export class MapComponent implements OnInit, OnDestroy {
       // Add timeout fallback to ensure spinner disappears
       setTimeout(() => {
         if (!this.mapLoaded) {
-          console.warn('Map loading timeout - hiding spinner');
+          this.logger.warn('Map loading timeout - hiding spinner');
           this.mapLoaded = true;
           this.cdr.detectChanges();
         }
       }, 8000);
 
     } catch (error) {
-      console.error('Failed to initialize map:', error);
+      this.logger.error('Failed to initialize map', error);
     }
   }
 
@@ -234,11 +254,11 @@ export class MapComponent implements OnInit, OnDestroy {
       });
 
     } catch (error) {
-      console.warn('Could not add custom map styles:', error);
+      this.logger.warn('Could not add custom map styles', error);
     }
   }
 
-  public getMap(): Map | null {
+  public getMap(): any | null {
     return this.map;
   }
 
@@ -340,9 +360,10 @@ export class MapComponent implements OnInit, OnDestroy {
 
   public clearMarkers(): void {
     if (this.map) {
-      const layers = this.map.getStyle().layers;
+      const style = this.map.getStyle();
+      const layers = style && (style.layers as Array<{ id: string }> | undefined);
       if (layers) {
-        layers.forEach(layer => {
+        layers.forEach((layer: { id: string }) => {
           if (layer.id.startsWith('marker-')) {
             this.map!.removeLayer(layer.id);
             this.map!.removeSource(layer.id);

@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: fleetops-postgres
+    environment:
+      POSTGRES_DB: fleetops_dev
+      POSTGRES_USER: fleetops
+      POSTGRES_PASSWORD: fleetops
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/docker/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fleetops -d fleetops_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fleetops-network
+
+  # Backend Application
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    image: macubex/fleetops-backend:latest
+    container_name: fleetops-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      LOGGING_LEVEL_COM_FLEETOPS: DEBUG
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: DEBUG
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: fleetops_dev
+      DB_USERNAME: fleetops
+      DB_PASSWORD: fleetops
+    volumes:
+      - ./backend/src:/app/src:ro
+    command: ["java", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005", "-jar", "app.jar"]
+    ports:
+      - "8081:8080"
+      - "5005:5005"  # Debug port
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fleetops-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: macubex/fleetops-frontend:latest
+    container_name: fleetops-frontend
+    volumes:
+      - ./frontend/src:/app/src:ro
+      - ./frontend/dist/console-app/browser:/usr/share/nginx/html
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "5001:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - fleetops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Development Database Admin
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: fleetops-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@fleetops.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - fleetops-network
+    profiles:
+      - admin
+
+volumes:
+  postgres_data:
+
+networks:
+  fleetops-network:
+    driver: bridge
