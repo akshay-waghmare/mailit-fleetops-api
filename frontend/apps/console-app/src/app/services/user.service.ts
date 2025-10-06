@@ -11,6 +11,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { ConfigService } from '../../../../../libs/shared';
 import {
   UserResponse,
   CreateUserRequest,
@@ -24,7 +25,8 @@ import {
   providedIn: 'root'
 })
 export class UserService {
-  private readonly API_URL = 'http://localhost:8080/api/v1/users';
+  private readonly baseUrl = inject(ConfigService).apiBaseUrl;
+  private readonly API_URL = `${this.baseUrl}/v1/users`;
   private http = inject(HttpClient);
 
   /**

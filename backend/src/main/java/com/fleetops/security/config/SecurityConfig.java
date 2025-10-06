@@ -114,6 +114,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:4200",     // Angular dev server
             "http://localhost:3000",     // Alternative port
+            "http://localhost:8081",     // Local backend on 8081
             "https://fleetops.mailit.com" // Production (when deployed)
         ));
         

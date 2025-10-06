@@ -1,0 +1,257 @@
+import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { UserService } from '../../services/user.service';
+import { CreateUserRequest, UpdateUserRequest, UserResponse, UserRole } from '../../models/user.model';
+
+export type UserFormDialogMode = 'create' | 'edit';
+
+export interface UserFormDialogData {
+  mode: UserFormDialogMode;
+  user?: UserResponse;
+}
+
+@Component({
+  selector: 'app-user-form-dialog',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatSlideToggleModule,
+    MatButtonModule,
+    MatProgressSpinnerModule
+  ],
+  template: `
+    <h2 mat-dialog-title>{{ dialogTitle }}</h2>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <mat-dialog-content>
+        <div class="field-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Username</mat-label>
+            <input matInput formControlName="username" autocomplete="off" />
+            <mat-error *ngIf="fieldHasError('username', 'required')">Username is required</mat-error>
+            <mat-error *ngIf="fieldHasError('username', 'minlength')">Minimum 3 characters</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Full Name</mat-label>
+            <input matInput formControlName="fullName" autocomplete="off" />
+            <mat-error *ngIf="fieldHasError('fullName', 'required')">Full name is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input matInput type="email" formControlName="email" autocomplete="off" />
+            <mat-error *ngIf="fieldHasError('email', 'required')">Email is required</mat-error>
+            <mat-error *ngIf="fieldHasError('email', 'email')">Enter a valid email</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Phone</mat-label>
+            <input matInput formControlName="phone" autocomplete="off" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Roles</mat-label>
+            <mat-select formControlName="roles" multiple>
+              <mat-option *ngFor="let role of availableRoles" [value]="role">{{ role }}</mat-option>
+            </mat-select>
+            <mat-error *ngIf="fieldHasError('roles', 'required')">Select at least one role</mat-error>
+          </mat-form-field>
+
+          <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+        </div>
+
+        @if (mode === 'create') {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <input matInput type="password" formControlName="password" autocomplete="new-password" />
+          <mat-error *ngIf="fieldHasError('password', 'required')">Password is required</mat-error>
+          <mat-error *ngIf="fieldHasError('password', 'pattern')">
+            Password must be at least 8 characters and include uppercase, lowercase, number, and special character
+          </mat-error>
+        </mat-form-field>
+        }
+
+        <div class="error" *ngIf="submissionError()">{{ submissionError() }}</div>
+      </mat-dialog-content>
+
+      <mat-dialog-actions align="end">
+        <button mat-button type="button" (click)="onCancel()" [disabled]="loading()">Cancel</button>
+        <button mat-raised-button color="primary" type="submit" [disabled]="loading()">
+          <ng-container *ngIf="!loading(); else loadingTpl">{{ submitLabel }}</ng-container>
+        </button>
+      </mat-dialog-actions>
+    </form>
+
+    <ng-template #loadingTpl>
+      <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+    </ng-template>
+  `,
+  styles: [`
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .full-width {
+      width: 100%;
+    }
+
+    .error {
+      color: #d32f2f;
+      margin-top: 8px;
+    }
+  `],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class UserFormDialogComponent {
+  private dialogRef: MatDialogRef<UserFormDialogComponent, UserResponse | undefined> =
+    inject(MatDialogRef<UserFormDialogComponent, UserResponse | undefined>);
+  private data = inject<UserFormDialogData>(MAT_DIALOG_DATA);
+  private userService = inject(UserService);
+  private snackBar = inject(MatSnackBar);
+  private fb = inject(FormBuilder);
+
+  readonly mode = this.data.mode;
+  readonly availableRoles = Object.values(UserRole);
+  readonly loading = signal(false);
+  readonly submissionError = signal<string | null>(null);
+
+  readonly form: FormGroup = this.fb.group({
+    username: [{ value: this.data.user?.username ?? '', disabled: this.mode === 'edit' }, [Validators.required, Validators.minLength(3)]],
+    fullName: [this.data.user?.fullName ?? '', Validators.required],
+    email: [this.data.user?.email ?? '', [Validators.required, Validators.email]],
+    phone: [this.data.user?.phone ?? ''],
+    roles: [this.data.user?.roles ?? [], Validators.required],
+    isActive: [this.data.user?.isActive ?? true],
+    password: ['', this.mode === 'create' ? [Validators.required, Validators.pattern(PASSWORD_PATTERN)] : []]
+  });
+
+  get dialogTitle(): string {
+    return this.mode === 'create' ? 'Add User' : 'Edit User';
+  }
+
+  get submitLabel(): string {
+    return this.mode === 'create' ? 'Create User' : 'Save Changes';
+  }
+
+  fieldHasError(control: string, error: string): boolean {
+    const ctrl = this.form.get(control);
+    if (!ctrl) {
+      return false;
+    }
+    return ctrl.invalid && ctrl.hasError(error) && (ctrl.dirty || ctrl.touched);
+  }
+
+  onSubmit(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.loading.set(true);
+    this.submissionError.set(null);
+
+    if (this.mode === 'create') {
+      this.handleCreate();
+    } else {
+      this.handleUpdate();
+    }
+  }
+
+  onCancel(): void {
+    this.dialogRef.close();
+  }
+
+  private handleCreate(): void {
+    const value = this.form.getRawValue();
+    const request: CreateUserRequest = {
+      username: value.username.trim(),
+      email: value.email.trim(),
+      fullName: value.fullName.trim(),
+      phone: value.phone?.trim() || undefined,
+      password: value.password,
+      roles: value.roles,
+      isActive: value.isActive
+    };
+
+    this.userService.createUser(request).subscribe({
+      next: (user) => this.onSuccess(user, 'User created successfully'),
+      error: (error) => this.onError(error)
+    });
+  }
+
+  private handleUpdate(): void {
+    const value = this.form.getRawValue();
+    if (!this.data.user) {
+      this.loading.set(false);
+      return;
+    }
+
+    const request: UpdateUserRequest = {
+      email: value.email?.trim(),
+      fullName: value.fullName?.trim(),
+      phone: value.phone?.trim() || undefined,
+      roles: value.roles,
+      isActive: value.isActive
+    };
+
+    this.userService.updateUser(this.data.user.id, request).subscribe({
+      next: (user) => this.onSuccess(user, 'User updated successfully'),
+      error: (error) => this.onError(error)
+    });
+  }
+
+  private onSuccess(user: UserResponse, message: string): void {
+    this.loading.set(false);
+    this.snackBar.open(message, 'Close', { duration: 3000 });
+    this.dialogRef.close(user);
+  }
+
+  private onError(error: unknown): void {
+    this.loading.set(false);
+    const message = this.extractErrorMessage(error);
+    this.submissionError.set(message);
+  }
+
+  private extractErrorMessage(error: unknown): string {
+    if (typeof error === 'string') {
+      return error;
+    }
+
+    if (error && typeof error === 'object') {
+      const err = error as { error?: any; message?: string };
+      if (err.error) {
+        if (typeof err.error === 'string') {
+          return err.error;
+        }
+        if (err.error.message) {
+          return err.error.message;
+        }
+      }
+      if (err.message) {
+        return err.message;
+      }
+    }
+
+    return 'Something went wrong while saving the user. Please try again.';
+  }
+}
+
+const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;

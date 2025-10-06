@@ -23,6 +23,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { UserService } from '../../services/user.service';
 import { UserResponse } from '../../models/user.model';
+import { UserFormDialogComponent, UserFormDialogData } from './user-form-dialog.component';
 
 @Component({
   selector: 'app-user-list',
@@ -234,13 +235,35 @@ export class UserListComponent implements OnInit {
   }
 
   openCreateDialog(): void {
-    this.snackBar.open('User creation dialog coming soon...', 'Close', { duration: 3000 });
-    // TODO: Open dialog for creating user
+    const dialogRef = this.dialog.open<UserFormDialogComponent, UserFormDialogData, UserResponse>(
+      UserFormDialogComponent,
+      {
+        width: '520px',
+        data: { mode: 'create' }
+      }
+    );
+
+    dialogRef.afterClosed().subscribe((createdUser) => {
+      if (createdUser) {
+        this.loadUsers();
+      }
+    });
   }
 
   editUser(user: UserResponse): void {
-    this.snackBar.open(`Edit user: ${user.username} - Coming soon...`, 'Close', { duration: 3000 });
-    // TODO: Open dialog for editing user
+    const dialogRef = this.dialog.open<UserFormDialogComponent, UserFormDialogData, UserResponse>(
+      UserFormDialogComponent,
+      {
+        width: '520px',
+        data: { mode: 'edit', user }
+      }
+    );
+
+    dialogRef.afterClosed().subscribe((updatedUser) => {
+      if (updatedUser) {
+        this.loadUsers();
+      }
+    });
   }
 
   resetPassword(user: UserResponse): void {

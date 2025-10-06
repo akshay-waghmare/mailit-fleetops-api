@@ -10,10 +10,11 @@
  * - Role checking helpers
  */
 
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { isPlatformBrowser } from '@angular/common';
 import { 
   LoginRequest, 
   LoginResponse, 
@@ -22,18 +23,21 @@ import {
   UserInfo,
   JwtPayload 
 } from '../models/auth.model';
+import { ConfigService } from '../../../../../libs/shared';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly API_URL = 'http://localhost:8080/api/v1';
+  private baseUrl: string;
   private readonly ACCESS_TOKEN_KEY = 'fleetops_access_token';
   private readonly REFRESH_TOKEN_KEY = 'fleetops_refresh_token';
   private readonly USER_KEY = 'fleetops_user';
 
   private http = inject(HttpClient);
   private router = inject(Router);
+  private platformId = inject(PLATFORM_ID);
+  private configService = inject(ConfigService);
 
   // Current user state
   private currentUserSubject = new BehaviorSubject<UserInfo | null>(this.getUserFromStorage());
@@ -45,6 +49,7 @@ export class AuthService {
 
   constructor() {
     // Check token validity on service initialization
+    this.baseUrl = this.configService.apiBaseUrl;
     this.checkTokenValidity();
   }
 
@@ -52,7 +57,7 @@ export class AuthService {
    * Login with username and password
    */
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.API_URL}/auth/login`, credentials)
+    return this.http.post<LoginResponse>(`${this.baseUrl}/v1/auth/login`, credentials)
       .pipe(
         tap(response => {
           this.setSession(response);
@@ -78,7 +83,7 @@ export class AuthService {
     }
 
     const request: RefreshTokenRequest = { refreshToken };
-    return this.http.post<RefreshTokenResponse>(`${this.API_URL}/auth/refresh`, request)
+    return this.http.post<RefreshTokenResponse>(`${this.baseUrl}/v1/auth/refresh`, request)
       .pipe(
         tap(response => {
           this.setAccessToken(response.accessToken);
@@ -90,14 +95,14 @@ export class AuthService {
    * Get current access token
    */
   getAccessToken(): string | null {
-    return localStorage.getItem(this.ACCESS_TOKEN_KEY);
+    return this.getStorage()?.getItem(this.ACCESS_TOKEN_KEY) ?? null;
   }
 
   /**
    * Get current refresh token
    */
   getRefreshToken(): string | null {
-    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+    return this.getStorage()?.getItem(this.REFRESH_TOKEN_KEY) ?? null;
   }
 
   /**
@@ -155,9 +160,14 @@ export class AuthService {
    * Set authentication session after successful login
    */
   private setSession(authResult: LoginResponse): void {
-    localStorage.setItem(this.ACCESS_TOKEN_KEY, authResult.accessToken);
-    localStorage.setItem(this.REFRESH_TOKEN_KEY, authResult.refreshToken);
-    localStorage.setItem(this.USER_KEY, JSON.stringify(authResult.user));
+    const storage = this.getStorage();
+    if (!storage) {
+      return;
+    }
+
+    storage.setItem(this.ACCESS_TOKEN_KEY, authResult.accessToken);
+    storage.setItem(this.REFRESH_TOKEN_KEY, authResult.refreshToken);
+    storage.setItem(this.USER_KEY, JSON.stringify(authResult.user));
     
     this.currentUserSubject.next(authResult.user);
     this.isAuthenticatedSubject.next(true);
@@ -167,16 +177,25 @@ export class AuthService {
    * Set new access token (after refresh)
    */
   private setAccessToken(token: string): void {
-    localStorage.setItem(this.ACCESS_TOKEN_KEY, token);
+    const storage = this.getStorage();
+    if (!storage) {
+      return;
+    }
+    storage.setItem(this.ACCESS_TOKEN_KEY, token);
   }
 
   /**
    * Clear authentication session
    */
   private clearSession(): void {
-    localStorage.removeItem(this.ACCESS_TOKEN_KEY);
-    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
+    const storage = this.getStorage();
+    if (!storage) {
+      return;
+    }
+
+    storage.removeItem(this.ACCESS_TOKEN_KEY);
+    storage.removeItem(this.REFRESH_TOKEN_KEY);
+    storage.removeItem(this.USER_KEY);
     
     this.currentUserSubject.next(null);
     this.isAuthenticatedSubject.next(false);
@@ -186,7 +205,12 @@ export class AuthService {
    * Get user from localStorage
    */
   private getUserFromStorage(): UserInfo | null {
-    const userJson = localStorage.getItem(this.USER_KEY);
+    const storage = this.getStorage();
+    if (!storage) {
+      return null;
+    }
+
+    const userJson = storage.getItem(this.USER_KEY);
     if (!userJson) return null;
     
     try {
@@ -231,6 +255,9 @@ export class AuthService {
    * Decode JWT token (without verification - only for client-side use)
    */
   private decodeToken(token: string): JwtPayload {
+    if (typeof atob === 'undefined') {
+      throw new Error('Token decoding unavailable in this environment');
+    }
     const parts = token.split('.');
     if (parts.length !== 3) {
       throw new Error('Invalid JWT token');
@@ -239,5 +266,17 @@ export class AuthService {
     const payload = parts[1];
     const decoded = atob(payload);
     return JSON.parse(decoded);
+  }
+
+  private getStorage(): Storage | null {
+    if (!isPlatformBrowser(this.platformId)) {
+      return null;
+    }
+
+    try {
+      return window.localStorage;
+    } catch {
+      return null;
+    }
   }
 }

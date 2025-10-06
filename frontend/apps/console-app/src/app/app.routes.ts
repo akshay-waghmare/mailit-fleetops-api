@@ -1,102 +1,119 @@
 import { Routes } from '@angular/router';
 import { DashboardComponent } from './pages/dashboard.component';
-import { authGuard, adminGuard, staffGuard } from './guards/auth.guard';
+import { authGuard, adminGuard, agentGuard, staffGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   // Public routes
-  { 
-    path: 'login', 
-    loadComponent: () => import('./pages/login/login.component').then(m => m.LoginComponent) 
+  {
+    path: 'login',
+    loadComponent: () => import('./pages/login/login.component').then(m => m.LoginComponent)
   },
-  { 
-    path: 'unauthorized', 
-    loadComponent: () => import('./pages/unauthorized/unauthorized.component').then(m => m.UnauthorizedComponent) 
+  {
+    path: 'forbidden',
+    loadComponent: () => import('./pages/unauthorized/unauthorized.component').then(m => m.UnauthorizedComponent)
+  },
+  {
+    path: 'unauthorized',
+    redirectTo: 'forbidden'
   },
 
-  // Protected routes (require authentication)
-  { 
-    path: '', 
+  // Authenticated core route
+  {
+    path: 'dashboard',
     component: DashboardComponent,
     canActivate: [authGuard]
   },
-  { 
-    path: 'organizations', 
+
+  // Operational modules (authenticated)
+  {
+    path: 'organizations',
     loadComponent: () => import('./pages/organizations.component').then(m => m.OrganizationsComponent),
     canActivate: [authGuard]
   },
-  { 
-    path: 'places', 
+  {
+    path: 'places',
     loadComponent: () => import('./pages/places.component').then(m => m.PlacesComponent),
     canActivate: [authGuard]
   },
-  { 
-    path: 'geofences', 
+  {
+    path: 'geofences',
     loadComponent: () => import('./pages/geofences.component').then(m => m.GeofencesComponent),
     canActivate: [authGuard]
   },
-  { 
-    path: 'orders', 
+  {
+    path: 'orders',
     loadComponent: () => import('./pages/orders.component').then(m => m.OrdersComponent),
-    canActivate: [staffGuard] // ADMIN or STAFF only
+    canActivate: [authGuard, staffGuard]
   },
-  { 
-    path: 'order-list', 
+  {
+    path: 'order-list',
     loadComponent: () => import('./pages/order-list.component').then(m => m.OrderListComponent),
     canActivate: [authGuard]
   },
-  { 
-    path: 'order-analytics', 
+  {
+    path: 'order-analytics',
     loadComponent: () => import('./pages/order-analytics.component').then(m => m.OrderAnalyticsComponent),
-    canActivate: [staffGuard] // ADMIN or STAFF only
+    canActivate: [authGuard, staffGuard]
   },
-  { 
-    path: 'bulk-upload', 
+  {
+    path: 'bulk-upload',
     loadComponent: () => import('./pages/bulk-upload.component').then(m => m.BulkUploadComponent),
-    canActivate: [staffGuard] // ADMIN or STAFF only
+    canActivate: [authGuard, staffGuard]
   },
-  { 
-    path: 'bulk-upload-history', 
+  {
+    path: 'bulk-upload-history',
     loadComponent: () => import('./pages/bulk-upload-history.component').then(m => m.BulkUploadHistoryComponent),
-    canActivate: [staffGuard] // ADMIN or STAFF only
+    canActivate: [authGuard, staffGuard]
   },
-  { 
-    path: 'pickup', 
+  {
+    path: 'pickup',
     loadComponent: () => import('./pages/pickup.component').then(m => m.PickupComponent),
-    canActivate: [staffGuard] // ADMIN or STAFF only
+    canActivate: [authGuard, staffGuard]
   },
-  { 
-    path: 'pickup-list', 
+  {
+    path: 'pickup-list',
     loadComponent: () => import('./pages/pickup-list.component').then(m => m.PickupListComponent),
     canActivate: [authGuard]
   },
-  { 
-    path: 'pickup-analytics', 
+  {
+    path: 'pickup-analytics',
     loadComponent: () => import('./pages/pickup-analytics.component').then(m => m.PickupAnalyticsComponent),
-    canActivate: [staffGuard] // ADMIN or STAFF only
+    canActivate: [authGuard, staffGuard]
   },
-  { 
-    path: 'billing', 
+  {
+    path: 'delivery-sheets',
+    loadComponent: () => import('./pages/delivery-sheets/delivery-sheets.component').then(m => m.DeliverySheetsComponent),
+    canActivate: [authGuard, staffGuard]
+  },
+  {
+    path: 'billing',
     loadComponent: () => import('./pages/billing.component').then(m => m.BillingComponent),
-    canActivate: [staffGuard] // ADMIN or STAFF only
+    canActivate: [authGuard, staffGuard]
   },
-  { 
-    path: 'mis-reports', 
+  {
+    path: 'mis-reports',
     loadComponent: () => import('./pages/mis-reports.component').then(m => m.MisReportsComponent),
-    canActivate: [staffGuard] // ADMIN or STAFF only
+    canActivate: [authGuard, staffGuard]
   },
-  { 
-    path: 'settings', 
+  {
+    path: 'settings',
     loadComponent: () => import('./pages/settings.component').then(m => m.SettingsComponent),
     canActivate: [authGuard]
   },
 
-  // User management routes (ADMIN only)
-  { 
-    path: 'users', 
+  // Role-scoped routes
+  {
+    path: 'admin/users',
     loadComponent: () => import('./pages/users/user-list.component').then(m => m.UserListComponent),
-    canActivate: [adminGuard]
+    canActivate: [authGuard, adminGuard]
+  },
+  {
+    path: 'my-delivery-sheets',
+    loadComponent: () => import('./pages/delivery-sheets/my-delivery-sheets.component').then(m => m.MyDeliverySheetsComponent),
+    canActivate: [authGuard, agentGuard]
   },
 
-  // Fallback
-  { path: '**', redirectTo: '' }
+  // Default & fallback
+  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+  { path: '**', redirectTo: 'dashboard' }
 ];

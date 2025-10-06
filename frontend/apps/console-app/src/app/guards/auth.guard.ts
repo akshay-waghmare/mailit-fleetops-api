@@ -9,7 +9,7 @@
  */
 
 import { inject } from '@angular/core';
-import { CanActivateFn, Router, ActivatedRouteSnapshot } from '@angular/router';
+import { CanActivateFn, Router, ActivatedRouteSnapshot, UrlTree } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
 /**
@@ -25,10 +25,9 @@ export const authGuard: CanActivateFn = (route, state) => {
   }
 
   // Redirect to login with return URL
-  router.navigate(['/login'], { 
-    queryParams: { returnUrl: state.url } 
+  return router.createUrlTree(['/login'], {
+    queryParams: { returnUrl: state.url }
   });
-  return false;
 };
 
 /**
@@ -42,10 +41,9 @@ export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot, state) =
 
   // First check authentication
   if (!authService.isAuthenticated()) {
-    router.navigate(['/login'], { 
-      queryParams: { returnUrl: state.url } 
+    return router.createUrlTree(['/login'], {
+      queryParams: { returnUrl: state.url }
     });
-    return false;
   }
 
   // Get required roles from route data
@@ -62,8 +60,7 @@ export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot, state) =
   }
 
   // User doesn't have required role, redirect to unauthorized page
-  router.navigate(['/unauthorized']);
-  return false;
+  return router.createUrlTree(['/forbidden']);
 };
 
 /**
@@ -75,18 +72,16 @@ export const adminGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
 
   if (!authService.isAuthenticated()) {
-    router.navigate(['/login'], { 
-      queryParams: { returnUrl: state.url } 
+    return router.createUrlTree(['/login'], {
+      queryParams: { returnUrl: state.url }
     });
-    return false;
   }
 
   if (authService.isAdmin()) {
     return true;
   }
 
-  router.navigate(['/unauthorized']);
-  return false;
+  return router.createUrlTree(['/forbidden']);
 };
 
 /**
@@ -98,16 +93,35 @@ export const staffGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
 
   if (!authService.isAuthenticated()) {
-    router.navigate(['/login'], { 
-      queryParams: { returnUrl: state.url } 
+    return router.createUrlTree(['/login'], {
+      queryParams: { returnUrl: state.url }
     });
-    return false;
   }
 
   if (authService.hasAnyRole(['ADMIN', 'STAFF'])) {
     return true;
   }
 
-  router.navigate(['/unauthorized']);
-  return false;
+  return router.createUrlTree(['/forbidden']);
+};
+
+/**
+ * Agent Guard - Allows only AGENT role
+ * Usage: canActivate: [agentGuard]
+ */
+export const agentGuard: CanActivateFn = (route, state): boolean | UrlTree => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (!authService.isAuthenticated()) {
+    return router.createUrlTree(['/login'], {
+      queryParams: { returnUrl: state.url }
+    });
+  }
+
+  if (authService.isAgent()) {
+    return true;
+  }
+
+  return router.createUrlTree(['/forbidden']);
 };

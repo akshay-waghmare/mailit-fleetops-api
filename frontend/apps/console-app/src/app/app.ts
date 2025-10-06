@@ -58,6 +58,10 @@ export class App implements OnInit {
     return this.authService.hasAnyRole(['ADMIN', 'STAFF']);
   }
 
+  isAgent(): boolean {
+    return this.authService.isAgent();
+  }
+
   onTestClick(event: Event) {
     console.log('FleetButton clicked!', event);
   }

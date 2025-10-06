@@ -32,10 +32,12 @@
           New Order
         </a>
         }
+        @if (isStaffOrAdmin()) {
         <a routerLink="/order-list" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">📋</span>
           Order Management
         </a>
+        }
         @if (isStaffOrAdmin()) {
         <a routerLink="/order-analytics" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">📊</span>
@@ -48,6 +50,10 @@
         <a routerLink="/pickup" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">🚚</span>
           Schedule Pickup
+        </a>
+        <a routerLink="/delivery-sheets" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">📦</span>
+          Delivery Sheets
         </a>
         }
         <a routerLink="/pickup-list" routerLinkActive="active" (click)="closeMobileMenu()">
@@ -82,8 +88,14 @@
           MIS Reports
         </a>
         }
+        @if (isAgent()) {
+        <a routerLink="/my-delivery-sheets" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">📝</span>
+          My Delivery Sheets
+        </a>
+        }
         @if (isAdmin()) {
-        <a routerLink="/users" routerLinkActive="active" (click)="closeMobileMenu()">
+        <a routerLink="/admin/users" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">👥</span>
           User Management
         </a>
@@ -132,12 +144,12 @@
           </a>
           }
           
+          @if (isStaffOrAdmin()) {
           <a routerLink="/order-list" routerLinkActive="active" class="nav-link">
             <span class="nav-icon">📋</span>
             <span class="nav-text">Order Management</span>
           </a>
           
-          @if (isStaffOrAdmin()) {
           <a routerLink="/order-analytics" routerLinkActive="active" class="nav-link">
             <span class="nav-icon">📊</span>
             <span class="nav-text">Order Analytics</span>
@@ -151,6 +163,10 @@
           <a routerLink="/pickup" routerLinkActive="active" class="nav-link">
             <span class="nav-icon">🚚</span>
             <span class="nav-text">Schedule Pickup</span>
+          </a>
+          <a routerLink="/delivery-sheets" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">📦</span>
+            <span class="nav-text">Delivery Sheets</span>
           </a>
           }
           
@@ -188,8 +204,15 @@
           </a>
           }
           
+          @if (isAgent()) {
+          <a routerLink="/my-delivery-sheets" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">📝</span>
+            <span class="nav-text">My Delivery Sheets</span>
+          </a>
+          }
+          
           @if (isAdmin()) {
-          <a routerLink="/users" routerLinkActive="active" class="nav-link">
+          <a routerLink="/admin/users" routerLinkActive="active" class="nav-link">
             <span class="nav-icon">👥</span>
             <span class="nav-text">User Management</span>
           </a>
