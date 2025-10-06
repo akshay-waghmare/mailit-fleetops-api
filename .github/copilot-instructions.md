@@ -25,6 +25,13 @@ Quick Demo / Current Status
 - Order Analytics: http://localhost:4200/order-analytics (new analytics dashboard)
 - Backend Integration: Planned with comprehensive database schema
 
+**Minimal RBAC (User Management)** 🚀 - Epic E10 - P0 Critical - NEW:
+- Specification: `specs/013-minimal-rbac-user/spec.md` (COMPLETED)
+- Feature Branch: `013-minimal-rbac-user`
+- Status: Specification phase complete, ready for planning
+- Priority: P0 - Blocker for Delivery Sheet Module
+- Purpose: Authenticated users, role-based access (ADMIN, STAFF, AGENT), JWT auth, frontend guards, agent-scoped delivery sheets
+
 Quick run steps (from repo root):
 ```bash
 cd frontend
