@@ -45,7 +45,15 @@ export class ApiService {
   }
 
   // Places
-  getPlaces(organizationId?: string, page = 0, size = 20): Observable<PagedResponse<Place>> {
+  getPlaces(
+    organizationId?: string, 
+    type?: string,
+    search?: string,
+    country?: string,
+    city?: string,
+    page = 0, 
+    size = 20
+  ): Observable<PagedResponse<Place>> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
@@ -53,24 +61,67 @@ export class ApiService {
     if (organizationId) {
       params = params.set('organizationId', organizationId);
     }
+    if (type) {
+      params = params.set('type', type);
+    }
+    if (search) {
+      params = params.set('search', search);
+    }
+    if (country) {
+      params = params.set('country', country);
+    }
+    if (city) {
+      params = params.set('city', city);
+    }
     
-    return this.http.get<PagedResponse<Place>>(`${this.baseUrl}/places`, { params });
+    return this.http.get<PagedResponse<Place>>(`${this.baseUrl}/v1/places`, { params });
   }
 
-  getPlace(id: string): Observable<ApiResponse<Place>> {
-    return this.http.get<ApiResponse<Place>>(`${this.baseUrl}/places/${id}`);
+  getPlace(id: string): Observable<Place> {
+    return this.http.get<Place>(`${this.baseUrl}/v1/places/${id}`);
   }
 
-  createPlace(place: Partial<Place>): Observable<ApiResponse<Place>> {
-    return this.http.post<ApiResponse<Place>>(`${this.baseUrl}/places`, place);
+  createPlace(place: any): Observable<Place> {
+    return this.http.post<Place>(`${this.baseUrl}/v1/places`, place);
   }
 
-  updatePlace(id: string, place: Partial<Place>): Observable<ApiResponse<Place>> {
-    return this.http.put<ApiResponse<Place>>(`${this.baseUrl}/places/${id}`, place);
+  updatePlace(id: string, place: any): Observable<Place> {
+    return this.http.put<Place>(`${this.baseUrl}/v1/places/${id}`, place);
   }
 
-  deletePlace(id: string): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`${this.baseUrl}/places/${id}`);
+  deletePlace(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/v1/places/${id}`);
+  }
+
+  // Additional place-specific methods
+  getNearbyPlaces(
+    latitude: number,
+    longitude: number,
+    radiusKm: number = 10,
+    organizationId?: string
+  ): Observable<Place[]> {
+    let params = new HttpParams()
+      .set('latitude', latitude.toString())
+      .set('longitude', longitude.toString())
+      .set('radiusKm', radiusKm.toString());
+    
+    if (organizationId) {
+      params = params.set('organizationId', organizationId);
+    }
+    
+    return this.http.get<Place[]>(`${this.baseUrl}/v1/places/nearby`, { params });
+  }
+
+  getPlacesByOrganization(organizationId: string): Observable<Place[]> {
+    return this.http.get<Place[]>(`${this.baseUrl}/v1/places/organization/${organizationId}`);
+  }
+
+  checkPlaceNameExists(organizationId: string, name: string): Observable<boolean> {
+    const params = new HttpParams()
+      .set('organizationId', organizationId)
+      .set('name', name);
+    
+    return this.http.get<boolean>(`${this.baseUrl}/v1/places/check-name`, { params });
   }
 
   // Geofences

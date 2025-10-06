@@ -3,40 +3,28 @@ package com.fleetops.geo.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fleetops.geo.dto.PlaceRequest;
 import com.fleetops.geo.entity.Place.PlaceType;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.WebApplicationContext;
 
-import jakarta.annotation.PostConstruct;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
-@AutoConfigureWebMvc
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
-@Disabled("Disabled due to spatial database configuration issues - will be fixed separately")
 public class PlaceControllerIntegrationTest {
 
     @Autowired
-    private WebApplicationContext webApplicationContext;
-
     private MockMvc mockMvc;
-
-    @PostConstruct
-    public void setup() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-    }
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -44,6 +32,7 @@ public class PlaceControllerIntegrationTest {
     @Test
     public void testGetPlaces() throws Exception {
         mockMvc.perform(get("/api/v1/places"))
+                .andDo(result -> System.out.println("Response: " + result.getResponse().getContentAsString()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));
     }
