@@ -18,6 +18,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DeliverySheetService } from '../../services/delivery-sheet.service';
 import { DeliverySheetListResponse, DeliverySheetSummary } from '../../models/delivery-sheet.model';
 import { DeliverySheetFormComponent, DeliverySheetFormResult } from './delivery-sheet-form.component';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-delivery-sheets',
@@ -38,13 +39,13 @@ import { DeliverySheetFormComponent, DeliverySheetFormResult } from './delivery-
     <section class="p-6 space-y-6">
       <header class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 class="text-2xl font-semibold text-gray-900">Delivery Sheets</h1>
+          <h1 class="text-2xl font-semibold text-gray-900">{{ isAgent() ? 'My Delivery Sheets' : 'Delivery Sheets' }}</h1>
           <p class="text-sm text-gray-600">
-            Create and manage delivery sheets. Assign an agent to ensure scoped access for field operations.
+            {{ isAgent() ? 'View and manage your assigned delivery sheets' : 'Create and manage delivery sheets. Assign an agent to ensure scoped access for field operations.' }}
           </p>
         </div>
 
-        <button mat-raised-button color="primary" (click)="openCreateDialog()">
+        <button mat-raised-button color="primary" (click)="openCreateDialog()" *ngIf="!isAgent()">
           <mat-icon class="mr-2">add</mat-icon>
           Create Delivery Sheet
         </button>
@@ -119,9 +120,10 @@ import { DeliverySheetFormComponent, DeliverySheetFormResult } from './delivery-
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
             <td mat-cell *matCellDef="let sheet" class="px-4 py-3 text-sm">
-              <button mat-icon-button [matTooltip]="'Edit delivery sheet'" (click)="openEditDialog(sheet)">
+              <button mat-icon-button [matTooltip]="'Edit delivery sheet'" (click)="openEditDialog(sheet)" *ngIf="!isAgent()">
                 <mat-icon>edit</mat-icon>
               </button>
+              <span *ngIf="isAgent()" class="text-gray-400 text-xs">View only</span>
             </td>
           </ng-container>
 
@@ -146,6 +148,7 @@ export class DeliverySheetsComponent implements OnInit {
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
+  private authService = inject(AuthService);
 
   displayedColumns: Array<keyof DeliverySheetSummary | 'createdAt' | 'actions'> = [
     'sheetNumber',
@@ -235,15 +238,23 @@ export class DeliverySheetsComponent implements OnInit {
     }
 
     console.log('[DeliverySheets] Starting to load sheets...');
+    console.log('[DeliverySheets] User is agent:', this.isAgent());
     this.isLoading = true;
     this.errorMessage = '';
     this.cdr.markForCheck();
 
-    this.deliverySheetService.getDeliverySheets({
+    const params = {
       page: this.pageIndex,
       size: this.pageSize,
       sort: 'createdAt,desc'
-    }).subscribe({
+    };
+
+    // Use /my endpoint for agents, regular endpoint for admin/staff
+    const request$ = this.isAgent() 
+      ? this.deliverySheetService.getMyDeliverySheets(params)
+      : this.deliverySheetService.getDeliverySheets(params);
+
+    request$.subscribe({
       next: (response: DeliverySheetListResponse) => {
         console.log('[DeliverySheets] Received response:', response);
         this.dataSource = response.content;
@@ -260,6 +271,10 @@ export class DeliverySheetsComponent implements OnInit {
         this.cdr.markForCheck();
       }
     });
+  }
+
+  isAgent(): boolean {
+    return this.authService.isAgent();
   }
 
   statusColor(status: string): 'primary' | 'accent' | 'warn' {
