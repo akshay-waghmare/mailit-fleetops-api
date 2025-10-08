@@ -70,7 +70,8 @@ export class UserService {
   /**
    * Reset user password (ADMIN only)
    */
-  resetPassword(id: number, request: ResetPasswordRequest): Observable<void> {
+  resetPassword(id: number, newPassword: string): Observable<void> {
+    const request: ResetPasswordRequest = { newPassword: newPassword };
     return this.http.patch<void>(`${this.API_URL}/${id}/password`, request);
   }
 

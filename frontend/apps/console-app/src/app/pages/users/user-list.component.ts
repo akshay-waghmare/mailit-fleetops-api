@@ -24,6 +24,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { UserService } from '../../services/user.service';
 import { UserResponse } from '../../models/user.model';
 import { UserFormDialogComponent, UserFormDialogData } from './user-form-dialog.component';
+import { PasswordResetDialogComponent, PasswordResetDialogData } from './password-reset-dialog.component';
 
 @Component({
   selector: 'app-user-list',
@@ -267,8 +268,19 @@ export class UserListComponent implements OnInit {
   }
 
   resetPassword(user: UserResponse): void {
-    this.snackBar.open(`Reset password for: ${user.username} - Coming soon...`, 'Close', { duration: 3000 });
-    // TODO: Open dialog for resetting password
+    const dialogRef = this.dialog.open<PasswordResetDialogComponent, PasswordResetDialogData, boolean>(
+      PasswordResetDialogComponent,
+      {
+        width: '480px',
+        data: { user }
+      }
+    );
+
+    dialogRef.afterClosed().subscribe((success) => {
+      if (success) {
+        this.snackBar.open(`Password reset successfully for ${user.username}`, 'Close', { duration: 3000 });
+      }
+    });
   }
 
   deleteUser(user: UserResponse): void {
