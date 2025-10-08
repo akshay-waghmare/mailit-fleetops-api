@@ -844,9 +844,11 @@ export class PlaceFormModalComponent implements OnInit, OnChanges {
   }
 
   onOverlayClick(event: Event): void {
-    if (event.target === event.currentTarget) {
-      this.onClose();
-    }
+    // Disabled: Modal can only be closed via the close button or cancel button
+    // Previously: clicking outside would close the modal
+    // if (event.target === event.currentTarget) {
+    //   this.onClose();
+    // }
   }
 
   onSubmit(): void {
