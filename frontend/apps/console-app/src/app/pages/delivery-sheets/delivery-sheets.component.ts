@@ -14,6 +14,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DeliverySheetService } from '../../services/delivery-sheet.service';
 import { DeliverySheetListResponse, DeliverySheetSummary } from '../../models/delivery-sheet.model';
 import { DeliverySheetFormComponent, DeliverySheetFormResult } from './delivery-sheet-form.component';
@@ -30,7 +31,8 @@ import { DeliverySheetFormComponent, DeliverySheetFormResult } from './delivery-
     MatSnackBarModule,
     MatDialogModule,
     MatPaginatorModule,
-    MatChipsModule
+    MatChipsModule,
+    MatTooltipModule
   ],
   template: `
     <section class="p-6 space-y-6">
@@ -114,6 +116,15 @@ import { DeliverySheetFormComponent, DeliverySheetFormResult } from './delivery-
             </td>
           </ng-container>
 
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
+            <td mat-cell *matCellDef="let sheet" class="px-4 py-3 text-sm">
+              <button mat-icon-button [matTooltip]="'Edit delivery sheet'" (click)="openEditDialog(sheet)">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
         </table>
@@ -136,13 +147,14 @@ export class DeliverySheetsComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
 
-  displayedColumns: Array<keyof DeliverySheetSummary | 'createdAt'> = [
+  displayedColumns: Array<keyof DeliverySheetSummary | 'createdAt' | 'actions'> = [
     'sheetNumber',
     'assignedAgentName',
     'status',
     'totalOrders',
     'scheduledDate',
-    'createdAt'
+    'createdAt',
+    'actions'
   ];
 
   dataSource: DeliverySheetSummary[] = [];
@@ -164,7 +176,7 @@ export class DeliverySheetsComponent implements OnInit {
       const dialogRef = this.dialog.open<DeliverySheetFormComponent, undefined, DeliverySheetFormResult>(
         DeliverySheetFormComponent,
         {
-          width: '480px',
+          width: '600px',
           disableClose: true
         }
       );
@@ -180,6 +192,34 @@ export class DeliverySheetsComponent implements OnInit {
       });
     } catch (error) {
       console.error('❌ Failed to open dialog:', error);
+    }
+  }
+
+  openEditDialog(sheet: DeliverySheetSummary): void {
+    console.log('=== OPENING EDIT DELIVERY SHEET DIALOG ===');
+    console.log('Editing sheet:', sheet);
+    
+    try {
+      const dialogRef = this.dialog.open<DeliverySheetFormComponent, DeliverySheetSummary, DeliverySheetFormResult>(
+        DeliverySheetFormComponent,
+        {
+          width: '600px',
+          disableClose: true,
+          data: sheet
+        }
+      );
+
+      console.log('Edit dialog opened successfully:', dialogRef);
+
+      dialogRef.afterClosed().subscribe(result => {
+        console.log('Dialog closed with result:', result);
+        if (result?.created) {
+          this.snackBar.open('Delivery sheet updated successfully', 'Close', { duration: 3000 });
+          this.loadSheets();
+        }
+      });
+    } catch (error) {
+      console.error('❌ Failed to open edit dialog:', error);
     }
   }
 

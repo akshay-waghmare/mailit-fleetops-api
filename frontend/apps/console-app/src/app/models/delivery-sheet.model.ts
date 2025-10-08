@@ -45,4 +45,6 @@ export interface CreateDeliverySheetRequest {
   notes?: string;
 }
 
+export interface UpdateDeliverySheetRequest extends CreateDeliverySheetRequest {}
+
 export interface CreateDeliverySheetResponse extends DeliverySheetSummary {}

@@ -11,6 +11,7 @@ import { ConfigService } from '../../../../../libs/shared';
 import {
   CreateDeliverySheetRequest,
   CreateDeliverySheetResponse,
+  UpdateDeliverySheetRequest,
   DeliverySheetListParams,
   DeliverySheetListResponse
 } from '../models/delivery-sheet.model';
@@ -28,6 +29,13 @@ export class DeliverySheetService {
    */
   createDeliverySheet(request: CreateDeliverySheetRequest): Observable<CreateDeliverySheetResponse> {
     return this.http.post<CreateDeliverySheetResponse>(this.API_URL, request);
+  }
+
+  /**
+   * Update an existing delivery sheet (ADMIN/STAFF)
+   */
+  updateDeliverySheet(id: number, request: UpdateDeliverySheetRequest): Observable<CreateDeliverySheetResponse> {
+    return this.http.put<CreateDeliverySheetResponse>(`${this.API_URL}/${id}`, request);
   }
 
   /**

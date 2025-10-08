@@ -112,6 +112,82 @@ public class DeliverySheetService {
     }
 
     /**
+     * Update an existing delivery sheet.
+     */
+    public DeliverySheetResponse updateDeliverySheet(Long id, CreateDeliverySheetRequest request, User updatedBy) {
+        Objects.requireNonNull(id, "Delivery sheet ID is required");
+        Objects.requireNonNull(request, "UpdateDeliverySheetRequest is required");
+
+        DeliverySheet deliverySheet = deliverySheetRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("Delivery sheet not found with ID: " + id));
+
+        // Validate agent
+        User agent = userRepository.findById(request.getAssignedAgentId())
+            .orElseThrow(() -> new IllegalArgumentException("Assigned agent not found"));
+
+        if (!Boolean.TRUE.equals(agent.getIsActive())) {
+            throw new IllegalArgumentException("Assigned agent is inactive");
+        }
+
+        if (!agent.hasRole("AGENT")) {
+            throw new IllegalArgumentException("Assigned user is not an agent");
+        }
+
+        // Process order IDs
+        List<Long> orderIds = request.getOrderIds() != null
+            ? request.getOrderIds()
+            : List.of();
+
+        List<Order> orders = orderIds.isEmpty()
+            ? List.of()
+            : orderRepository.findAllById(orderIds);
+
+        if (!orderIds.isEmpty() && orders.size() != orderIds.size()) {
+            throw new IllegalArgumentException("One or more orders were not found for this delivery sheet");
+        }
+
+        BigDecimal totalCodAmount = orders.stream()
+            .map(order -> order.getCodAmount() != null ? order.getCodAmount() : BigDecimal.ZERO)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Update delivery sheet fields
+        deliverySheet.setTitle(request.getTitle());
+        deliverySheet.setAssignedAgentId(agent.getId());
+        deliverySheet.setAssignedAgentName(agent.getFullName());
+        deliverySheet.setScheduledDate(request.getScheduledDate());
+        deliverySheet.setNotes(request.getNotes());
+        deliverySheet.setTotalOrders(orders.size());
+        deliverySheet.setTotalCodAmount(totalCodAmount);
+
+        // Clear existing order links and add new ones
+        deliverySheet.clearOrderLinks();
+        if (!orders.isEmpty()) {
+            orders.forEach(order -> deliverySheet.addOrderLink(
+                DeliverySheetOrder.builder()
+                    .orderId(order.getId())
+                    .build()
+            ));
+        }
+
+        // Update metadata
+        Map<String, Object> metadata = deliverySheet.getMetadata() != null 
+            ? new HashMap<>(deliverySheet.getMetadata()) 
+            : new HashMap<>();
+        if (updatedBy != null) {
+            metadata.put("updatedBy", updatedBy.getUsername());
+        }
+        metadata.put("updatedAt", LocalDate.now().toString());
+        if (orderIds != null && !orderIds.isEmpty()) {
+            metadata.put("orderIds", orderIds);
+        }
+        deliverySheet.setMetadata(metadata);
+
+        DeliverySheet saved = deliverySheetRepository.save(deliverySheet);
+        logger.info("Delivery sheet {} updated by {}", saved.getSheetNumber(), updatedBy != null ? updatedBy.getUsername() : "system");
+        return deliverySheetMapper.toResponse(saved);
+    }
+
+    /**
      * Retrieve delivery sheets for staff/admin with optional filters.
      */
     @Transactional(readOnly = true)

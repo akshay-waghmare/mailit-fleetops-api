@@ -17,7 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -60,6 +62,35 @@ public class DeliverySheetController {
             error.put("error", "VALIDATION_ERROR");
             error.put("message", ex.getMessage());
             return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
+     * PUT /api/v1/delivery-sheets/{id}
+     * Update an existing delivery sheet (ADMIN/STAFF only).
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<?> updateDeliverySheet(
+        @PathVariable Long id,
+        @Valid @RequestBody CreateDeliverySheetRequest request,
+        @AuthenticationPrincipal User currentUser
+    ) {
+        try {
+            DeliverySheetResponse response = deliverySheetService.updateDeliverySheet(id, request, currentUser);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException ex) {
+            logger.warn("Failed to update delivery sheet {}: {}", id, ex.getMessage());
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "VALIDATION_ERROR");
+            error.put("message", ex.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception ex) {
+            logger.error("Error updating delivery sheet {}: {}", id, ex.getMessage());
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "INTERNAL_ERROR");
+            error.put("message", "Failed to update delivery sheet");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 
