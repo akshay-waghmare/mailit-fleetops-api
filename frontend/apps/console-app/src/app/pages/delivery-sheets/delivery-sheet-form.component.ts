@@ -4,7 +4,7 @@
  * Task T032: Add agent dropdown to DS creation form
  */
 
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -13,7 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+import { MatNativeDateModule, DateAdapter, MAT_DATE_FORMATS, MAT_NATIVE_DATE_FORMATS, NativeDateAdapter } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs/operators';
@@ -41,6 +41,10 @@ export interface DeliverySheetFormResult {
     MatNativeDateModule,
     MatProgressSpinnerModule,
     MatIconModule
+  ],
+  providers: [
+    { provide: DateAdapter, useClass: NativeDateAdapter },
+    { provide: MAT_DATE_FORMATS, useValue: MAT_NATIVE_DATE_FORMATS }
   ],
   template: `
     <h2 mat-dialog-title>Create Delivery Sheet</h2>
@@ -81,7 +85,7 @@ export interface DeliverySheetFormResult {
       <div>
         <label class="field-label">Assign Agent <span class="required">*</span></label>
         <mat-form-field appearance="outline" class="w-full">
-          <mat-select formControlName="assignedAgentId" [disabled]="isLoadingAgents" placeholder="Select a delivery agent">
+          <mat-select formControlName="assignedAgentId" placeholder="Select a delivery agent">
             <mat-option *ngIf="isLoadingAgents" disabled>
               <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
               &nbsp;Loading agents...
@@ -134,7 +138,7 @@ export interface DeliverySheetFormResult {
 
     <mat-dialog-actions align="end" class="space-x-2">
       <button mat-button type="button" (click)="close(false)" [disabled]="isSubmitting">Cancel</button>
-      <button mat-flat-button color="primary" type="submit" form="delivery-sheet-form" [disabled]="form.invalid || isSubmitting">
+      <button mat-flat-button color="primary" type="button" (click)="handleSubmit()" [disabled]="form.invalid || isSubmitting">
         <span *ngIf="!isSubmitting">Create</span>
         <mat-progress-spinner *ngIf="isSubmitting" diameter="20" mode="indeterminate"></mat-progress-spinner>
       </button>
@@ -149,6 +153,7 @@ export class DeliverySheetFormComponent implements OnInit {
   private dialogRef = inject(MatDialogRef<DeliverySheetFormComponent, DeliverySheetFormResult>);
   private deliverySheetService = inject(DeliverySheetService);
   private userService = inject(UserService);
+  private cdr = inject(ChangeDetectorRef);
 
   form: FormGroup = this.fb.group({
     title: ['', [Validators.required, Validators.minLength(3)]],
@@ -168,7 +173,31 @@ export class DeliverySheetFormComponent implements OnInit {
   }
 
   handleSubmit(): void {
-    if (this.form.invalid || this.isSubmitting) {
+    console.log('=== DELIVERY SHEET FORM SUBMIT ===');
+    console.log('Button clicked!');
+    console.log('Form valid:', this.form.valid);
+    console.log('Form value:', this.form.value);
+    console.log('Form errors:', this.form.errors);
+    
+    // Log each control's state
+    Object.keys(this.form.controls).forEach(key => {
+      const control = this.form.get(key);
+      console.log(`  - ${key}: valid=${control?.valid}, value=${JSON.stringify(control?.value)}, errors=`, control?.errors);
+    });
+    
+    if (this.form.invalid) {
+      console.error('❌ Form is INVALID. Cannot submit.');
+      Object.keys(this.form.controls).forEach(key => {
+        const control = this.form.get(key);
+        if (control?.invalid) {
+          console.error(`  - ${key} is invalid:`, control.errors);
+        }
+      });
+      return;
+    }
+
+    if (this.isSubmitting) {
+      console.warn('Already submitting, ignoring duplicate submit');
       return;
     }
 
@@ -184,12 +213,25 @@ export class DeliverySheetFormComponent implements OnInit {
       orderIds: this.parseOrderIds(formValue.orderIds)
     };
 
+    console.log('Submitting payload:', payload);
+
     this.deliverySheetService.createDeliverySheet(payload)
-      .pipe(finalize(() => (this.isSubmitting = false)))
+      .pipe(finalize(() => {
+        console.log('Submission complete, setting isSubmitting to false');
+        this.isSubmitting = false;
+        this.cdr.detectChanges(); // Manually trigger change detection
+      }))
       .subscribe({
-        next: () => this.close(true),
+        next: (response) => {
+          console.log('✅ Delivery sheet created successfully:', response);
+          this.close(true);
+        },
         error: (error) => {
+          console.error('❌ Failed to create delivery sheet:', error);
+          console.error('Error status:', error.status);
+          console.error('Error body:', error.error);
           this.submissionError = error?.error?.message || 'Failed to create delivery sheet. Please try again.';
+          this.cdr.detectChanges();
         }
       });
   }
@@ -199,18 +241,37 @@ export class DeliverySheetFormComponent implements OnInit {
   }
 
   private loadAgents(): void {
+    console.log('=== LOADING AGENTS ===');
     this.isLoadingAgents = true;
+    
+    // Disable the control during loading
+    const agentControl = this.form.get('assignedAgentId');
+    agentControl?.disable();
+    this.cdr.detectChanges(); // Trigger change detection before async operation
+    
     this.userService.getActiveAgents()
-      .pipe(finalize(() => (this.isLoadingAgents = false)))
+      .pipe(finalize(() => {
+        console.log('Agent loading complete');
+        this.isLoadingAgents = false;
+        agentControl?.enable(); // Re-enable after loading
+        this.cdr.detectChanges(); // Trigger change detection after state change
+      }))
       .subscribe({
         next: agents => {
+          console.log('✅ Agents loaded:', agents);
           this.agents = agents;
           if (agents.length === 1) {
+            console.log('Auto-selecting single agent:', agents[0]);
             this.form.patchValue({ assignedAgentId: agents[0].id });
           }
+          this.cdr.detectChanges();
         },
-        error: () => {
+        error: (error) => {
+          console.error('❌ Failed to load agents:', error);
+          console.error('Error status:', error.status);
+          console.error('Error body:', error.error);
           this.submissionError = 'Unable to load agents. Please verify you have agent users configured.';
+          this.cdr.detectChanges();
         }
       });
   }

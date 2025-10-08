@@ -157,20 +157,30 @@ export class DeliverySheetsComponent implements OnInit {
   }
 
   openCreateDialog(): void {
-    const dialogRef = this.dialog.open<DeliverySheetFormComponent, undefined, DeliverySheetFormResult>(
-      DeliverySheetFormComponent,
-      {
-        width: '480px',
-        disableClose: true
-      }
-    );
+    console.log('=== OPENING CREATE DELIVERY SHEET DIALOG ===');
+    console.log('MatDialog instance:', this.dialog);
+    
+    try {
+      const dialogRef = this.dialog.open<DeliverySheetFormComponent, undefined, DeliverySheetFormResult>(
+        DeliverySheetFormComponent,
+        {
+          width: '480px',
+          disableClose: true
+        }
+      );
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result?.created) {
-        this.snackBar.open('Delivery sheet created successfully', 'Close', { duration: 3000 });
-        this.loadSheets(true);
-      }
-    });
+      console.log('Dialog opened successfully:', dialogRef);
+
+      dialogRef.afterClosed().subscribe(result => {
+        console.log('Dialog closed with result:', result);
+        if (result?.created) {
+          this.snackBar.open('Delivery sheet created successfully', 'Close', { duration: 3000 });
+          this.loadSheets(true);
+        }
+      });
+    } catch (error) {
+      console.error('❌ Failed to open dialog:', error);
+    }
   }
 
   onPageChange(event: PageEvent): void {
