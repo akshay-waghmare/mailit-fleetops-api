@@ -33,52 +33,53 @@ import { AuthService } from '../../services/auth.service';
   ],
   template: `
     <div class="login-container">
-      <mat-card class="login-card">
-        <mat-card-header>
-          <div class="login-header">
-            <mat-icon class="login-icon">local_shipping</mat-icon>
-            <h1>FleetOps Login</h1>
-            <p>Sign in to manage your logistics operations</p>
-          </div>
-        </mat-card-header>
+      <div class="login-card">
+        <div class="login-content">
+          <h1 class="login-title">Login</h1>
 
-        <mat-card-content>
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Username</mat-label>
-              <input 
-                matInput 
-                formControlName="username" 
-                placeholder="Enter your username"
-                autocomplete="username">
-              <mat-icon matPrefix>person</mat-icon>
+            <div class="form-group">
+              <label class="form-label">Username</label>
+              <div class="input-wrapper">
+                <mat-icon class="input-icon">person</mat-icon>
+                <input 
+                  type="text"
+                  class="form-input"
+                  formControlName="username" 
+                  placeholder="Type your username"
+                  autocomplete="username">
+              </div>
               @if (loginForm.get('username')?.hasError('required') && loginForm.get('username')?.touched) {
-                <mat-error>Username is required</mat-error>
+                <div class="error-text">Username is required</div>
               }
-            </mat-form-field>
+            </div>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Password</mat-label>
-              <input 
-                matInput 
-                [type]="hidePassword ? 'password' : 'text'"
-                formControlName="password" 
-                placeholder="Enter your password"
-                autocomplete="current-password">
-              <mat-icon matPrefix>lock</mat-icon>
-              <button 
-                mat-icon-button 
-                matSuffix 
-                type="button"
-                (click)="hidePassword = !hidePassword"
-                [attr.aria-label]="'Hide password'" 
-                [attr.aria-pressed]="hidePassword">
-                <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
-              </button>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <div class="input-wrapper">
+                <mat-icon class="input-icon">lock</mat-icon>
+                <input 
+                  [type]="hidePassword ? 'password' : 'text'"
+                  class="form-input"
+                  formControlName="password" 
+                  placeholder="Type your password"
+                  autocomplete="current-password">
+                <button 
+                  type="button"
+                  class="toggle-password"
+                  (click)="hidePassword = !hidePassword"
+                  [attr.aria-label]="'Toggle password visibility'">
+                  <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+                </button>
+              </div>
               @if (loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched) {
-                <mat-error>Password is required</mat-error>
+                <div class="error-text">Password is required</div>
               }
-            </mat-form-field>
+            </div>
+
+            <div class="forgot-password">
+              <a href="javascript:void(0)">Forgot password?</a>
+            </div>
 
             @if (errorMessage) {
               <div class="error-message">
@@ -88,25 +89,28 @@ import { AuthService } from '../../services/auth.service';
             }
 
             <button 
-              mat-raised-button 
-              color="primary" 
               type="submit" 
-              class="full-width login-button"
+              class="login-button"
               [disabled]="loading || loginForm.invalid">
               @if (loading) {
                 <mat-spinner diameter="20"></mat-spinner>
                 <span>Signing in...</span>
               } @else {
-                <span>Sign In</span>
+                <span>LOGIN</span>
               }
             </button>
           </form>
-        </mat-card-content>
 
-        <mat-card-footer class="login-footer">
-          <p class="text-muted">Default credentials: admin / Admin@123</p>
-        </mat-card-footer>
-      </mat-card>
+          <div class="signup-link">
+            <p>Or Sign Up Using</p>
+            <a href="javascript:void(0)" class="signup-link-text">SIGN UP</a>
+          </div>
+
+          <div class="default-credentials">
+            <p class="text-muted">Default credentials: admin / Admin@123</p>
+          </div>
+        </div>
+      </div>
     </div>
   `,
   styles: [`
@@ -117,73 +121,161 @@ import { AuthService } from '../../services/auth.service';
       min-height: 100vh;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(135deg, 
+        rgba(102, 126, 234, 0.3) 0%, 
+        rgba(118, 75, 162, 0.3) 50%,
+        rgba(219, 39, 119, 0.3) 100%);
+      animation: gradientShift 15s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(-10%, -10%); }
     }
 
     .login-card {
+      position: relative;
+      z-index: 1;
       width: 100%;
-      max-width: 450px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      max-width: 420px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
     }
 
-    .login-header {
+    .login-content {
+      padding: 50px 40px 40px;
+    }
+
+    .login-title {
       text-align: center;
-      padding: 20px 0;
+      font-size: 32px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 0 0 40px 0;
+      letter-spacing: -0.5px;
     }
 
-    .login-icon {
-      font-size: 64px;
-      width: 64px;
-      height: 64px;
-      color: #667eea;
-      margin-bottom: 10px;
+    .form-group {
+      margin-bottom: 24px;
     }
 
-    .login-header h1 {
-      margin: 10px 0 5px 0;
-      color: #333;
-      font-size: 28px;
-      font-weight: 600;
-    }
-
-    .login-header p {
-      margin: 0;
-      color: #666;
-      font-size: 14px;
-    }
-
-    mat-card-content {
-      padding: 30px;
-    }
-
-    .full-width {
-      width: 100%;
-    }
-
-    mat-form-field {
-      margin-bottom: 16px;
-    }
-
-    .login-button {
-      height: 48px;
-      font-size: 16px;
+    .form-label {
+      display: block;
+      font-size: 13px;
       font-weight: 500;
-      margin-top: 10px;
+      color: #4a4a4a;
+      margin-bottom: 8px;
+      letter-spacing: 0.2px;
     }
 
-    .login-button mat-spinner {
-      display: inline-block;
-      margin-right: 10px;
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      color: #999;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 48px;
+      padding: 12px 40px 12px 44px;
+      border: none;
+      border-bottom: 2px solid #e0e0e0;
+      font-size: 14px;
+      color: #333;
+      transition: all 0.3s ease;
+      outline: none;
+      background: transparent;
+    }
+
+    .form-input::placeholder {
+      color: #aaa;
+      font-size: 13px;
+    }
+
+    .form-input:focus {
+      border-bottom-color: #667eea;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 8px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+      transition: color 0.2s ease;
+    }
+
+    .toggle-password:hover {
+      color: #667eea;
+    }
+
+    .toggle-password mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .error-text {
+      font-size: 12px;
+      color: #f44336;
+      margin-top: 6px;
+      padding-left: 2px;
+    }
+
+    .forgot-password {
+      text-align: right;
+      margin-bottom: 24px;
+    }
+
+    .forgot-password a {
+      font-size: 12px;
+      color: #999;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .forgot-password a:hover {
+      color: #667eea;
     }
 
     .error-message {
       display: flex;
       align-items: center;
-      padding: 12px;
-      margin-bottom: 16px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
       background-color: #ffebee;
       border-left: 4px solid #f44336;
       border-radius: 4px;
       color: #c62828;
+      font-size: 13px;
     }
 
     .error-message mat-icon {
@@ -193,17 +285,84 @@ import { AuthService } from '../../services/auth.service';
       height: 20px;
     }
 
-    .login-footer {
-      padding: 16px 30px;
-      background-color: #f5f5f5;
-      border-top: 1px solid #e0e0e0;
+    .login-button {
+      width: 100%;
+      height: 52px;
+      border: none;
+      border-radius: 26px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .login-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .login-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .login-button mat-spinner {
+      display: inline-block;
+    }
+
+    .signup-link {
       text-align: center;
+      padding: 20px 0;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .signup-link p {
+      font-size: 13px;
+      color: #999;
+      margin: 0 0 12px 0;
+    }
+
+    .signup-link-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #667eea;
+      text-decoration: none;
+      transition: color 0.2s ease;
+      letter-spacing: 0.5px;
+    }
+
+    .signup-link-text:hover {
+      color: #764ba2;
+    }
+
+    .default-credentials {
+      text-align: center;
+      padding-top: 16px;
     }
 
     .text-muted {
-      color: #666;
-      font-size: 13px;
+      color: #999;
+      font-size: 12px;
       margin: 0;
+    }
+
+    @media (max-width: 480px) {
+      .login-content {
+        padding: 40px 30px 30px;
+      }
+
+      .login-title {
+        font-size: 28px;
+      }
     }
   `]
 })
