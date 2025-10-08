@@ -41,34 +41,37 @@ export interface UserFormDialogData {
         <div class="field-grid">
           <mat-form-field appearance="outline">
             <mat-label>Username</mat-label>
-            <input matInput formControlName="username" autocomplete="off" />
+            <input matInput formControlName="username" autocomplete="off" placeholder="e.g. john.doe" />
+            <mat-hint>Used for login (min 3 characters)</mat-hint>
             <mat-error *ngIf="fieldHasError('username', 'required')">Username is required</mat-error>
             <mat-error *ngIf="fieldHasError('username', 'minlength')">Minimum 3 characters</mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Full Name</mat-label>
-            <input matInput formControlName="fullName" autocomplete="off" />
+            <input matInput formControlName="fullName" autocomplete="off" placeholder="e.g. John Doe" />
             <mat-error *ngIf="fieldHasError('fullName', 'required')">Full name is required</mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Email</mat-label>
-            <input matInput type="email" formControlName="email" autocomplete="off" />
+            <input matInput type="email" formControlName="email" autocomplete="off" placeholder="e.g. john.doe@fleetops.com" />
             <mat-error *ngIf="fieldHasError('email', 'required')">Email is required</mat-error>
             <mat-error *ngIf="fieldHasError('email', 'email')">Enter a valid email</mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Phone</mat-label>
-            <input matInput formControlName="phone" autocomplete="off" />
+            <input matInput formControlName="phone" autocomplete="off" placeholder="e.g. +1-234-567-8900" />
+            <mat-hint>Optional</mat-hint>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Roles</mat-label>
-            <mat-select formControlName="roles" multiple>
+            <mat-select formControlName="roles" multiple placeholder="Select one or more roles">
               <mat-option *ngFor="let role of availableRoles" [value]="role">{{ role }}</mat-option>
             </mat-select>
+            <mat-hint>Hold Ctrl/Cmd to select multiple</mat-hint>
             <mat-error *ngIf="fieldHasError('roles', 'required')">Select at least one role</mat-error>
           </mat-form-field>
 
@@ -78,7 +81,8 @@ export interface UserFormDialogData {
         @if (mode === 'create') {
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Password</mat-label>
-          <input matInput type="password" formControlName="password" autocomplete="new-password" />
+          <input matInput type="password" formControlName="password" autocomplete="new-password" placeholder="Min 8 chars with uppercase, lowercase, number, special char" />
+          <mat-hint>e.g. SecurePass123!</mat-hint>
           <mat-error *ngIf="fieldHasError('password', 'required')">Password is required</mat-error>
           <mat-error *ngIf="fieldHasError('password', 'pattern')">
             Password must be at least 8 characters and include uppercase, lowercase, number, and special character

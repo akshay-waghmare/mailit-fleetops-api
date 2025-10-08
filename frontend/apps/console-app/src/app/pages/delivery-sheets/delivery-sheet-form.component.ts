@@ -57,14 +57,15 @@ export interface DeliverySheetFormResult {
 
       <mat-form-field appearance="outline" class="w-full">
         <mat-label>Title</mat-label>
-        <input matInput placeholder="e.g. Mumbai West Route" formControlName="title" />
+        <input matInput placeholder="e.g. Mumbai West Route - Jan 8, 2025" formControlName="title" />
+        <mat-hint>A descriptive name for this delivery sheet</mat-hint>
         <mat-error *ngIf="form.get('title')?.hasError('required')">Title is required.</mat-error>
         <mat-error *ngIf="form.get('title')?.hasError('minlength')">Title must be at least 3 characters.</mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="w-full">
         <mat-label>Assign Agent</mat-label>
-        <mat-select formControlName="assignedAgentId" [disabled]="isLoadingAgents">
+        <mat-select formControlName="assignedAgentId" [disabled]="isLoadingAgents" placeholder="Select a delivery agent">
           <mat-option *ngIf="isLoadingAgents" disabled>
             <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
             &nbsp;Loading agents...
@@ -73,6 +74,7 @@ export interface DeliverySheetFormResult {
             {{ agent.fullName }} ({{ agent.username }})
           </mat-option>
         </mat-select>
+        <mat-hint>Only this agent will see this delivery sheet</mat-hint>
         <mat-error *ngIf="form.get('assignedAgentId')?.hasError('required')">
           Selecting an agent is required.
         </mat-error>
@@ -80,19 +82,22 @@ export interface DeliverySheetFormResult {
 
       <mat-form-field appearance="outline" class="w-full">
         <mat-label>Scheduled Date</mat-label>
-        <input matInput [matDatepicker]="picker" formControlName="scheduledDate" />
+        <input matInput [matDatepicker]="picker" formControlName="scheduledDate" placeholder="Select delivery date" />
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
+        <mat-hint>Optional: Target delivery date</mat-hint>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="w-full">
         <mat-label>Notes</mat-label>
-        <textarea matInput rows="3" formControlName="notes" placeholder="Optional instructions for the agent"></textarea>
+        <textarea matInput rows="3" formControlName="notes" placeholder="e.g. Deliver before 5 PM, contact customer first, fragile items"></textarea>
+        <mat-hint>Optional special instructions for the agent</mat-hint>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="w-full">
         <mat-label>Order IDs (comma separated)</mat-label>
-        <textarea matInput rows="2" formControlName="orderIds" placeholder="Optional: 123, 456, 789"></textarea>
+        <textarea matInput rows="2" formControlName="orderIds" placeholder="e.g. 101, 102, 103, 104"></textarea>
+        <mat-hint>Optional: Enter order IDs separated by commas</mat-hint>
       </mat-form-field>
 
       <div class="text-xs text-gray-500">
