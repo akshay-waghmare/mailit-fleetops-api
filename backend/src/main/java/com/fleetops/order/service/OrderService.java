@@ -164,6 +164,74 @@ public class OrderService {
         }
     }
     
+    /**
+     * Get orders assigned to a specific user (agent-scoped)
+     * Orders are retrieved through delivery sheets assigned to the agent
+     */
+    public Page<OrderDto> getOrdersForUser(
+            Long userId,
+            String status,
+            String serviceType,
+            String paymentStatus,
+            String carrierName,
+            String receiverCity,
+            Instant startDate,
+            Instant endDate,
+            Pageable pageable) {
+        
+        logger.debug("Getting orders for user ID: {} with filters", userId);
+        
+        // Convert string parameters to enums where needed
+        Order.OrderStatus statusEnum = null;
+        if (status != null && !status.trim().isEmpty()) {
+            try {
+                statusEnum = Order.OrderStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid status value: {}", status);
+            }
+        }
+        
+        Order.ServiceType serviceTypeEnum = null;
+        if (serviceType != null && !serviceType.trim().isEmpty()) {
+            try {
+                serviceTypeEnum = Order.ServiceType.valueOf(serviceType.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid service type value: {}", serviceType);
+            }
+        }
+        
+        Order.PaymentStatus paymentStatusEnum = null;
+        if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
+            try {
+                paymentStatusEnum = Order.PaymentStatus.valueOf(paymentStatus.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid payment status value: {}", paymentStatus);
+            }
+        }
+        
+        String safeCarrierName = (carrierName != null && !carrierName.trim().isEmpty()) ? carrierName.trim() : "";
+        String safeReceiverCity = (receiverCity != null && !receiverCity.trim().isEmpty()) ? receiverCity.trim() : "";
+        
+        // Use the agent-scoped repository method that joins through delivery sheets
+        return orderRepository.findOrdersForUser(
+            userId, statusEnum, serviceTypeEnum, paymentStatusEnum,
+            safeCarrierName, safeReceiverCity, startDate, endDate, pageable)
+            .map(orderMapper::toDto);
+    }
+    
+    /**
+     * Search orders assigned to a specific user (agent-scoped)
+     */
+    public Page<OrderDto> searchOrdersForUser(Long userId, String searchTerm, boolean useFullTextSearch, Pageable pageable) {
+        logger.debug("Searching orders for user ID: {} with term: {}", userId, searchTerm);
+        
+        if (useFullTextSearch) {
+            return orderRepository.fullTextSearchForUser(userId, searchTerm, pageable).map(orderMapper::toDto);
+        } else {
+            return orderRepository.searchOrdersForUser(userId, searchTerm, pageable).map(orderMapper::toDto);
+        }
+    }
+    
     public OrderDto updateOrder(Long id, CreateOrderDto updateOrderDto) {
         Order existingOrder = orderRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found with id: " + id));

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ public class PlaceControllerIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Test
+    @WithMockUser(username = "test", roles = {"ADMIN"})
     public void testGetPlaces() throws Exception {
         mockMvc.perform(get("/api/v1/places"))
                 .andDo(result -> System.out.println("Response: " + result.getResponse().getContentAsString()))
@@ -38,6 +40,7 @@ public class PlaceControllerIntegrationTest {
     }
 
     @Test
+    @WithMockUser(username = "test", roles = {"ADMIN"})
     public void testCreatePlace() throws Exception {
         PlaceRequest request = new PlaceRequest();
         request.setOrganizationId(UUID.randomUUID());
@@ -60,6 +63,7 @@ public class PlaceControllerIntegrationTest {
     }
 
     @Test
+    @WithMockUser(username = "test", roles = {"ADMIN"})
     public void testValidationError() throws Exception {
         PlaceRequest request = new PlaceRequest();
         // Missing required fields to trigger validation error

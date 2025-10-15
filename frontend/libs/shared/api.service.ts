@@ -178,6 +178,30 @@ export class ApiService {
     return this.http.get<PagedResponse<any>>(`${this.baseUrl}/v1/orders`, { params });
   }
 
+  getMyOrders(filterParams: any = {}): Observable<PagedResponse<any>> {
+    let params = new HttpParams();
+    
+    // Add all provided filter parameters to the HTTP params
+    Object.keys(filterParams).forEach(key => {
+      const value = filterParams[key];
+      if (value !== undefined && value !== null && value !== '') {
+        params = params.set(key, value.toString());
+      }
+    });
+    
+    // Set default pagination if not provided
+    if (!filterParams.page) {
+      params = params.set('page', '0');
+    }
+    if (!filterParams.size) {
+      params = params.set('size', '20');
+    }
+    
+  this.logger.debug('ApiService.getMyOrders HTTP params', params.toString());
+    
+    return this.http.get<PagedResponse<any>>(`${this.baseUrl}/v1/orders/my`, { params });
+  }
+
   getOrder(id: string): Observable<ApiResponse<any>> {
   return this.http.get<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}`);
   }

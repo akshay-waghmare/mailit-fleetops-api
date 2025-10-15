@@ -56,6 +56,40 @@ export class OrderService {
   }
 
   /**
+   * Get paginated orders assigned to the current user (agent-scoped)
+   */
+  getMyOrders(params: OrderQueryParams = {}): Observable<PaginatedResponse<OrderRecord>> {
+    // Convert OrderQueryParams to backend query params format
+    const queryParams: any = {
+      page: params.page ?? 0,
+      size: params.size ?? 20
+    };
+
+    // Add filter parameters if provided - map frontend names to backend names
+    if (params.search) queryParams.search = params.search;
+    if (params.status) queryParams.status = params.status;
+    if (params.service_type) queryParams.serviceType = params.service_type;
+    if (params.from_date) queryParams.startDate = params.from_date;
+    if (params.to_date) queryParams.endDate = params.to_date;
+    if (params.sort_by) queryParams.sort_by = params.sort_by;
+    if (params.sort_order) queryParams.sort_order = params.sort_order;
+
+  this.logger.debug('OrderService.getMyOrders sending parameters', queryParams);
+
+    return this.api.getMyOrders(queryParams).pipe(
+      map(resp => {
+        return {
+          content: resp.content as unknown as OrderRecord[],
+          totalElements: resp.totalElements,
+          page: resp.number,  // Spring uses 'number' not 'page'
+          size: resp.size,
+          totalPages: resp.totalPages
+        } as PaginatedResponse<OrderRecord>;
+      })
+    );
+  }
+
+  /**
    * Get order by ID
    */
   getOrderById(id: string): Observable<OrderRecord> {

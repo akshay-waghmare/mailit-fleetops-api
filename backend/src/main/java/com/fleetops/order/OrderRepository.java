@@ -75,6 +75,30 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            @Param("endDate") Instant endDate,
            Pageable pageable);
     
+    // Complex queries with multiple filters for agent-scoped orders (via delivery sheets)
+    @Query("SELECT o FROM Order o WHERE o.id IN (" +
+           "SELECT dso.orderId FROM DeliverySheetOrder dso " +
+           "JOIN dso.deliverySheet ds " +
+           "WHERE ds.assignedAgentId = :userId) AND " +
+           "(:#{#status} IS NULL OR o.status = :#{#status}) AND " +
+           "(:#{#serviceType} IS NULL OR o.serviceType = :#{#serviceType}) AND " +
+           "(:#{#paymentStatus} IS NULL OR o.paymentStatus = :#{#paymentStatus}) AND " +
+           "(:#{#carrierName} IS NULL OR :#{#carrierName} = '' OR LOWER(o.carrierName) LIKE LOWER(CONCAT('%', :#{#carrierName}, '%'))) AND " +
+           "(:#{#receiverCity} IS NULL OR :#{#receiverCity} = '' OR LOWER(o.receiverCity) LIKE LOWER(CONCAT('%', :#{#receiverCity}, '%'))) AND " +
+           "(:#{#startDate} IS NULL OR o.createdAt >= :#{#startDate}) AND " +
+           "(:#{#endDate} IS NULL OR o.createdAt <= :#{#endDate}) " +
+           "ORDER BY o.createdAt DESC")
+    Page<Order> findOrdersForUser(
+           @Param("userId") Long userId,
+           @Param("status") Order.OrderStatus status,
+           @Param("serviceType") Order.ServiceType serviceType,
+           @Param("paymentStatus") Order.PaymentStatus paymentStatus,
+           @Param("carrierName") String carrierName,
+           @Param("receiverCity") String receiverCity,
+           @Param("startDate") Instant startDate,
+           @Param("endDate") Instant endDate,
+           Pageable pageable);
+    
     // Search queries
     @Query("SELECT o FROM Order o WHERE " +
            "LOWER(o.orderId) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
@@ -86,6 +110,22 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            "LOWER(o.trackingNumber) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
            "ORDER BY o.createdAt DESC")
     Page<Order> searchOrders(@Param("searchTerm") String searchTerm, Pageable pageable);
+    
+    // Search queries for specific user (agent-scoped)
+    // Join through delivery_sheet_orders to find orders in delivery sheets assigned to the agent
+    @Query("SELECT o FROM Order o WHERE o.id IN (" +
+           "SELECT dso.orderId FROM DeliverySheetOrder dso " +
+           "JOIN dso.deliverySheet ds " +
+           "WHERE ds.assignedAgentId = :userId) AND (" +
+           "LOWER(o.orderId) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(o.clientName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(o.senderName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(o.receiverName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(o.receiverCity) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(o.carrierName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(o.trackingNumber) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+           "ORDER BY o.createdAt DESC")
+    Page<Order> searchOrdersForUser(@Param("userId") Long userId, @Param("searchTerm") String searchTerm, Pageable pageable);
     
     // Full-text search (PostgreSQL specific)
     @Query(value = "SELECT * FROM orders WHERE " +
@@ -101,6 +141,28 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                    "@@ plainto_tsquery('english', :searchTerm)",
            nativeQuery = true)
     Page<Order> fullTextSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
+    
+    // Full-text search for specific user (agent-scoped)
+    // Join through delivery_sheet_orders to find orders in delivery sheets assigned to the agent
+    @Query(value = "SELECT o.* FROM orders o " +
+                   "WHERE o.id IN (" +
+                   "  SELECT dso.order_id FROM delivery_sheet_orders dso " +
+                   "  JOIN delivery_sheets ds ON ds.id = dso.delivery_sheet_id " +
+                   "  WHERE ds.assigned_agent_id = :userId" +
+                   ") AND " +
+                   "to_tsvector('english', " +
+                   "COALESCE(o.order_id, '') || ' ' || " +
+                   "COALESCE(o.client_name, '') || ' ' || " +
+                   "COALESCE(o.sender_name, '') || ' ' || " +
+                   "COALESCE(o.receiver_name, '') || ' ' || " +
+                   "COALESCE(o.receiver_city, '') || ' ' || " +
+                   "COALESCE(o.carrier_name, '') || ' ' || " +
+                   "COALESCE(o.tracking_number, '') || ' ' || " +
+                   "COALESCE(o.item_description, '')) " +
+                   "@@ plainto_tsquery('english', :searchTerm) " +
+                   "ORDER BY o.created_at DESC",
+           nativeQuery = true)
+    Page<Order> fullTextSearchForUser(@Param("userId") Long userId, @Param("searchTerm") String searchTerm, Pageable pageable);
     
     // Analytics queries
     @Query("SELECT COUNT(o) FROM Order o WHERE o.status = :status")

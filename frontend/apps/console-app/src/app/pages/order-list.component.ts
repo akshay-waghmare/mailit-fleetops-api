@@ -23,6 +23,7 @@ import { OrderService, OrderRecord, OrderQueryParams, LoggingService } from '../
 import { OrderDetailModalComponent } from '../components/order-detail-modal.component';
 import { OrderEditModalComponent } from '../components/order-edit-modal.component';
 import { OrderStatusUpdateModalComponent } from '../components/order-status-update-modal.component';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-order-list',
@@ -56,11 +57,11 @@ import { OrderStatusUpdateModalComponent } from '../components/order-status-upda
           <div class="flex justify-between items-center py-6">
             <div>
               <h1 class="text-3xl font-bold text-slate-900 flex items-center">
-                📦 <span class="ml-2">Order Management</span>
+                📦 <span class="ml-2">{{ isAgent() ? 'My Orders' : 'Order Management' }}</span>
               </h1>
-              <p class="text-slate-600 mt-1">Real-time order tracking and delivery management dashboard</p>
+              <p class="text-slate-600 mt-1">{{ isAgent() ? 'View and track your assigned orders' : 'Real-time order tracking and delivery management dashboard' }}</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3" *ngIf="!isAgent()">
               <button 
                 mat-button 
                 [color]="autoRefresh ? 'accent' : 'primary'" 
@@ -433,9 +434,11 @@ import { OrderStatusUpdateModalComponent } from '../components/order-status-upda
                                 [matMenuTriggerFor]="orderMenu" 
                                 matTooltip="More Actions"
                                 (click)="$event.stopPropagation()"
+                                *ngIf="!isAgent()"
                                 class="text-slate-600 hover:bg-slate-50">
                           <mat-icon>more_vert</mat-icon>
                         </button>
+                        <span *ngIf="isAgent()" class="text-gray-400 text-xs">View only</span>
                         <mat-menu #orderMenu="matMenu">
                           <button mat-menu-item (click)="editOrder(order); $event.stopPropagation()">
                             <mat-icon>edit</mat-icon>
@@ -550,7 +553,8 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
     private dialog: MatDialog,
-    private logger: LoggingService
+    private logger: LoggingService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -600,6 +604,7 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loading = true;
     
   this.logger.debug('Order filters', { ...this.filterValues });
+  this.logger.debug('User is agent:', this.isAgent());
     
     const queryParams: OrderQueryParams = {
       search: this.filterValues.search && this.filterValues.search.trim() ? this.filterValues.search.trim() : undefined,
@@ -613,7 +618,12 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   this.logger.debug('Query params', queryParams);
 
-    const ordersSub = this.orderService.getOrders(queryParams).subscribe({
+    // Use /my endpoint for agents, regular endpoint for admin/staff
+    const request$ = this.isAgent() 
+      ? this.orderService.getMyOrders(queryParams)
+      : this.orderService.getOrders(queryParams);
+
+    const ordersSub = request$.subscribe({
       next: (response) => {
         this.dataSource.data = response.content || [];
         
@@ -936,6 +946,10 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   cancelOrder(order: OrderRecord): void {
     // TODO: Confirm and cancel order
+  }
+
+  isAgent(): boolean {
+    return this.authService.isAgent();
   }
 
   // Helper methods for chip styling

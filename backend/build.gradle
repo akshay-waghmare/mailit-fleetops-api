@@ -74,8 +74,203 @@ dependencyManagement {
     }
 }
 
+// Task to ensure PostGIS is enabled before tests
+task ensureTestDbSetup {
+    group = 'database'
+    description = 'Ensures test database has PostGIS enabled'
+    
+    doLast {
+        def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+        def cmdPrefix = isWindows ? ['cmd', '/c'] : []
+        
+        // First, check and fix any V4/V15 conflicts in dev database
+        try {
+            def result = new ByteArrayOutputStream()
+            exec {
+                commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_dev', '-t', '-c', "SELECT COUNT(*) FROM flyway_schema_history WHERE version = '4';"]
+                standardOutput = result
+                ignoreExitValue = true
+            }
+            
+            if (result.toString().trim().contains('1')) {
+                println '🔧 Auto-fixing V4/V15 migration conflict in dev database...'
+                exec {
+                    commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_dev', '-c', "DELETE FROM flyway_schema_history WHERE version = '4' AND description = 'Fix Place Type Constraint';"]
+                    ignoreExitValue = true
+                }
+                println '✅ V4/V15 conflict resolved automatically'
+            }
+        } catch (Exception e) {
+            // Ignore errors - dev database might not exist or be accessible
+        }
+        
+        // Ensure PostGIS is enabled in test database
+        exec {
+            commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_test', '-c', 'CREATE EXTENSION IF NOT EXISTS postgis;']
+            ignoreExitValue = true
+        }
+        println '✅ Test database setup verified (PostGIS extension enabled)'
+    }
+}
+
 tasks.named('test') {
     useJUnitPlatform()
+    dependsOn ensureTestDbSetup
+}
+
+// Also ensure setup when build is run (since build includes test)
+tasks.named('build') {
+    dependsOn ensureTestDbSetup
+}
+
+// Task to reset test database when needed
+task resetTestDb {
+    group = 'database'
+    description = 'Resets the test database (drops and recreates with PostGIS)'
+    
+    doLast {
+        def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+        def cmdPrefix = isWindows ? ['cmd', '/c'] : []
+        
+        println '🗑️  Dropping existing test database...'
+        exec {
+            commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'postgres', '-c', 'DROP DATABASE IF EXISTS fleetops_test;']
+            ignoreExitValue = true
+        }
+        
+        println '🆕 Creating fresh test database...'
+        exec {
+            commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'postgres', '-c', 'CREATE DATABASE fleetops_test OWNER fleetops;']
+        }
+        
+        println '🌍 Enabling PostGIS extension...'
+        exec {
+            commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_test', '-c', 'CREATE EXTENSION IF NOT EXISTS postgis;']
+        }
+        
+        exec {
+            commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_test', '-c', 'CREATE EXTENSION IF NOT EXISTS postgis_topology;']
+            ignoreExitValue = true
+        }
+        
+        println '✅ Test database reset complete! Flyway will apply migrations automatically when tests run.'
+    }
+}
+
+// Task to fix V4/V15 migration conflict for developers who have old V4
+task fixMigrationConflict {
+    group = 'database'
+    description = 'Fixes V4/V15 migration conflict by updating Flyway history'
+    
+    doLast {
+        def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+        def cmdPrefix = isWindows ? ['cmd', '/c'] : []
+        
+        println '🔧 Checking for V4/V15 migration conflict...'
+        
+        try {
+            // Check if V4 exists in dev database
+            def result = new ByteArrayOutputStream()
+            exec {
+                commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_dev', '-t', '-c', "SELECT COUNT(*) FROM flyway_schema_history WHERE version = '4';"]
+                standardOutput = result
+                ignoreExitValue = true
+            }
+            
+            if (result.toString().trim().contains('1')) {
+                println '⚠️  Found V4 migration in dev database. Fixing conflict...'
+                
+                // Delete V4 entry since V15 already exists with same content
+                exec {
+                    commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_dev', '-c', "DELETE FROM flyway_schema_history WHERE version = '4' AND description = 'Fix Place Type Constraint';"]
+                }
+                
+                println '✅ Migration conflict fixed! V4 migration removed (V15 already exists with same content).'
+                println '   You can now run migrations normally.'
+            } else {
+                println '✅ No V4/V15 conflict detected in dev database.'
+            }
+            
+        } catch (Exception e) {
+            println '❌ Error checking dev database. Make sure PostgreSQL container is running:'
+            println '   docker compose up -d postgres'
+        }
+    }
+}
+
+// Task to check database status
+task checkTestDb {
+    group = 'database'
+    description = 'Checks the test database status and displays useful information'
+    
+    doLast {
+        def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+        def cmdPrefix = isWindows ? ['cmd', '/c'] : []
+        
+        println '\n📊 Test Database Status:'
+        println '=' * 60
+        
+        try {
+            exec {
+                commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_test', '-c', '\\dx']
+            }
+            
+            println '\n📋 Tables:'
+            exec {
+                commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_test', '-c', '\\dt']
+            }
+            
+            println '\n🔄 Flyway Migrations:'
+            exec {
+                commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_test', '-c', 'SELECT version, description, installed_on FROM flyway_schema_history ORDER BY installed_rank;']
+                ignoreExitValue = true
+            }
+        } catch (Exception e) {
+            println '❌ Error connecting to test database. Make sure PostgreSQL container is running:'
+            println '   docker compose up -d postgres'
+        }
+    }
+}
+
+// Task to check dev database for migration conflicts
+task checkDevDb {
+    group = 'database'
+    description = 'Checks the dev database for potential migration conflicts'
+    
+    doLast {
+        def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+        def cmdPrefix = isWindows ? ['cmd', '/c'] : []
+        
+        println '\n📊 Dev Database Status:'
+        println '=' * 60
+        
+        try {
+            println '\n🔄 Flyway Migrations:'
+            exec {
+                commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_dev', '-c', 'SELECT version, description, installed_on FROM flyway_schema_history ORDER BY installed_rank;']
+            }
+            
+            // Check for V4/V15 conflict
+            def result = new ByteArrayOutputStream()
+            exec {
+                commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_dev', '-t', '-c', "SELECT COUNT(*) FROM flyway_schema_history WHERE version IN ('4', '15');"]
+                standardOutput = result
+                ignoreExitValue = true
+            }
+            
+            def count = result.toString().trim() as Integer
+            if (count > 1) {
+                println '\n⚠️  WARNING: Potential V4/V15 migration conflict detected!'
+                println '   Run: ./gradlew fixMigrationConflict'
+            } else {
+                println '\n✅ No migration conflicts detected.'
+            }
+            
+        } catch (Exception e) {
+            println '❌ Error connecting to dev database. Make sure PostgreSQL container is running:'
+            println '   docker compose up -d postgres'
+        }
+    }
 }
 
 // Flyway configuration

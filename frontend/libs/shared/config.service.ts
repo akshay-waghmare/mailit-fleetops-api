@@ -54,9 +54,16 @@ export class ConfigService {
   }
 
   private getApiBaseUrl(): string {
-    // SSR / non-browser fallback
+    // SSR / non-browser fallback - check NODE_ENV or assume local dev
     if (typeof window === 'undefined') {
-      return '/api';
+      // During SSR in dev server (ng serve), use localhost:8081
+      // In production/docker SSR, use relative /api
+      const nodeEnv = typeof process !== 'undefined' ? process.env['NODE_ENV'] : undefined;
+      if (nodeEnv === 'production' || nodeEnv === 'docker') {
+        return '/api';
+      }
+      // Default to localhost:8081 for local SSR dev
+      return 'http://localhost:8081/api';
     }
 
     const isDockerEnvironment =

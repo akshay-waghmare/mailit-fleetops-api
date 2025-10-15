@@ -33,11 +33,8 @@
               "apps/console-app/src/styles.scss"
             ],
             "scripts": [],
-            "server": "apps/console-app/src/main.server.ts",
-            "prerender": true,
-            "ssr": {
-              "entry": "apps/console-app/src/server.ts"
-            },
+            "prerender": false,
+            "ssr": false,
             "allowedCommonJsDependencies": [
               "maplibre-gl"
             ],

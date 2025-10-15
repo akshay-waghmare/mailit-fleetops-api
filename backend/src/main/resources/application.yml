@@ -31,12 +31,13 @@ spring:
     enabled: false
     locations: classpath:db/migration
     baseline-on-migrate: true
+    out-of-order: false  # Strict sequential ordering (V4 renamed to V15)
     
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8080}
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081}
           
   quartz:
     job-store-type: jdbc
@@ -63,4 +64,23 @@ app:
     secret: ${JWT_SECRET:your-super-secret-jwt-key-change-this-in-production}
     expiration: 86400000 # 24 hours
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080,http://localhost:4200,http://localhost:8081,http://localhost:5001}
+
+---
+# Docker profile configuration
+spring:
+  config:
+    activate:
+      on-profile: docker
+      
+  datasource:
+    url: jdbc:postgresql://postgres:5432/fleetops_dev
+    username: fleetops
+    password: fleetops
+    
+server:
+  port: 8080  # Keep 8080 inside Docker container
+  
+app:
+  cors:
+    allowed-origins: http://localhost:5001,http://frontend:80,http://localhost:4200,http://localhost:8081

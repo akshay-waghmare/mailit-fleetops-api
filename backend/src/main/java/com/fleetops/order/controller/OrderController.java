@@ -100,6 +100,40 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
     
+    /**
+     * GET /api/v1/orders/my
+     * Get orders assigned to the authenticated user (agent-scoped)
+     */
+    @GetMapping("/my")
+    public ResponseEntity<Page<OrderDto>> getMyOrders(
+            @PageableDefault(size = 20) Pageable pageable,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String serviceType,
+            @RequestParam(required = false) String paymentStatus,
+            @RequestParam(required = false) String carrierName,
+            @RequestParam(required = false) String receiverCity,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endDate,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "false") boolean fullTextSearch,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.fleetops.user.entity.User currentUser) {
+        
+        logger.debug("Getting orders for user: {} (ID: {})", currentUser.getUsername(), currentUser.getId());
+        
+        Page<OrderDto> orders;
+        
+        if (search != null && !search.trim().isEmpty()) {
+            orders = orderService.searchOrdersForUser(currentUser.getId(), search.trim(), fullTextSearch, pageable);
+        } else {
+            orders = orderService.getOrdersForUser(
+                    currentUser.getId(), status, serviceType, paymentStatus,
+                    carrierName, receiverCity, startDate, endDate, pageable);
+        }
+        
+        logger.debug("Found {} orders for user {}", orders.getTotalElements(), currentUser.getUsername());
+        return ResponseEntity.ok(orders);
+    }
+    
     @PutMapping("/{id}")
     public ResponseEntity<OrderDto> updateOrder(@PathVariable Long id, 
                                                @Valid @RequestBody CreateOrderDto updateOrderDto) {
