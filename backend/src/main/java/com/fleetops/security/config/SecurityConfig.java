@@ -1,5 +1,6 @@
 package com.fleetops.security.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -39,6 +40,9 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -105,18 +109,15 @@ public class SecurityConfig {
     /**
      * CORS configuration
      * Allows frontend to make requests from different origin
+     * Reads allowed origins from application.yml (app.cors.allowed-origins)
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow frontend origins
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:4200",     // Angular dev server
-            "http://localhost:3000",     // Alternative port
-            "http://localhost:8081",     // Local backend on 8081
-            "https://fleetops.mailit.com" // Production (when deployed)
-        ));
+        // Parse allowed origins from comma-separated string
+        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+        configuration.setAllowedOrigins(origins);
         
         // Allow common HTTP methods
         configuration.setAllowedMethods(Arrays.asList(

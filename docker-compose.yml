@@ -39,6 +39,7 @@ services:
       DB_NAME: fleetops_dev
       DB_USERNAME: fleetops
       DB_PASSWORD: fleetops
+      CORS_ALLOWED_ORIGINS: http://localhost:5001,http://localhost:4200,http://localhost:8081,http://frontend:80
     volumes:
       - ./backend/src:/app/src:ro
     command: ["java", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005", "-jar", "app.jar"]
