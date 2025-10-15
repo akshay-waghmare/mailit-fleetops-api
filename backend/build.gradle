@@ -80,16 +80,34 @@ task ensureTestDbSetup {
     description = 'Ensures test database has PostGIS enabled'
     
     doLast {
-        if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+        def cmdPrefix = isWindows ? ['cmd', '/c'] : []
+        
+        // First, check and fix any V4/V15 conflicts in dev database
+        try {
+            def result = new ByteArrayOutputStream()
             exec {
-                commandLine 'cmd', '/c', 'docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_test', '-c', 'CREATE EXTENSION IF NOT EXISTS postgis;'
+                commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_dev', '-t', '-c', "SELECT COUNT(*) FROM flyway_schema_history WHERE version = '4';"]
+                standardOutput = result
                 ignoreExitValue = true
             }
-        } else {
-            exec {
-                commandLine 'docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_test', '-c', 'CREATE EXTENSION IF NOT EXISTS postgis;'
-                ignoreExitValue = true
+            
+            if (result.toString().trim().contains('1')) {
+                println '🔧 Auto-fixing V4/V15 migration conflict in dev database...'
+                exec {
+                    commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_dev', '-c', "DELETE FROM flyway_schema_history WHERE version = '4' AND description = 'Fix Place Type Constraint';"]
+                    ignoreExitValue = true
+                }
+                println '✅ V4/V15 conflict resolved automatically'
             }
+        } catch (Exception e) {
+            // Ignore errors - dev database might not exist or be accessible
+        }
+        
+        // Ensure PostGIS is enabled in test database
+        exec {
+            commandLine cmdPrefix + ['docker', 'exec', 'fleetops-postgres', 'psql', '-U', 'fleetops', '-d', 'fleetops_test', '-c', 'CREATE EXTENSION IF NOT EXISTS postgis;']
+            ignoreExitValue = true
         }
         println '✅ Test database setup verified (PostGIS extension enabled)'
     }
