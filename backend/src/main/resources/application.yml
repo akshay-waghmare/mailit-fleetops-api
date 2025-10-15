@@ -31,7 +31,7 @@ spring:
   flyway:
     locations: classpath:db/migration
     baseline-on-migrate: true
-    out-of-order: true  # Allow V4 migration to be applied after V5-V11
+    out-of-order: false  # Strict sequential ordering (V4 renamed to V15)
     
   security:
     oauth2:
