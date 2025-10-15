@@ -24,7 +24,7 @@ import { DeliverySheetService } from '../../services/delivery-sheet.service';
 import { UserService } from '../../services/user.service';
 import { UserResponse } from '../../models/user.model';
 import { CreateDeliverySheetRequest, DeliverySheetSummary } from '../../models/delivery-sheet.model';
-import { OrderService, OrderRecord } from '../../../../../../libs/shared';
+import { OrderService, OrderRecord, toIsoDate } from '../../../../../../libs/shared';
 
 export interface DeliverySheetFormResult {
   created: boolean;
@@ -356,7 +356,7 @@ export class DeliverySheetFormComponent implements OnInit {
     const payload: CreateDeliverySheetRequest = {
       title: formValue.title,
       assignedAgentId: formValue.assignedAgentId,
-      scheduledDate: formValue.scheduledDate ? this.toIsoDate(formValue.scheduledDate) : undefined,
+      scheduledDate: formValue.scheduledDate ? toIsoDate(formValue.scheduledDate) : undefined,
       notes: formValue.notes?.trim() ? formValue.notes.trim() : undefined,
       orderIds: this.selectedOrders.map(order => order.id)
     };
@@ -429,14 +429,4 @@ export class DeliverySheetFormComponent implements OnInit {
       });
   }
 
-  private toIsoDate(date: unknown): string | undefined {
-    if (!(date instanceof Date)) {
-      return undefined;
-    }
-    // Return YYYY-MM-DD to match backend expectation
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2, '0');
-    const day = `${date.getDate()}`.padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
 }

@@ -253,6 +253,11 @@ export class AuthService {
 
   /**
    * Decode JWT token (without verification - only for client-side use)
+   * 
+   * ⚠️ SECURITY WARNING: This method performs NO cryptographic verification.
+   * It only parses the JWT payload for UI purposes (e.g., displaying username, roles).
+   * NEVER trust this data for authorization decisions - always validate tokens on the server.
+   * Backend APIs MUST verify JWT signatures before granting access to protected resources.
    */
   private decodeToken(token: string): JwtPayload {
     if (typeof atob === 'undefined') {
@@ -263,6 +268,7 @@ export class AuthService {
       throw new Error('Invalid JWT token');
     }
 
+    // Client-side parsing only - no signature verification
     const payload = parts[1];
     const decoded = atob(payload);
     return JSON.parse(decoded);

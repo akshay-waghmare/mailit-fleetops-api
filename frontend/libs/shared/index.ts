@@ -3,6 +3,8 @@ export * from './types';
 export * from './api.service';
 export * from './config.service';
 export * from './logging.service';
+export * from './validation.constants';
+export * from './date.utils';
 
 // Pickup
 export * from './pickup.interface';

@@ -11,6 +11,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { UserService } from '../../services/user.service';
 import { CreateUserRequest, UpdateUserRequest, UserResponse, UserRole } from '../../models/user.model';
+import { PASSWORD_PATTERN } from '../../../../../../libs/shared';
 
 export type UserFormDialogMode = 'create' | 'edit';
 
@@ -285,5 +286,3 @@ export class UserFormDialogComponent {
     return 'Something went wrong while saving the user. Please try again.';
   }
 }
-
-const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
