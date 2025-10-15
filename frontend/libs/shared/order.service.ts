@@ -47,7 +47,7 @@ export class OrderService {
         return {
           content: resp.content as unknown as OrderRecord[],
           totalElements: resp.totalElements,
-          page: resp.page,
+          page: resp.number,  // Spring uses 'number' for page number
           size: resp.size,
           totalPages: resp.totalPages
         } as PaginatedResponse<OrderRecord>;

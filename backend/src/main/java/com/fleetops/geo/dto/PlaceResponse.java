@@ -33,6 +33,7 @@ public class PlaceResponse {
     
     private PlaceType type;
     private UUID organizationId;
+    private Boolean active;           // Active status field
     private LocalDateTime createdAt;  // CREATED AT column in table
     private LocalDateTime updatedAt;
     

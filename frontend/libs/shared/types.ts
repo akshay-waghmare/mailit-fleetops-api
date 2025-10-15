@@ -13,19 +13,43 @@ export interface Place {
   organizationId: string;
   name: string;
   description?: string;
+  
+  // Address fields matching backend PlaceResponse
+  address?: string;           // Combined address for display
   addressLine1: string;
   addressLine2?: string;
+  neighbourhood?: string;     // Backend uses 'neighbourhood'
+  building?: string;
+  securityAccessCode?: string;
   city: string;
   state: string;
   postalCode: string;
   country: string;
-  coordinates: {
-    longitude: number;
+  
+  // Location using backend structure
+  location: {
     latitude: number;
+    longitude: number;
   };
-  isActive: boolean;
+  
+  // Contact information
+  phoneNumber?: string;
+  phoneCountryCode?: string;
+  contactPerson?: string;
+  avatar?: string;
+  
+  // Place type from backend enum  
+  type: 'DEPOT' | 'WAREHOUSE' | 'CUSTOMER' | 'PICKUP_POINT' | 'DELIVERY_POINT' | 'SERVICE_CENTER' | 'RETAIL_STORE' | 'DISTRIBUTION_CENTER' | 'OFFICE' | 'OTHER';
+  
+  // Status - matching backend field name
+  active?: boolean;
+  
   createdAt: Date;
   updatedAt: Date;
+  
+  // Additional display fields that backend provides
+  formattedAddress?: string;
+  displayId?: string;
 }
 
 // Custom circle geometry for geofences
@@ -89,6 +113,27 @@ export interface PagedResponse<T> {
   content: T[];
   totalElements: number;
   totalPages: number;
-  page: number;
+  number: number;        // Spring uses 'number' not 'page'
   size: number;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  empty: boolean;
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: {
+      empty: boolean;
+      sorted: boolean;
+      unsorted: boolean;
+    };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  sort: {
+    empty: boolean;
+    sorted: boolean;
+    unsorted: boolean;
+  };
 }

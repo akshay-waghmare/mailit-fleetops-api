@@ -54,4 +54,6 @@ public class PlaceRequest {
     
     @NotNull(message = "Organization ID is required")
     private UUID organizationId;
+    
+    private Boolean active = true;  // Default to active
 }

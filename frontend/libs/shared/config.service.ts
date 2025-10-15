@@ -11,6 +11,7 @@ export interface AppConfig {
   defaultMapZoom: number;
   enableSSR: boolean;
   environment: 'development' | 'production' | 'staging' | 'docker';
+  defaultOrganizationId: string;
 }
 
 @Injectable({
@@ -47,7 +48,8 @@ export class ConfigService {
       defaultMapCenter: [72.8777, 19.0760], // Mumbai, India
       defaultMapZoom: 12,
       enableSSR: true,
-      environment: this.getEnvironment()
+      environment: this.getEnvironment(),
+      defaultOrganizationId: '550e8400-e29b-41d4-a716-446655440000' // Default organization UUID
     };
   }
 
@@ -163,5 +165,9 @@ export class ConfigService {
 
   get isDocker(): boolean {
     return this.configSubject.value.environment === 'docker';
+  }
+
+  get defaultOrganizationId(): string {
+    return this.configSubject.value.defaultOrganizationId;
   }
 }

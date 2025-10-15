@@ -13,11 +13,11 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     // Explicitly disable preloading to avoid eager loading of lazy routes
     provideRouter(routes, withPreloading(NoPreloading)),
-  provideClientHydration(),
-  provideHttpClient(
-    withFetch(),
-    withInterceptors([jwtInterceptor])
-  ),
-  provideAnimationsAsync()
+    provideClientHydration(),
+    provideHttpClient(
+      withFetch(),
+      withInterceptors([jwtInterceptor])
+    ),
+    provideAnimationsAsync() // Add animations support for ngx-charts
   ]
 };

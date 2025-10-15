@@ -31,7 +31,7 @@ public class Place {
     private String description;
 
     @NotNull
-    @Column(columnDefinition = "BLOB", nullable = false)
+    @Column(columnDefinition = "geometry(Point,4326)", nullable = false)
     private Point location;
 
     private String address;
@@ -63,6 +63,9 @@ public class Place {
     @Column(name = "organization_id")
     private UUID organizationId;
 
+    @Column(name = "active")
+    private Boolean active = true;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -72,6 +75,7 @@ public class Place {
     private LocalDateTime updatedAt;
 
     public enum PlaceType {
-        DEPOT, WAREHOUSE, CUSTOMER, PICKUP_POINT, DELIVERY_POINT, SERVICE_CENTER
+        DEPOT, WAREHOUSE, CUSTOMER, PICKUP_POINT, DELIVERY_POINT, SERVICE_CENTER,
+        RETAIL_STORE, DISTRIBUTION_CENTER, OFFICE, OTHER
     }
 }

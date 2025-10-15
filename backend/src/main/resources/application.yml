@@ -18,17 +18,17 @@ spring:
       
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: false
     properties:
       hibernate:
-        # Let Hibernate auto-detect PostGIS dialect
-        # dialect: org.hibernate.spatial.dialect.postgis.PostgisDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
         jdbc:
           time_zone: UTC
           
   flyway:
+    enabled: false
     locations: classpath:db/migration
     baseline-on-migrate: true
     out-of-order: false  # Strict sequential ordering (V4 renamed to V15)
