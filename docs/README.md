@@ -34,6 +34,7 @@ This documentation is organized into the following categories:
 
 ### `/infrastructure`
 - **DOCKER-INFRASTRUCTURE-GUIDE.md** - Comprehensive Docker infrastructure setup guide
+- **PRODUCTION-TROUBLESHOOTING-GUIDE.md** - Production deployment troubleshooting and diagnostics
 - **DOCKER.md** - Docker configuration and deployment notes
 
 ### `/setup`
@@ -53,6 +54,7 @@ Active implementation plans and ongoing development documentation:
 
 ### `/completed`
 Documentation for completed features and implementations:
+- **PRODUCTION-DEPLOYMENT-COMPLETE.md** - ✅ **Production deployment with CORS and nginx fixes**
 - **COMING-SOON-PAGES-COMPLETE.md** - Coming soon pages implementation
 - **MAILIT-STYLE-ORDERS-COMPLETE.md** - Order styling and UI completion
 - **MAP-ENHANCEMENT-COMPLETE.md** - Map feature enhancements
