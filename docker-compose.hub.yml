@@ -83,6 +83,33 @@ services:
     profiles:
       - admin
 
+  web:
+    image: nginx:alpine
+    container_name: fleetops-web
+    depends_on:
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/www:/var/www/certbot
+      - ./certbot:/etc/letsencrypt
+    restart: unless-stopped
+    networks:
+      - fleetops-network
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: fleetops-certbot
+    volumes:
+      - ./nginx/www:/var/www/certbot
+      - ./certbot:/etc/letsencrypt
+    networks:
+      - fleetops-network
+    profiles:
+      - ssl  
+
 volumes:
   postgres_data:
 
