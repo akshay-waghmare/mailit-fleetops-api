@@ -2,68 +2,333 @@
 
 **Quick Reference**: Common production issues and solutions  
 **Last Updated**: October 17, 2025  
-**Production URL**: http://mailit-dev.ddns.net  
-**⚠️ SSL Status**: HTTPS not working - use HTTP only
+**Production URL**: https://mailit-dev.ddns.net 🔒  
+**✅ SSL Status**: HTTPS fully working with Let's Encrypt certificate
 
 ---
 
-## ⚠️ **CURRENT SSL STATUS**
+## ✅ **CURRENT SSL/HTTPS STATUS**
 
-**HTTPS**: ❌ **NOT WORKING** - SSL certificates not properly configured  
-**HTTP**: ✅ **WORKING** - Use http://mailit-dev.ddns.net (without SSL)
+**HTTPS**: ✅ **FULLY WORKING** - https://mailit-dev.ddns.net  
+**HTTP**: ✅ **REDIRECTS TO HTTPS** - Automatic redirect configured  
+**Certificate**: Let's Encrypt (valid until December 12, 2025)  
+**TLS**: TLS 1.2 and 1.3 supported
 
-**Current Configuration**: HTTP-only nginx setup  
-**SSL Setup**: Available in `production-config` branch but not active  
-**Recommendation**: Use HTTP for now, SSL can be configured later if needed
+**CORS Status**: ✅ Working via nginx workaround (see Section 1 for details)
 
 ---
 
 ## 🚨 Critical Issues & Solutions
 
-### **1. API Returns 403 "Invalid CORS request"**
+### **1. API Returns 403 "Invalid CORS request"** ⚠️ **CRITICAL - HTTPS ONLY**
 
 **Symptoms**:
-- Browser login fails with 403 error
-- Curl without headers works (200)  
-- Curl with `Origin` header fails (403)
-- Browser console shows CORS errors
+- Browser login fails with 403 error via HTTPS
+- Login works without Origin header but fails with browser CORS
+- Console shows: `POST https://mailit-dev.ddns.net/api/v1/auth/login 403 (Forbidden)`
+- Preflight OPTIONS request returns "Invalid CORS request"
 
 **Diagnosis**:
 ```bash
-# Test without CORS headers (should work)
-curl -X POST http://mailit-dev.ddns.net/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"Admin@123"}'
+# Test CORS preflight (will fail with Spring Boot CORS issue)
+curl -X OPTIONS -H "Origin: https://mailit-dev.ddns.net" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: Content-Type" \
+  https://mailit-dev.ddns.net/api/v1/auth/login -I
 
-# Test with CORS headers (should also work after fix)
-curl -X POST http://mailit-dev.ddns.net/api/v1/auth/login \
+# Test without CORS (should work)
+curl -X POST https://mailit-dev.ddns.net/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -H "Origin: http://mailit-dev.ddns.net" \
+  -d '{"username":"admin","password":"Admin@123"}' -k
+
+# Test direct backend (bypasses nginx)
+curl -X POST http://localhost:8081/api/v1/auth/login \
+  -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"Admin@123"}'
 ```
 
-**Root Cause**: Missing production domain in backend CORS configuration.
+**Root Cause**: Spring Boot CORS configuration not properly reading `CORS_ALLOWED_ORIGINS` environment variable for HTTPS domains. Backend rejects CORS preflight requests even when domain is configured.
 
-**Solution**:
-```yaml
-# In docker-compose.hub.yml
-backend:
-  environment:
-    CORS_ALLOWED_ORIGINS: "http://mailit-dev.ddns.net,http://localhost:5001,http://frontend:80,http://localhost:4200,http://localhost:8081"
+**Solution - nginx CORS Workaround**:
+
+Since Spring Boot CORS is not working properly, nginx handles CORS completely:
+
+```nginx
+# /root/fleetops-nginx/conf.d/fleetops.conf
+
+server {
+    listen 443 ssl;
+    server_name mailit-dev.ddns.net;
+
+    # SSL Configuration
+    ssl_certificate /etc/letsencrypt/live/mailit-dev.ddns.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/mailit-dev.ddns.net/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    # API Backend with CORS workaround
+    location ~ ^/api/ {
+        # Handle CORS preflight
+        if ($request_method = OPTIONS) {
+            add_header Access-Control-Allow-Origin "https://mailit-dev.ddns.net" always;
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH" always;
+            add_header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma" always;
+            add_header Access-Control-Allow-Credentials "true" always;
+            add_header Access-Control-Max-Age 86400 always;
+            add_header Content-Type "text/plain; charset=utf-8" always;
+            add_header Content-Length 0 always;
+            return 204;
+        }
+        
+        # Remove Origin header to bypass backend CORS check
+        proxy_set_header Origin "";
+        
+        proxy_pass http://fleetops-backend:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Add CORS headers to response
+        add_header Access-Control-Allow-Origin "https://mailit-dev.ddns.net" always;
+        add_header Access-Control-Allow-Credentials "true" always;
+    }
+}
 ```
-**Note**: Only HTTP domains needed since HTTPS is not currently working
+
+**Key Points**:
+1. **nginx handles CORS preflight** - Returns 204 for OPTIONS requests with proper headers
+2. **Strips Origin header** - Removes Origin when proxying to backend (bypasses backend CORS validation)
+3. **Adds CORS headers** - nginx adds proper CORS headers to all API responses
+4. **Backend oblivious** - Backend processes requests as non-CORS (no Origin header)
+
+**Implementation Steps**:
+```bash
+# 1. Update nginx configuration with CORS workaround
+cat > /root/fleetops-nginx/conf.d/fleetops.conf << 'EOF'
+[paste configuration above]
+EOF
+
+# 2. Test nginx configuration
+docker exec fleetops-web nginx -t
+
+# 3. Reload nginx
+docker exec fleetops-web nginx -s reload
+
+# 4. Verify CORS works
+curl -X OPTIONS -H "Origin: https://mailit-dev.ddns.net" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: Content-Type" \
+  https://mailit-dev.ddns.net/api/v1/auth/login -I -k
+# Should return: HTTP/2 204 with CORS headers
+
+# 5. Test actual login
+curl -X POST -H "Content-Type: application/json" \
+  -H "Origin: https://mailit-dev.ddns.net" \
+  -d '{"username":"admin","password":"Admin@123"}' \
+  https://mailit-dev.ddns.net/api/v1/auth/login -k
+# Should return: JWT token with user info
+```
 
 **Verification**:
 ```bash
-# Check environment variable is set
-docker exec fleetops-backend printenv | grep CORS
+# Check nginx configuration is loaded
+docker exec fleetops-web cat /etc/nginx/conf.d/fleetops.conf | grep -A 5 "OPTIONS"
 
-# Should show production domain in the list
+# Test in browser - should work now
+# Open https://mailit-dev.ddns.net and login with admin/Admin@123
+```
+
+**Future Fix**: Update Spring Boot CORS configuration to properly read environment variables.
+
+---
+
+### **1B. Windows Client SSL/TLS Handshake Errors** ⚠️ **INFORMATIONAL**
+
+**Symptoms**:
+- curl from Windows shows: `schannel: next InitializeSecurityContext failed: SEC_E_ILLEGAL_MESSAGE`
+- Server-side HTTPS works perfectly
+- Certificate is valid and properly configured
+
+**Root Cause**: Windows Schannel SSL/TLS compatibility issue with specific nginx SSL cipher configuration.
+
+**Solution**: This is a **client-side Windows issue only**. The production server HTTPS is working correctly.
+
+**Workarounds for Testing**:
+```bash
+# Option 1: Use browser (recommended)
+# Open https://mailit-dev.ddns.net in Chrome/Firefox/Edge
+
+# Option 2: Test from Linux/Mac
+ssh user@server curl https://mailit-dev.ddns.net
+
+# Option 3: Test from server itself
+ssh root@139.59.46.120
+curl -k https://mailit-dev.ddns.net/api/v1/auth/login
+
+# Option 4: Use HTTP endpoint temporarily
+curl http://139.59.46.120:8081/api/v1/auth/login
+```
+
+**Impact**: None on production. Browsers work fine. This only affects Windows curl/Schannel.
+
+---
+
+### **2. SSL Certificate Configuration and Mounting**
+
+**Symptoms**:
+- HTTPS not working even though certificates exist
+- nginx can't find SSL certificate files
+- Certificate files exist on host but not accessible in container
+
+**Diagnosis**:
+```bash
+# Check certificates on host
+ls -la /root/mailit-fleetops-api/certbot/live/mailit-dev.ddns.net/
+
+# Check certificates in nginx container
+docker exec fleetops-web ls -la /etc/letsencrypt/live/mailit-dev.ddns.net/
+
+# Verify certificate validity
+openssl x509 -in /root/mailit-fleetops-api/certbot/live/mailit-dev.ddns.net/cert.pem -text -noout | grep -E 'Subject:|Not After'
+```
+
+**Solution - Proper Certificate Mounting**:
+
+```bash
+# 1. Stop nginx container (must recreate for volume changes)
+docker stop fleetops-web
+docker rm fleetops-web
+
+# 2. Create nginx container with SSL certificate volume
+docker run -d --name fleetops-web \
+  --network mailit-fleetops-api_fleetops-network \
+  -p 80:80 -p 443:443 \
+  -v /root/fleetops-nginx/conf.d:/etc/nginx/conf.d \
+  -v /root/mailit-fleetops-api/certbot:/etc/letsencrypt:ro \
+  --restart unless-stopped \
+  nginx:alpine
+
+# 3. Verify mount worked
+docker exec fleetops-web ls -la /etc/letsencrypt/live/mailit-dev.ddns.net/
+
+# 4. Test nginx config
+docker exec fleetops-web nginx -t
+
+# 5. Reload nginx  
+docker exec fleetops-web nginx -s reload
+```
+
+**docker-compose.hub.yml Configuration**:
+```yaml
+web:
+  image: nginx:alpine
+  container_name: fleetops-web
+  ports:
+    - "80:80"
+    - "443:443"
+  volumes:
+    - /root/fleetops-nginx/conf.d:/etc/nginx/conf.d
+    - /root/mailit-fleetops-api/certbot:/etc/letsencrypt:ro  # SSL certificates
+  depends_on:
+    - frontend
+    - backend
+  networks:
+    - fleetops-network
+  restart: unless-stopped
+```
+
+**Note**: Certificate mount is read-only (`:ro`) for security.
+
+---
+
+### **3. Frontend Port Configuration** 
+
+**Symptoms**:
+- nginx returns 502 Bad Gateway for frontend
+- Frontend container running but nginx can't connect
+- Error: `connect() failed (111: Connection refused) while connecting to upstream`
+
+**Root Cause**: Frontend container listens on port 80 internally, but nginx configuration references wrong port (e.g., 4200).
+
+**Solution**:
+```nginx
+# Correct configuration
+location / {
+    proxy_pass http://frontend:80;  # NOT frontend:4200
+    proxy_set_header Host $host;
+}
+```
+
+**Verification**:
+```bash
+# Check what port frontend actually uses
+docker exec fleetops-frontend netstat -tlnp
+
+# Test direct access
+docker exec fleetops-web wget -O- http://frontend:80 | head -10
+
+# Update nginx config if needed
+docker exec fleetops-web sed -i 's/frontend:4200/frontend:80/g' /etc/nginx/conf.d/fleetops.conf
+docker exec fleetops-web nginx -s reload
 ```
 
 ---
 
-### **2. Nginx Configuration Not Loading**
+### **4. Backend Container Name Resolution**
+
+**Symptoms**:
+- nginx error: `host not found in upstream "backend"`
+- 502 Bad Gateway for API requests
+- nginx can't resolve backend container name
+
+**Root Cause**: nginx trying to resolve generic "backend" instead of actual container name "fleetops-backend".
+
+**Solution**:
+```bash
+# Update nginx configuration to use correct container name
+docker exec fleetops-web sed -i 's/backend:8080/fleetops-backend:8080/g' /etc/nginx/conf.d/fleetops.conf
+
+# Test configuration
+docker exec fleetops-web nginx -t
+
+# Reload nginx
+docker exec fleetops-web nginx -s reload
+
+# Verify backend resolution
+docker exec fleetops-web nslookup fleetops-backend
+docker exec fleetops-web wget -O- http://fleetops-backend:8080/actuator/health
+```
+
+---
+
+### **5. docker-compose 'ContainerConfig' Error**
+
+**Symptoms**:
+- Error: `KeyError: 'ContainerConfig'` when running `docker-compose up`
+- Cannot recreate containers with docker-compose
+- Happens after adding/changing volume mounts
+
+**Root Cause**: docker-compose 1.29.2 bug with volume configuration changes on existing containers.
+
+**Workaround**:
+```bash
+# Option 1: Use docker run directly (recommended for volume changes)
+docker stop fleetops-web
+docker rm fleetops-web
+docker run -d --name fleetops-web [... full docker run command ...]
+
+# Option 2: Clean up and recreate
+docker-compose -f docker-compose.hub.yml down
+docker container prune -f
+docker-compose -f docker-compose.hub.yml up -d
+
+# Option 3: Upgrade docker-compose (if possible)
+# This bug is fixed in docker compose v2+
+```
+
+---
+
+### **6. Backend Container Fails to Start**
 
 **Symptoms**:
 - HTTP 000 connection errors
@@ -295,26 +560,29 @@ docker-compose -f docker-compose.hub.yml up -d
 ## 📋 Pre-Deployment Checklist
 
 ### **Infrastructure Requirements**
-- [ ] Domain name pointing to server IP
-- [ ] Port 80 open (HTTPS/443 not working currently)
-- [ ] Ports 5001, 8081, 5432 open for direct service access
-- [ ] Docker and Docker Compose installed
-- [ ] Sufficient disk space (>10GB recommended)
-- [ ] Sufficient RAM (>2GB recommended)
+- [x] Domain name pointing to server IP (139.59.46.120)
+- [x] Ports 80, 443 open for HTTPS/SSL ✅
+- [x] Ports 5001, 8081, 5432 open for direct service access
+- [x] Docker and Docker Compose installed
+- [x] Sufficient disk space (>10GB recommended)
+- [x] Sufficient RAM (>2GB recommended)
+- [x] SSL certificates (Let's Encrypt, valid until Dec 12, 2025) ✅
 
 ### **Configuration Files**
-- [ ] `/root/fleetops-nginx/conf.d/fleetops.conf` exists
-- [ ] `docker-compose.hub.yml` has CORS_ALLOWED_ORIGINS
-- [ ] Volume mounts point to correct host paths
-- [ ] Environment variables set correctly
+- [x] `/root/fleetops-nginx/conf.d/fleetops.conf` exists with HTTPS + CORS workaround ✅
+- [x] SSL certificates mounted at `/root/mailit-fleetops-api/certbot:/etc/letsencrypt:ro` ✅
+- [x] `docker-compose.hub.yml` has CORS_ALLOWED_ORIGINS (though backend CORS not working)
+- [x] Volume mounts point to correct host paths ✅
+- [x] Environment variables set correctly ✅
 
 ### **Service Verification**
-- [ ] All containers start and show "healthy" status
-- [ ] Nginx configuration test passes
-- [ ] Database accepts connections
-- [ ] Backend health endpoint responds
-- [ ] Frontend loads in browser
-- [ ] API authentication works
+- [x] All containers start and show "healthy" status ✅
+- [x] Nginx configuration test passes ✅
+- [x] Database accepts connections ✅
+- [x] Backend health endpoint responds ✅
+- [x] Frontend loads in browser ✅
+- [x] API authentication works via HTTPS ✅
+- [x] HTTPS login functional with JWT tokens ✅
 
 ---
 
@@ -343,14 +611,21 @@ docker system df > /tmp/fleetops-debug/docker-usage.txt
 
 ## 📞 Support Information
 
-**Production URL**: http://mailit-dev.ddns.net  
+**Production URL**: https://mailit-dev.ddns.net 🔒  
 **Admin Credentials**: admin/Admin@123  
 **Repository**: https://github.com/akshay-waghmare/mailit-fleetops-api  
 **Documentation**: `/docs` folder in repository  
 
 **Critical Files**:
 - `/root/mailit-fleetops-api/docker-compose.hub.yml`
-- `/root/fleetops-nginx/conf.d/fleetops.conf`  
+- `/root/fleetops-nginx/conf.d/fleetops.conf` (HTTPS + CORS workaround)
+- `/root/mailit-fleetops-api/certbot/` (SSL certificates)
+
+**Production Status** (as of October 17, 2025):
+- ✅ HTTPS working with Let's Encrypt SSL
+- ✅ API authentication functional
+- ✅ CORS working via nginx workaround
+- ⚠️ Spring Boot CORS config needs fixing (non-blocking)  
 
 ---
 
