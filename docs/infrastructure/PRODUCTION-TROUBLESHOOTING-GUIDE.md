@@ -1,8 +1,20 @@
 # Production Troubleshooting Guide - FleetOps
 
 **Quick Reference**: Common production issues and solutions  
-**Last Updated**: October 16, 2025  
-**Production URL**: http://mailit-dev.ddns.net
+**Last Updated**: October 17, 2025  
+**Production URL**: http://mailit-dev.ddns.net  
+**⚠️ SSL Status**: HTTPS not working - use HTTP only
+
+---
+
+## ⚠️ **CURRENT SSL STATUS**
+
+**HTTPS**: ❌ **NOT WORKING** - SSL certificates not properly configured  
+**HTTP**: ✅ **WORKING** - Use http://mailit-dev.ddns.net (without SSL)
+
+**Current Configuration**: HTTP-only nginx setup  
+**SSL Setup**: Available in `production-config` branch but not active  
+**Recommendation**: Use HTTP for now, SSL can be configured later if needed
 
 ---
 
@@ -37,8 +49,9 @@ curl -X POST http://mailit-dev.ddns.net/api/v1/auth/login \
 # In docker-compose.hub.yml
 backend:
   environment:
-    CORS_ALLOWED_ORIGINS: "https://mailit-dev.ddns.net,http://mailit-dev.ddns.net,http://localhost:5001,http://frontend:80,http://localhost:4200,http://localhost:8081"
+    CORS_ALLOWED_ORIGINS: "http://mailit-dev.ddns.net,http://localhost:5001,http://frontend:80,http://localhost:4200,http://localhost:8081"
 ```
+**Note**: Only HTTP domains needed since HTTPS is not currently working
 
 **Verification**:
 ```bash
@@ -283,7 +296,8 @@ docker-compose -f docker-compose.hub.yml up -d
 
 ### **Infrastructure Requirements**
 - [ ] Domain name pointing to server IP
-- [ ] Ports 80, 443, 5001, 8081, 5432 open
+- [ ] Port 80 open (HTTPS/443 not working currently)
+- [ ] Ports 5001, 8081, 5432 open for direct service access
 - [ ] Docker and Docker Compose installed
 - [ ] Sufficient disk space (>10GB recommended)
 - [ ] Sufficient RAM (>2GB recommended)
