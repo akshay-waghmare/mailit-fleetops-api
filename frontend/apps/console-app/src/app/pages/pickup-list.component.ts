@@ -8,18 +8,21 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select'; // Add MatSelectModule
+import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCardModule } from '@angular/material/card';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Subscription } from 'rxjs';
 import { PickupService } from '../../../../../libs/shared/pickup.service';
 import { PickupRecord } from '../../../../../libs/shared/pickup.interface';
 import { PickupViewModalComponent } from './pickup-view-modal.component';
 import { PickupEditModalComponent } from '../components/pickup-edit-modal/pickup-edit-modal.component';
+import { PickupStatusDialogComponent, PickupStatusDialogResult } from '../components/pickup-status-dialog/pickup-status-dialog.component';
 
 @Component({
   selector: 'app-pickup-list',
@@ -33,13 +36,15 @@ import { PickupEditModalComponent } from '../components/pickup-edit-modal/pickup
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule, // Add MatSelectModule
+    MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule,
     MatChipsModule,
     MatTooltipModule,
     MatCardModule,
-    MatDialogModule
+    MatMenuModule,
+    MatDialogModule,
+    MatSnackBarModule
   ],
   template: `
     <!-- Modern Layout with Tailwind + Material matching other pages -->
@@ -286,16 +291,56 @@ import { PickupEditModalComponent } from '../components/pickup-edit-modal/pickup
                         <mat-icon style="font-size: 18px;">visibility</mat-icon>
                         <span class="ml-1">View</span>
                       </button>
+                      
+                      <!-- Status Action Menu -->
                       <button 
                         mat-stroked-button 
-                        color="accent" 
-                        *ngIf="row.status === 'scheduled'" 
-                        (click)="editPickup(row)" 
-                        matTooltip="Edit pickup"
+                        [matMenuTriggerFor]="statusMenu"
+                        matTooltip="Update status"
                         class="rounded-lg text-sm">
-                        <mat-icon style="font-size: 18px;">edit</mat-icon>
-                        <span class="ml-1">Edit</span>
+                        <mat-icon style="font-size: 18px;">more_vert</mat-icon>
                       </button>
+                      <mat-menu #statusMenu="matMenu">
+                        <!-- Start Pickup (only for scheduled) -->
+                        <button mat-menu-item 
+                                *ngIf="row.status === 'scheduled'"
+                                (click)="openStatusDialog(row, 'start')">
+                          <mat-icon class="text-blue-600">play_arrow</mat-icon>
+                          <span>Start Pickup</span>
+                        </button>
+                        
+                        <!-- Complete Pickup (only for in-progress) -->
+                        <button mat-menu-item 
+                                *ngIf="row.status === 'in-progress'"
+                                (click)="openStatusDialog(row, 'complete')">
+                          <mat-icon class="text-green-600">check_circle</mat-icon>
+                          <span>Complete Pickup</span>
+                        </button>
+                        
+                        <!-- Mark as Delayed (for scheduled or in-progress) -->
+                        <button mat-menu-item 
+                                *ngIf="row.status === 'scheduled' || row.status === 'in-progress'"
+                                (click)="openStatusDialog(row, 'delay')">
+                          <mat-icon class="text-orange-600">schedule</mat-icon>
+                          <span>Mark Delayed</span>
+                        </button>
+                        
+                        <!-- Edit (only for scheduled) -->
+                        <button mat-menu-item 
+                                *ngIf="row.status === 'scheduled'"
+                                (click)="editPickup(row)">
+                          <mat-icon class="text-purple-600">edit</mat-icon>
+                          <span>Edit Pickup</span>
+                        </button>
+                        
+                        <!-- Cancel Pickup (for scheduled, in-progress, delayed) -->
+                        <button mat-menu-item 
+                                *ngIf="row.status !== 'completed' && row.status !== 'cancelled'"
+                                (click)="openStatusDialog(row, 'cancel')">
+                          <mat-icon class="text-red-600">cancel</mat-icon>
+                          <span>Cancel Pickup</span>
+                        </button>
+                      </mat-menu>
                     </div>
                   </td>
                 </ng-container>
@@ -374,7 +419,8 @@ export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
     private pickupService: PickupService,
     private route: ActivatedRoute,
     private router: Router,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit() {
@@ -480,6 +526,84 @@ export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   navigateToSchedule() {
     this.router.navigate(['/pickup']);
+  }
+
+  // Open status change dialog
+  openStatusDialog(row: PickupRecord, action: 'start' | 'complete' | 'cancel' | 'delay') {
+    const dialogRef = this.dialog.open(PickupStatusDialogComponent, {
+      width: '500px',
+      maxWidth: '90vw',
+      data: { pickup: row, action },
+      panelClass: 'custom-dialog-container'
+    });
+
+    dialogRef.afterClosed().subscribe((result: PickupStatusDialogResult | undefined) => {
+      if (result) {
+        this.updatePickupStatus(row, result);
+      }
+    });
+  }
+
+  // Update pickup status via API
+  private updatePickupStatus(pickup: PickupRecord, result: PickupStatusDialogResult) {
+    const completionData = result.status === 'completed' ? {
+      itemsReceived: result.itemsReceived,
+      completionNotes: result.completionNotes,
+      completedBy: 'Console User'
+    } : {
+      completionNotes: result.completionNotes
+    };
+
+    this.pickupService.updatePickupStatus(pickup.id, result.status, completionData).subscribe({
+      next: (updatedPickup) => {
+        // Show success message
+        const actionLabel = this.getStatusActionLabel(result.status);
+        let message = `Pickup ${pickup.pickupId} ${actionLabel}`;
+        
+        // Add items received info for completed pickups
+        if (result.status === 'completed' && result.itemsReceived !== undefined) {
+          message += ` (${result.itemsReceived}/${pickup.itemCount} items received)`;
+        }
+        
+        this.snackBar.open(message, 'Close', {
+          duration: 4000,
+          horizontalPosition: 'end',
+          verticalPosition: 'top',
+          panelClass: this.getSnackBarClass(result.status)
+        });
+        
+        // Refresh the list
+        this.loadPickups();
+      },
+      error: (error) => {
+        console.error('Error updating pickup status:', error);
+        this.snackBar.open('Failed to update pickup status. Please try again.', 'Close', {
+          duration: 4000,
+          horizontalPosition: 'end',
+          verticalPosition: 'top',
+          panelClass: ['snackbar-error']
+        });
+      }
+    });
+  }
+
+  private getStatusActionLabel(status: string): string {
+    switch (status) {
+      case 'in-progress': return 'started';
+      case 'completed': return 'completed';
+      case 'cancelled': return 'cancelled';
+      case 'delayed': return 'marked as delayed';
+      default: return 'updated';
+    }
+  }
+
+  private getSnackBarClass(status: string): string[] {
+    switch (status) {
+      case 'completed': return ['snackbar-success'];
+      case 'cancelled': return ['snackbar-error'];
+      case 'delayed': return ['snackbar-warning'];
+      default: return ['snackbar-info'];
+    }
   }
 
   // Open details for a pickup in modal

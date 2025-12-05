@@ -20,5 +20,11 @@ public class PickupDto {
     public BigDecimal totalWeight;
     public String carrierId;
     public BigDecimal estimatedCost;
+    
+    // Completion tracking fields
+    public Integer itemsReceived;
+    public String completionNotes;
+    public Instant completedAt;
+    public String completedBy;
     // getters/setters omitted for brevity
 }

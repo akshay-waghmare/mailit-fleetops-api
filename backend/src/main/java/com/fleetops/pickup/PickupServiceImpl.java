@@ -2,6 +2,7 @@ package com.fleetops.pickup;
 
 import com.fleetops.pickup.dto.CreatePickupDto;
 import com.fleetops.pickup.dto.PickupDto;
+import com.fleetops.pickup.dto.UpdatePickupStatusDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -76,6 +77,28 @@ public class PickupServiceImpl implements PickupService {
         return toDto(existing);
     }
 
+    @Override
+    public PickupDto updatePickupStatus(Long id, UpdatePickupStatusDto dto) {
+        Pickup existing = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pickup not found with id: " + id));
+        
+        if (dto.status != null) {
+            existing.setStatus(dto.status);
+        }
+        
+        // If completing the pickup, record completion details
+        if ("completed".equalsIgnoreCase(dto.status)) {
+            existing.setItemsReceived(dto.itemsReceived);
+            existing.setCompletionNotes(dto.completionNotes);
+            existing.setCompletedAt(Instant.now());
+            existing.setCompletedBy(dto.completedBy != null ? dto.completedBy : "System");
+        }
+        
+        existing.setUpdatedAt(Instant.now());
+        repository.save(existing);
+        return toDto(existing);
+    }
+
     private PickupDto toDto(Pickup p) {
         PickupDto d = new PickupDto();
         d.id = p.getId();
@@ -88,11 +111,16 @@ public class PickupServiceImpl implements PickupService {
         d.pickupDate = p.getPickupDate() != null ? p.getPickupDate().toString() : null;
         d.pickupTime = p.getPickupTime() != null ? p.getPickupTime().toString() : null;
         d.assignedStaff = p.getAssignedStaffName();
-        d.pickupType = p.getPickupType(); // Fix: Include pickup type in response
+        d.pickupType = p.getPickupType();
         d.itemsCount = p.getItemsCount();
         d.totalWeight = p.getTotalWeight();
         d.carrierId = p.getCarrierId();
         d.estimatedCost = p.getEstimatedCost();
+        // Completion tracking fields
+        d.itemsReceived = p.getItemsReceived();
+        d.completionNotes = p.getCompletionNotes();
+        d.completedAt = p.getCompletedAt();
+        d.completedBy = p.getCompletedBy();
         return d;
     }
 

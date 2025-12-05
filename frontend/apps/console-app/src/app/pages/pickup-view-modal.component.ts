@@ -44,7 +44,7 @@ import { PickupRecord } from '../../../../../libs/shared/pickup.interface';
       </div>
 
       <!-- Content Container -->
-      <div class="p-6">
+      <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 180px);">
         <!-- Quick Overview Cards (matching the order modal style) -->
         <div class="grid grid-cols-3 gap-4 mb-6">
           <!-- Status Card -->
@@ -219,6 +219,42 @@ import { PickupRecord } from '../../../../../libs/shared/pickup.interface';
           </div>
         </div>
 
+        <!-- Completion Details Section (only for completed pickups) -->
+        <div class="border border-gray-200 rounded-lg overflow-hidden mb-6" *ngIf="pickup.status === 'completed'">
+          <div class="bg-green-50 px-4 py-3 border-b border-green-200">
+            <div class="flex items-center space-x-2">
+              <mat-icon class="text-green-600">check_circle</mat-icon>
+              <h3 class="text-sm font-medium text-green-800">Completion Details</h3>
+            </div>
+          </div>
+          <div class="p-4 bg-white">
+            <div class="grid grid-cols-3 gap-4">
+              <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Items Received</p>
+                <p class="text-sm font-semibold" 
+                   [ngClass]="pickup.itemsReceived === pickup.itemCount ? 'text-green-600' : 'text-orange-600'">
+                  {{ pickup.itemsReceived ?? 'N/A' }} / {{ pickup.itemCount }} items
+                  <span *ngIf="pickup.itemsReceived !== null && pickup.itemsReceived !== pickup.itemCount" class="text-xs">
+                    ({{ pickup.itemsReceived! < pickup.itemCount ? 'short' : 'extra' }})
+                  </span>
+                </p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Completed At</p>
+                <p class="text-sm font-semibold text-gray-900">{{ pickup.completedAt | date:'MMM dd, yyyy HH:mm' }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Completed By</p>
+                <p class="text-sm font-semibold text-gray-900">{{ pickup.completedBy || 'System' }}</p>
+              </div>
+              <div class="col-span-3" *ngIf="pickup.completionNotes">
+                <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Completion Notes</p>
+                <p class="text-sm text-gray-700">{{ pickup.completionNotes }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Additional Information Section -->
         <div class="border border-gray-200 rounded-lg overflow-hidden" *ngIf="pickup.notes || pickup.customerFeedback">
           <div class="bg-purple-50 px-4 py-3 border-b border-purple-200">
@@ -257,18 +293,37 @@ import { PickupRecord } from '../../../../../libs/shared/pickup.interface';
     </div>
   `,
   styles: [`
+    :host {
+      display: block;
+    }
+
     .pickup-view-modal {
-      min-width: 700px;
-      max-width: 900px;
+      width: 800px;
+      max-width: 95vw;
       max-height: 90vh;
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
       background: white;
       border-radius: 8px;
+      overflow: hidden;
     }
     
     .mat-mdc-dialog-title {
       padding: 0 !important;
       margin: 0 !important;
+      flex-shrink: 0;
+    }
+
+    /* Scrollable content area */
+    .pickup-view-modal > .p-6:first-of-type {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    /* Fixed footer */
+    .pickup-view-modal > .p-6:last-of-type {
+      flex-shrink: 0;
     }
 
     /* Clean button styles */
@@ -282,20 +337,21 @@ import { PickupRecord } from '../../../../../libs/shared/pickup.interface';
 
     /* Custom scrollbar for content */
     .p-6::-webkit-scrollbar {
-      width: 4px;
+      width: 6px;
     }
 
     .p-6::-webkit-scrollbar-track {
-      background: transparent;
+      background: #f1f5f9;
+      border-radius: 3px;
     }
 
     .p-6::-webkit-scrollbar-thumb {
-      background: #e5e7eb;
-      border-radius: 2px;
+      background: #cbd5e1;
+      border-radius: 3px;
     }
 
     .p-6::-webkit-scrollbar-thumb:hover {
-      background: #d1d5db;
+      background: #94a3b8;
     }
 
     /* Smooth transitions */

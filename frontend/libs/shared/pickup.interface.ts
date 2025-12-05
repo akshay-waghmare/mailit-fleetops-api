@@ -31,6 +31,11 @@ export interface PickupRecord {
   notes?: string;
   customerFeedback?: string;
   rating?: number;
+  // Completion tracking fields
+  itemsReceived?: number;
+  completionNotes?: string;
+  completedAt?: string | Date;
+  completedBy?: string;
 }
 
 // Interface for data coming from Schedule Pickup component

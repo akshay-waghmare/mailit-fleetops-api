@@ -2,6 +2,7 @@ package com.fleetops.pickup;
 
 import com.fleetops.pickup.dto.CreatePickupDto;
 import com.fleetops.pickup.dto.PickupDto;
+import com.fleetops.pickup.dto.UpdatePickupStatusDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,20 @@ public class PickupController {
     public ResponseEntity<PickupDto> update(@PathVariable Long id, @RequestBody CreatePickupDto dto) {
         try {
             PickupDto updated = pickupService.updatePickup(id, dto);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
+     * Update pickup status with optional completion details.
+     * When completing a pickup, agent can specify how many items were actually received.
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<PickupDto> updateStatus(@PathVariable Long id, @RequestBody UpdatePickupStatusDto dto) {
+        try {
+            PickupDto updated = pickupService.updatePickupStatus(id, dto);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

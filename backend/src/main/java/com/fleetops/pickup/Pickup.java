@@ -36,6 +36,15 @@ public class Pickup {
 
     private Instant createdAt;
     private Instant updatedAt;
+    
+    // Completion tracking fields
+    private Integer itemsReceived;
+    
+    @Column(columnDefinition = "text")
+    private String completionNotes;
+    
+    private Instant completedAt;
+    private String completedBy;
 
     // getters and setters
     public Long getId() { return id; }
@@ -72,4 +81,14 @@ public class Pickup {
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    
+    // Completion tracking getters/setters
+    public Integer getItemsReceived() { return itemsReceived; }
+    public void setItemsReceived(Integer itemsReceived) { this.itemsReceived = itemsReceived; }
+    public String getCompletionNotes() { return completionNotes; }
+    public void setCompletionNotes(String completionNotes) { this.completionNotes = completionNotes; }
+    public Instant getCompletedAt() { return completedAt; }
+    public void setCompletedAt(Instant completedAt) { this.completedAt = completedAt; }
+    public String getCompletedBy() { return completedBy; }
+    public void setCompletedBy(String completedBy) { this.completedBy = completedBy; }
 }

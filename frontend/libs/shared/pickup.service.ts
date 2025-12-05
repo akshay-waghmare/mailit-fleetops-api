@@ -43,8 +43,12 @@ export class PickupService {
     );
   }
 
-  updatePickupStatus(id: string, status: string, notes?: string): Observable<PickupRecord> {
-    return this.http.patch<any>(`${this.baseUrl}/v1/pickups/${id}/status`, { status }, {
+  updatePickupStatus(id: string, status: string, completionData?: { itemsReceived?: number; completionNotes?: string; completedBy?: string }): Observable<PickupRecord> {
+    const payload = { 
+      status,
+      ...(completionData || {})
+    };
+    return this.http.patch<any>(`${this.baseUrl}/v1/pickups/${id}/status`, payload, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Basic ' + btoa('admin:admin')
@@ -80,7 +84,7 @@ export class PickupService {
       pickupDate: scheduleData.pickupDate || new Date().toISOString().split('T')[0],
       pickupTime: scheduleData.pickupTime || '10:00',
       pickupType: scheduleData.pickupType,
-      itemCount: scheduleData.itemCount,
+      itemsCount: scheduleData.itemCount, // Backend uses itemsCount (with 's')
       totalWeight: scheduleData.totalWeight,
       itemsDescription: scheduleData.itemDescription || '',
       carrierId: scheduleData.carrier?.id || null,
@@ -210,9 +214,9 @@ export class PickupService {
       clientId: String(backendPickup.clientId || ''),
       pickupAddress: backendPickup.pickupAddress,
       contactNumber: '',
-      itemCount: 1, // Backend doesn't return this yet
-      totalWeight: 0, // Backend doesn't return this yet
-      itemDescription: '',
+      itemCount: backendPickup.itemsCount || 1, // Backend uses itemsCount
+      totalWeight: backendPickup.totalWeight || 0,
+      itemDescription: backendPickup.itemsDescription || '',
       specialInstructions: '',
       pickupType: backendPickup.pickupType || 'vendor',
       carrierName: '',
@@ -232,6 +236,11 @@ export class PickupService {
       updatedAt: backendPickup.updatedAt,
       createdBy: 'API User',
       notes: '',
+      // Completion tracking fields
+      itemsReceived: backendPickup.itemsReceived,
+      completionNotes: backendPickup.completionNotes,
+      completedAt: backendPickup.completedAt,
+      completedBy: backendPickup.completedBy,
     };
   }
 
