@@ -5,6 +5,9 @@ import com.fleetops.auth.dto.LoginResponse;
 import com.fleetops.auth.dto.RefreshTokenRequest;
 import com.fleetops.auth.dto.RefreshTokenResponse;
 import com.fleetops.auth.service.AuthService;
+import com.fleetops.user.dto.CreateUserRequest;
+import com.fleetops.user.dto.UserResponse;
+import com.fleetops.user.service.UserService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,6 +25,7 @@ import java.util.Map;
  * Task T017: Create AuthController
  * 
  * Endpoints:
+ * - POST /api/v1/auth/register - Public user registration
  * - POST /api/v1/auth/login - User login
  * - POST /api/v1/auth/refresh - Refresh access token
  */
@@ -31,9 +36,69 @@ public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
+    private final UserService userService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, UserService userService) {
         this.authService = authService;
+        this.userService = userService;
+    }
+
+    /**
+     * POST /api/v1/auth/register
+     * Public endpoint for user self-registration
+     * - Allows role specification in request (ADMIN, STAFF, AGENT)
+     * - Defaults to STAFF if no role specified
+     * 
+     * @param request User registration details (including optional roles)
+     * @return UserResponse with created user info
+     */
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody CreateUserRequest request) {
+        try {
+            // Determine which roles to assign
+            List<String> rolesToAssign;
+            
+            if (request.roles() != null && !request.roles().isEmpty()) {
+                // Use requested roles (ADMIN, STAFF, AGENT, etc.)
+                rolesToAssign = request.roles();
+            } else {
+                // No roles specified, default to STAFF
+                rolesToAssign = List.of("STAFF");
+            }
+            
+            // Create user with specified or default roles
+            CreateUserRequest validatedRequest = new CreateUserRequest(
+                request.username(),
+                request.email(),
+                request.fullName(),
+                request.phone(),
+                request.password(),
+                rolesToAssign,
+                true
+            );
+            
+            UserResponse response = userService.createUser(validatedRequest);
+            logger.info("New user registered: {} with roles: {}", response.username(), rolesToAssign);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (RuntimeException ex) {
+            logger.error("Registration failed: {}", ex.getMessage());
+            
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "REGISTRATION_FAILED");
+            error.put("message", ex.getMessage());
+            
+            Map<String, String> fields = new HashMap<>();
+            if (ex.getMessage().contains("Username already exists")) {
+                fields.put("username", ex.getMessage());
+            } else if (ex.getMessage().contains("Email already exists")) {
+                fields.put("email", ex.getMessage());
+            } else if (ex.getMessage().contains("Invalid role")) {
+                fields.put("roles", ex.getMessage());
+            }
+            error.put("fields", fields);
+            
+            return ResponseEntity.badRequest().body(error);
+        }
     }
 
     /**

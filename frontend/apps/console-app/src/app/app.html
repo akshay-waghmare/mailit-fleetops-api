@@ -43,6 +43,10 @@
           <span class="nav-icon">📊</span>
           Order Analytics
         </a>
+        <a routerLink="/clients" routerLinkActive="active" (click)="closeMobileMenu()">
+          <span class="nav-icon">👥</span>
+          Clients
+        </a>
         <a routerLink="/bulk-upload" routerLinkActive="active" (click)="closeMobileMenu()">
           <span class="nav-icon">☁️</span>
           Bulk Upload
@@ -190,6 +194,11 @@
           <a routerLink="/places" routerLinkActive="active" class="nav-link">
             <span class="nav-icon">📍</span>
             <span class="nav-text">Places</span>
+          </a>
+
+          <a routerLink="/clients" routerLinkActive="active" class="nav-link">
+            <span class="nav-icon">👥</span>
+            <span class="nav-text">Clients</span>
           </a>
           
           @if (isStaffOrAdmin()) {

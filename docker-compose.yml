@@ -65,11 +65,8 @@ services:
       dockerfile: Dockerfile
     image: macubex/fleetops-frontend:latest
     container_name: fleetops-frontend
-    volumes:
-      - ./frontend/src:/app/src:ro
-      - ./frontend/dist/console-app/browser:/usr/share/nginx/html
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
     ports:
       - "5001:80"
     depends_on:

@@ -18,7 +18,7 @@ spring:
       
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -28,7 +28,7 @@ spring:
           time_zone: UTC
           
   flyway:
-    enabled: false
+    enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
     out-of-order: false  # Strict sequential ordering (V4 renamed to V15)

@@ -1,0 +1,26 @@
+<h2 mat-dialog-title>Import Clients</h2>
+<mat-dialog-content>
+  <div class="flex flex-col gap-4">
+    <p class="text-gray-600">Select an Excel file (.xlsx) to import clients. The file should follow the legacy format.</p>
+    
+    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 cursor-pointer"
+         (click)="fileInput.click()">
+      <input #fileInput type="file" (change)="onFileSelected($event)" accept=".xlsx" class="hidden">
+      <mat-icon class="text-4xl text-gray-400 mb-2">cloud_upload</mat-icon>
+      <p *ngIf="!selectedFile">Click to select file</p>
+      <p *ngIf="selectedFile" class="font-medium text-primary">{{selectedFile.name}}</p>
+    </div>
+
+    <div *ngIf="error" class="text-red-500 text-sm">
+      {{error}}
+    </div>
+
+    <mat-progress-bar *ngIf="uploading" mode="indeterminate"></mat-progress-bar>
+  </div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()" [disabled]="uploading">Cancel</button>
+  <button mat-raised-button color="primary" (click)="upload()" [disabled]="!selectedFile || uploading">
+    Import
+  </button>
+</mat-dialog-actions>

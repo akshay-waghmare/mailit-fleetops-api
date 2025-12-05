@@ -8,12 +8,16 @@ spring:
       minimum-idle: 10
       
   jpa:
+    hibernate:
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
         format_sql: false
         
   flyway:
+    enabled: true
+    baseline-on-migrate: true
     validate-on-migrate: true
     
 logging:

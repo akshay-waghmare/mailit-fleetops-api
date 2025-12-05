@@ -71,7 +71,7 @@ public class SecurityConfig {
             // Configure endpoint authorization
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints - no authentication required
-                .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
+                .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/register").permitAll()
                 // Dev-only debug endpoints
                 .requestMatchers("/api/v1/dev/**").permitAll()
                 

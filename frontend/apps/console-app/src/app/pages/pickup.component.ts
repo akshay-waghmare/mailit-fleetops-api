@@ -20,6 +20,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 // Services
 import { PickupService } from '../../../../../libs/shared/pickup.service';
 import { SchedulePickupData } from '../../../../../libs/shared/pickup.interface';
+import { ClientService } from '../services/client.service';
+import { Client } from '../models/client.model';
 
 interface PickupCarrierOption {
   id: string;
@@ -35,19 +37,6 @@ interface PickupCarrierOption {
   weightCharged?: number;
   route?: string;
   reason?: string;
-}
-
-interface Client {
-  id: string;
-  date: string;
-  subContractCode: string;
-  clientName: string;
-  accountNo: string;
-  contactPerson: string;
-  address: string;
-  pincode: string;
-  city: string;
-  active: boolean;
 }
 
 interface Employee {
@@ -200,7 +189,7 @@ interface Employee {
                 <div [ngClass]="getClientGridClasses()" class="client-search-results">
                   
                   <!-- Grid View Cards -->
-                  <div *ngFor="let client of filteredClients; trackBy: trackByClientId" 
+                  <div *ngFor="let client of displayedClients; trackBy: trackByClientId" 
                        class="enhanced-client-card"
                        [class]="getEnhancedClientCardClasses(client)"
                        (click)="selectClient(client)"
@@ -308,6 +297,20 @@ interface Employee {
                       </p>
                     </div>
                   </div>
+                </div>
+                
+                <!-- Load More Button -->
+                <div *ngIf="hasMoreClients()" class="mt-6 flex justify-center">
+                  <button 
+                    mat-stroked-button 
+                    color="primary"
+                    (click)="loadMoreClients()"
+                    class="px-8 py-2 rounded-lg border-2 border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors">
+                    <span class="flex items-center gap-2">
+                      <span>Load More Clients</span>
+                      <span class="text-sm text-slate-500">({{getRemainingClientsCount()}} remaining)</span>
+                    </span>
+                  </button>
                 </div>
                 
                 <div class="mt-6 flex justify-end">
@@ -877,67 +880,23 @@ export class PickupComponent implements OnInit {
   pickupId: string = '';
   
   // Search and filter properties
-  showClientSearch = false;
+  showClientSearch = true;
   searchQuery = '';
   statusFilter: 'all' | 'active' | 'inactive' = 'all';
   viewMode: 'grid' | 'list' = 'grid';
   filteredClients: Client[] = [];
   
+  // Pagination properties
+  displayedClients: Client[] = [];
+  clientsPerPage = 12;
+  currentPage = 1;
+  
   // Service checking
   serviceabilityChecked = false;
   checkingServiceability = false;
   
-  // Demo data (same as orders)
-  clients: Client[] = [
-    {
-      id: '1',
-      date: '22/08/2025',
-      subContractCode: 'FIRST001',
-      clientName: 'First Promotional - Pune',
-      accountNo: '411040',
-      contactPerson: 'Rajesh Gupta',
-      address: 'Shivajinagar, Pune',
-      pincode: '411005',
-      city: 'Pune',
-      active: true
-    },
-    {
-      id: '2',
-      date: '22/08/2025',
-      subContractCode: 'TECH002',
-      clientName: 'TechCorp Solutions',
-      accountNo: '400069',
-      contactPerson: 'Priya Sharma',
-      address: 'Andheri East, Mumbai',
-      pincode: '400069',
-      city: 'Mumbai',
-      active: true
-    },
-    {
-      id: '3',
-      date: '21/08/2025',
-      subContractCode: 'GLOB003',
-      clientName: 'Global Industries Ltd',
-      accountNo: '110001',
-      contactPerson: 'Amit Kumar',
-      address: 'Connaught Place, Delhi',
-      pincode: '110001',
-      city: 'Delhi',
-      active: false
-    },
-    {
-      id: '4',
-      date: '20/08/2025',
-      subContractCode: 'RETAIL004',
-      clientName: 'Retail Express Co',
-      accountNo: '560034',
-      contactPerson: 'Sneha Patel',
-      address: 'Koramangala, Bangalore',
-      pincode: '560034',
-      city: 'Bangalore',
-      active: true
-    }
-  ];
+  // Client data loaded from API
+  clients: Client[] = [];
 
   // Demo employee data
   employees: Employee[] = [
@@ -1029,6 +988,7 @@ export class PickupComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
     private pickupService: PickupService,
+    private clientService: ClientService,
     private router: Router,
     private snackBar: MatSnackBar
   ) {}
@@ -1062,7 +1022,32 @@ export class PickupComponent implements OnInit {
   }
 
   initializeClients() {
-    this.updateFilteredClients();
+    this.clientService.getClients().subscribe({
+      next: (apiClients: Client[]) => {
+        // Transform API clients to match component interface
+        this.clients = apiClients.map(client => ({
+          id: client.id,
+          date: client.createdAt || new Date().toLocaleDateString(),
+          subContractCode: client.subContractCode || '',
+          clientName: client.name || '',
+          accountNo: client.contractNo || '',
+          contactPerson: client.contactPerson || client.vcontactPerson || '',
+          address: client.address || client.vaddress || '',
+          pincode: client.vpincode || '',
+          city: client.vcity || '',
+          active: true,
+          name: client.name,
+          vcontactMobile: client.vcontactMobile || ''
+        }));
+        this.updateFilteredClients();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Failed to load clients:', err);
+        this.snackBar.open('Failed to load clients', 'Close', { duration: 3000 });
+        this.updateFilteredClients();
+      }
+    });
   }
 
   // Client Management Methods (copied from orders)
@@ -1099,25 +1084,57 @@ export class PickupComponent implements OnInit {
     if (this.searchQuery.trim()) {
       const query = this.searchQuery.toLowerCase();
       filtered = filtered.filter(client =>
-        client.clientName.toLowerCase().includes(query) ||
-        client.contactPerson.toLowerCase().includes(query) ||
-        client.subContractCode.toLowerCase().includes(query) ||
-        client.city.toLowerCase().includes(query) ||
-        client.accountNo.includes(query)
+        (client.clientName || client.name || '').toLowerCase().includes(query) ||
+        (client.contactPerson || '').toLowerCase().includes(query) ||
+        (client.subContractCode || '').toLowerCase().includes(query) ||
+        (client.city || '').toLowerCase().includes(query) ||
+        (client.accountNo || '').includes(query)
       );
     }
 
     this.filteredClients = filtered;
+    this.currentPage = 1;
+    this.updateDisplayedClients();
+  }
+
+  updateDisplayedClients() {
+    const endIndex = this.currentPage * this.clientsPerPage;
+    this.displayedClients = this.filteredClients.slice(0, endIndex);
+  }
+
+  loadMoreClients() {
+    this.currentPage++;
+    this.updateDisplayedClients();
+  }
+
+  hasMoreClients(): boolean {
+    return this.displayedClients.length < this.filteredClients.length;
+  }
+
+  getRemainingClientsCount(): number {
+    return this.filteredClients.length - this.displayedClients.length;
   }
 
   selectClient(client: Client) {
     if (client.active) {
       this.selectedClient = client;
+      console.log('Selected client:', client);
+      console.log('vcontactMobile:', client.vcontactMobile);
       // Pre-fill some form fields based on client data
-      this.pickupForm.patchValue({
-        senderName: client.contactPerson,
-        pickupAddress: `${client.address}, ${client.city} - ${client.pincode}`
-      });
+      const formValues = {
+        senderName: client.contactPerson || client.vcontactPerson,
+        senderContact: client.vcontactMobile || '',
+        pickupAddress: `${client.address || client.vaddress || ''}, ${client.city || client.vcity || ''} - ${client.pincode || client.vpincode || ''}`
+      };
+      console.log('Form values to patch:', formValues);
+      this.pickupForm.patchValue(formValues);
+      
+      // Auto-advance to next step
+      setTimeout(() => {
+        if (this.stepper) {
+          this.stepper.next();
+        }
+      }, 100);
     }
   }
 
@@ -1156,7 +1173,7 @@ export class PickupComponent implements OnInit {
   }
 
   trackByClientId(index: number, client: Client): string {
-    return client.id;
+    return client.id?.toString() || '';
   }
 
   // Form change handlers
@@ -1223,10 +1240,10 @@ export class PickupComponent implements OnInit {
     if (this.pickupForm.valid && this.selectedClient && this.selectedEmployee) {
       const scheduleData: SchedulePickupData = {
         client: {
-          id: this.selectedClient.id,
-          clientName: this.selectedClient.clientName,
+          id: this.selectedClient.id?.toString() || '',
+          clientName: this.selectedClient.clientName || this.selectedClient.name || '',
           clientCompany: this.selectedClient.subContractCode,
-          address: this.selectedClient.address,
+          address: this.selectedClient.address || '',
           contactNumber: this.selectedClient.contactPerson
         },
         itemCount: parseInt(this.pickupForm.value.itemCount) || 1,
@@ -1363,10 +1380,10 @@ export class PickupComponent implements OnInit {
     if (this.pickupForm.valid && this.selectedClient && this.selectedCarrier && this.selectedEmployee) {
       const scheduleData: SchedulePickupData = {
         client: {
-          id: this.selectedClient.id,
-          clientName: this.selectedClient.clientName,
+          id: this.selectedClient.id?.toString() || '',
+          clientName: this.selectedClient.clientName || this.selectedClient.name || '',
           clientCompany: this.selectedClient.subContractCode,
-          address: this.selectedClient.address,
+          address: this.selectedClient.address || '',
           contactNumber: this.selectedClient.contactPerson
         },
         itemCount: parseInt(this.pickupForm.value.itemCount) || 1,

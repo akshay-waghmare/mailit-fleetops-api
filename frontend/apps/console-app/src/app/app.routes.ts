@@ -48,6 +48,16 @@ export const routes: Routes = [
   {
     path: 'order-list',
     loadComponent: () => import('./pages/order-list.component').then(m => m.OrderListComponent),
+    canActivate: [authGuard, staffGuard]
+  },
+  {
+    path: 'clients/import',
+    loadComponent: () => import('./pages/clients/client-bulk-import/client-bulk-import.component').then(m => m.ClientBulkImportComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'clients',
+    loadComponent: () => import('./pages/clients/client-list/client-list.component').then(m => m.ClientListComponent),
     canActivate: [authGuard]
   },
   {

@@ -18,6 +18,8 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 
 // Order Management imports
 import { OrderService, CreateOrderData } from '../../../../../libs/shared';
+import { ClientService } from '../services/client.service';
+import { Client as ApiClient } from '../models/client.model';
 
 interface CarrierOption {
   id: string;
@@ -46,6 +48,11 @@ interface Client {
   pincode: string;
   city: string;
   active: boolean;
+  vcontactMobile?: string;
+  vcontactPerson?: string;
+  vaddress?: string;
+  vpincode?: string;
+  vcity?: string;
 }
 
 @Component({
@@ -187,7 +194,7 @@ interface Client {
                 <div [ngClass]="getClientGridClasses()" class="client-search-results">
                   
                   <!-- Grid View Cards -->
-                  <div *ngFor="let client of filteredClients; trackBy: trackByClientId" 
+                  <div *ngFor="let client of displayedClients; trackBy: trackByClientId" 
                        class="enhanced-client-card"
                        [class]="getEnhancedClientCardClasses(client)"
                        (click)="selectClient(client)"
@@ -295,6 +302,20 @@ interface Client {
                       </p>
                     </div>
                   </div>
+                </div>
+                
+                <!-- Load More Button -->
+                <div *ngIf="hasMoreClients()" class="mt-6 flex justify-center">
+                  <button 
+                    mat-stroked-button 
+                    color="primary"
+                    (click)="loadMoreClients()"
+                    class="px-8 py-2 rounded-lg border-2 border-blue-600 text-blue-600 hover:bg-blue-50 transition-colors">
+                    <span class="flex items-center gap-2">
+                      <span>Load More Clients</span>
+                      <span class="text-sm text-slate-500">({{getRemainingClientsCount()}} remaining)</span>
+                    </span>
+                  </button>
                 </div>
                 
                 <div class="mt-6 flex justify-end">
@@ -798,72 +819,16 @@ export class OrdersComponent implements OnInit {
   // Client search functionality
   searchQuery = '';
   filteredClients: Client[] = [];
-  showClientSearch = false;
-  statusFilter: 'all' | 'active' | 'inactive' = 'active';
+  showClientSearch = true;
+  statusFilter: 'all' | 'active' | 'inactive' = 'all';
   viewMode: 'grid' | 'list' = 'grid';
+  
+  // Pagination properties
+  displayedClients: Client[] = [];
+  clientsPerPage = 12;
+  currentPage = 1;
 
-  clients: Client[] = [
-    { 
-      id: 'client1', 
-      date: '21/08/2025', 
-      subContractCode: 'SUC00425',
-      clientName: 'First Promotional Clothing Co', 
-      accountNo: 'FIRST', 
-      contactPerson: 'Ms. Ruchira Naik', 
-      address: 'Shop No. 24, Anusuya Enclave, Jagtap Chowk Wanowrie, Near Shinde Chhatri, Pune', 
-      pincode: '411040', 
-      city: 'Pune', 
-      active: true 
-    },
-    { 
-      id: 'client2', 
-      date: '20/08/2025', 
-      subContractCode: 'SUC00426',
-      clientName: 'ABC Logistics Solutions Pvt Ltd', 
-      accountNo: 'ABC001', 
-      contactPerson: 'Mr. Rajesh Kumar', 
-      address: 'Plot No. 15, Sector 18, Noida', 
-      pincode: '201301', 
-      city: 'Delhi', 
-      active: true 
-    },
-    { 
-      id: 'client3', 
-      date: '19/08/2025', 
-      subContractCode: 'SUC00427',
-      clientName: 'XYZ Corporation Ltd', 
-      accountNo: 'XYZ002', 
-      contactPerson: 'Ms. Priya Sharma', 
-      address: 'Tower B, IT Park, Electronic City', 
-      pincode: '560100', 
-      city: 'Bangalore', 
-      active: true 
-    },
-    { 
-      id: 'client4', 
-      date: '18/08/2025', 
-      subContractCode: 'SUC00428',
-      clientName: 'Tech Innovations Pvt Ltd', 
-      accountNo: 'TECH003', 
-      contactPerson: 'Mr. Amit Patel', 
-      address: 'Hinjewadi Phase 2, Rajiv Gandhi Infotech Park', 
-      pincode: '411057', 
-      city: 'Pune', 
-      active: false 
-    },
-    { 
-      id: 'client5', 
-      date: '17/08/2025', 
-      subContractCode: 'SUC00429',
-      clientName: 'Global Traders LLC', 
-      accountNo: 'GLB004', 
-      contactPerson: 'Ms. Sneha Singh', 
-      address: 'Anna Salai, T Nagar', 
-      pincode: '600017', 
-      city: 'Chennai', 
-      active: true 
-    }
-  ];
+  clients: Client[] = [];
 
   carrierOptions: CarrierOption[] = [
     { 
@@ -919,21 +884,46 @@ export class OrdersComponent implements OnInit {
     private ngZone: NgZone,
     private router: Router,
     private snackBar: MatSnackBar,
-    private orderService: OrderService
+    private orderService: OrderService,
+    private clientService: ClientService
   ) {}
 
   ngOnInit() {
     this.initializeForm();
     this.generateTrackingId();
-    
-    // Initialize filtered clients with active clients by default
-    this.searchClients();
-    
-    // Auto-select first active client for demo
-    const firstActiveClient = this.filteredClients.find(client => client.active);
-    if (firstActiveClient) {
-      this.selectClient(firstActiveClient);
-    }
+    this.initializeClients();
+  }
+
+  initializeClients() {
+    this.clientService.getClients().subscribe({
+      next: (apiClients: ApiClient[]) => {
+        // Transform API clients to match component interface
+        this.clients = apiClients.map(client => ({
+          id: client.id?.toString() || '',
+          date: client.createdAt || new Date().toLocaleDateString(),
+          subContractCode: client.subContractCode || '',
+          clientName: client.name || '',
+          accountNo: client.contractNo || '',
+          contactPerson: client.contactPerson || client.vcontactPerson || '',
+          address: client.address || client.vaddress || '',
+          pincode: client.vpincode || '',
+          city: client.vcity || '',
+          active: true,
+          vcontactMobile: client.vcontactMobile || '',
+          vcontactPerson: client.vcontactPerson,
+          vaddress: client.vaddress,
+          vpincode: client.vpincode,
+          vcity: client.vcity
+        }));
+        this.searchClients();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Failed to load clients:', err);
+        this.snackBar.open('Failed to load clients', 'Close', { duration: 3000 });
+        this.searchClients();
+      }
+    });
   }
 
   // Client search functionality
@@ -957,17 +947,37 @@ export class OrdersComponent implements OnInit {
       const query = this.searchQuery.toLowerCase();
       filtered = filtered.filter(client => {
         return (
-          client.clientName.toLowerCase().includes(query) ||
-          client.subContractCode.toLowerCase().includes(query) ||
-          client.contactPerson.toLowerCase().includes(query) ||
-          client.accountNo.toLowerCase().includes(query) ||
-          client.city.toLowerCase().includes(query) ||
-          client.pincode.includes(query)
+          (client.clientName || '').toLowerCase().includes(query) ||
+          (client.subContractCode || '').toLowerCase().includes(query) ||
+          (client.contactPerson || '').toLowerCase().includes(query) ||
+          (client.accountNo || '').toLowerCase().includes(query) ||
+          (client.city || '').toLowerCase().includes(query) ||
+          (client.pincode || '').includes(query)
         );
       });
     }
 
     this.filteredClients = filtered;
+    this.currentPage = 1;
+    this.updateDisplayedClients();
+  }
+
+  updateDisplayedClients() {
+    const endIndex = this.currentPage * this.clientsPerPage;
+    this.displayedClients = this.filteredClients.slice(0, endIndex);
+  }
+
+  loadMoreClients() {
+    this.currentPage++;
+    this.updateDisplayedClients();
+  }
+
+  hasMoreClients(): boolean {
+    return this.displayedClients.length < this.filteredClients.length;
+  }
+
+  getRemainingClientsCount(): number {
+    return this.filteredClients.length - this.displayedClients.length;
   }
 
   setStatusFilter(filter: 'all' | 'active' | 'inactive') {
@@ -1052,12 +1062,21 @@ export class OrdersComponent implements OnInit {
       this.selectedClient = client;
       this.loadSampleDataForClient(client);
       this.resetServiceability();
+      
+      // Auto-advance to next step
+      setTimeout(() => {
+        if (this.stepper) {
+          this.stepper.next();
+        }
+      }, 100);
     }
   }
 
   loadSampleDataForClient(client: Client) {
+    console.log('Selected client for order:', client);
+    console.log('vcontactMobile:', client.vcontactMobile);
     // Load sample data based on selected client
-    this.orderForm.patchValue({
+    const formValues = {
       weight: '10',
       length: '30',
       width: '40',
@@ -1067,10 +1086,12 @@ export class OrdersComponent implements OnInit {
       receiverName: 'Naveen Kumar',
       receiverContact: '9878543210',
       receiverAddress: 'Delhi 110024',
-      senderName: client.contactPerson,
-      senderContact: '9876543210',
-      senderAddress: `${client.address}, ${client.city} - ${client.pincode}`
-    });
+      senderName: client.contactPerson || client.vcontactPerson || '',
+      senderContact: client.vcontactMobile || '',
+      senderAddress: `${client.address || client.vaddress || ''}, ${client.city || client.vcity || ''} - ${client.pincode || client.vpincode || ''}`
+    };
+    console.log('Form values to patch:', formValues);
+    this.orderForm.patchValue(formValues);
   }
 
   onShipmentDetailsChange() {
