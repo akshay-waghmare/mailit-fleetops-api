@@ -17,12 +17,16 @@ import { MatCardModule } from '@angular/material/card';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Subscription } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 import { PickupService } from '../../../../../libs/shared/pickup.service';
+import { OrderService } from '../../../../../libs/shared/order.service';
 import { PickupRecord } from '../../../../../libs/shared/pickup.interface';
+import { CreateOrderData } from '../../../../../libs/shared/order.interface';
 import { PickupViewModalComponent } from './pickup-view-modal.component';
 import { PickupEditModalComponent } from '../components/pickup-edit-modal/pickup-edit-modal.component';
 import { PickupStatusDialogComponent, PickupStatusDialogResult } from '../components/pickup-status-dialog/pickup-status-dialog.component';
+import { CreateBookingsDialogComponent, CreateBookingsResult, BookingItem } from '../components/create-bookings-dialog/create-bookings-dialog.component';
+import { ViewBookingsDialogComponent } from '../components/view-bookings-dialog/view-bookings-dialog.component';
 
 @Component({
   selector: 'app-pickup-list',
@@ -292,6 +296,18 @@ import { PickupStatusDialogComponent, PickupStatusDialogResult } from '../compon
                         <span class="ml-1">View</span>
                       </button>
                       
+                      <!-- Create/View Bookings Button (only for completed pickups) -->
+                      <button 
+                        mat-raised-button 
+                        [color]="hasBookings(row) ? 'primary' : 'accent'"
+                        *ngIf="row.status === 'completed'"
+                        (click)="handleBookingsAction(row)" 
+                        [matTooltip]="hasBookings(row) ? 'View orders created from this pickup' : 'Create bookings from received items'"
+                        class="rounded-lg text-sm">
+                        <mat-icon style="font-size: 18px;">{{ hasBookings(row) ? 'visibility' : 'add_shopping_cart' }}</mat-icon>
+                        <span class="ml-1">{{ hasBookings(row) ? 'View Bookings' : 'Book (' + (row.itemsReceived || row.itemCount) + ')' }}</span>
+                      </button>
+                      
                       <!-- Status Action Menu -->
                       <button 
                         mat-stroked-button 
@@ -315,6 +331,16 @@ import { PickupStatusDialogComponent, PickupStatusDialogResult } from '../compon
                                 (click)="openStatusDialog(row, 'complete')">
                           <mat-icon class="text-green-600">check_circle</mat-icon>
                           <span>Complete Pickup</span>
+                        </button>
+                        
+                        <!-- Create/View Bookings (only for completed) -->
+                        <button mat-menu-item 
+                                *ngIf="row.status === 'completed'"
+                                (click)="handleBookingsAction(row)">
+                          <mat-icon [class]="hasBookings(row) ? 'text-green-600' : 'text-blue-600'">
+                            {{ hasBookings(row) ? 'visibility' : 'add_shopping_cart' }}
+                          </mat-icon>
+                          <span>{{ hasBookings(row) ? 'View Bookings' : 'Create Bookings' }}</span>
                         </button>
                         
                         <!-- Mark as Delayed (for scheduled or in-progress) -->
@@ -407,6 +433,9 @@ export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
   private refreshInterval?: ReturnType<typeof setInterval>;
   private pickupSubscription?: Subscription;
   
+  // Track which pickups have bookings created
+  pickupsWithBookings: Set<string> = new Set();
+  
   // Stats
   totalPickups = 0;
   scheduledCount = 0;
@@ -417,6 +446,7 @@ export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(
     private pickupService: PickupService,
+    private orderService: OrderService,
     private route: ActivatedRoute,
     private router: Router,
     private dialog: MatDialog,
@@ -506,11 +536,37 @@ export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
         this.updateDataSource(response.content);
         this.updateStats();
         this.lastRefresh = new Date();
+        // Check which completed pickups have bookings
+        this.checkPickupsForBookings(response.content);
       },
       error: (error) => {
         console.error('Error loading pickups:', error);
       }
     });
+  }
+
+  // Check if completed pickups have orders created from them
+  private checkPickupsForBookings(pickups: PickupRecord[]) {
+    const completedPickups = pickups.filter(p => p.status === 'completed');
+    completedPickups.forEach(pickup => {
+      this.orderService.getOrdersByPickupId(pickup.pickupId).subscribe({
+        next: (orders) => {
+          if (orders.length > 0) {
+            this.pickupsWithBookings.add(pickup.pickupId);
+          } else {
+            this.pickupsWithBookings.delete(pickup.pickupId);
+          }
+        },
+        error: () => {
+          // Ignore errors - assume no bookings
+        }
+      });
+    });
+  }
+
+  // Check if a pickup has bookings
+  hasBookings(pickup: PickupRecord): boolean {
+    return this.pickupsWithBookings.has(pickup.pickupId);
   }
 
   private updateDataSource(pickups: PickupRecord[]) {
@@ -604,6 +660,124 @@ export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
       case 'delayed': return ['snackbar-warning'];
       default: return ['snackbar-info'];
     }
+  }
+
+  // Open create bookings dialog for completed pickups (no bookings yet)
+  openCreateBookingsDialog(row: PickupRecord) {
+    const dialogRef = this.dialog.open(CreateBookingsDialogComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: { pickup: row },
+      panelClass: 'custom-dialog-container'
+    });
+
+    dialogRef.afterClosed().subscribe((result: CreateBookingsResult | undefined) => {
+      if (result && result.bookings.length > 0) {
+        this.createBookingsFromPickup(row, result.bookings);
+      }
+    });
+  }
+
+  // Open view bookings dialog for completed pickups with existing bookings
+  openViewBookingsDialog(row: PickupRecord) {
+    this.dialog.open(ViewBookingsDialogComponent, {
+      width: '800px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: { pickup: row },
+      panelClass: 'custom-dialog-container'
+    });
+  }
+
+  // Smart action: create or view bookings based on whether bookings exist
+  handleBookingsAction(row: PickupRecord) {
+    if (this.hasBookings(row)) {
+      this.openViewBookingsDialog(row);
+    } else {
+      this.openCreateBookingsDialog(row);
+    }
+  }
+
+  // Create orders from booking items
+  private createBookingsFromPickup(pickup: PickupRecord, bookings: BookingItem[]) {
+    const orderRequests = bookings.map(booking => {
+      const orderData: CreateOrderData = {
+        // Client info from pickup
+        client_id: parseInt(pickup.clientId) || 0,
+        client_name: pickup.clientName,
+        client_company: pickup.clientCompany,
+        contact_number: pickup.contactNumber,
+        
+        // Sender info (from booking, editable by user)
+        sender_name: booking.senderName,
+        sender_address: booking.senderAddress,
+        sender_contact: booking.senderContact,
+        sender_city: '', // Could extract from address
+        
+        // Receiver info (from booking item)
+        receiver_name: booking.receiverName,
+        receiver_address: booking.receiverAddress,
+        receiver_contact: booking.receiverContact,
+        receiver_pincode: booking.receiverPincode,
+        receiver_city: booking.receiverCity,
+        receiver_state: booking.receiverState,
+        
+        // Package details
+        item_count: 1,
+        total_weight: booking.weight,
+        item_description: booking.description,
+        declared_value: booking.declaredValue,
+        
+        // Service details
+        service_type: booking.serviceType,
+        carrier_name: pickup.carrierName || 'Default Carrier',
+        carrier_id: pickup.carrierId,
+        
+        // Source tracking - link order to pickup
+        source_pickup_id: pickup.pickupId,
+        
+        // Additional
+        special_instructions: booking.specialInstructions,
+        cod_amount: booking.codAmount
+      };
+      
+      return this.orderService.createOrder(orderData);
+    });
+
+    // Create all orders
+    forkJoin(orderRequests).subscribe({
+      next: (createdOrders) => {
+        // Mark this pickup as having bookings
+        this.pickupsWithBookings.add(pickup.pickupId);
+        
+        this.snackBar.open(
+          `Successfully created ${createdOrders.length} booking(s) from pickup ${pickup.pickupId}`,
+          'View Orders',
+          {
+            duration: 6000,
+            horizontalPosition: 'end',
+            verticalPosition: 'top',
+            panelClass: ['snackbar-success']
+          }
+        ).onAction().subscribe(() => {
+          this.router.navigate(['/order-list']);
+        });
+      },
+      error: (error) => {
+        console.error('Error creating bookings:', error);
+        this.snackBar.open(
+          'Failed to create some bookings. Please try again.',
+          'Close',
+          {
+            duration: 4000,
+            horizontalPosition: 'end',
+            verticalPosition: 'top',
+            panelClass: ['snackbar-error']
+          }
+        );
+      }
+    });
   }
 
   // Open details for a pickup in modal

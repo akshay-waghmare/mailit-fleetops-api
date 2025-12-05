@@ -92,6 +92,10 @@ public class CreateOrderDto {
     @JsonProperty("receiver_state")
     private String receiverState;
     
+    // Source tracking - which pickup this order came from
+    @JsonProperty("source_pickup_id")
+    private String sourcePickupId;
+    
     // Package Details
     @Min(value = 1, message = "Item count must be at least 1")
     @JsonProperty("item_count")
@@ -259,6 +263,9 @@ public class CreateOrderDto {
     
     public String getReceiverState() { return receiverState; }
     public void setReceiverState(String receiverState) { this.receiverState = receiverState; }
+    
+    public String getSourcePickupId() { return sourcePickupId; }
+    public void setSourcePickupId(String sourcePickupId) { this.sourcePickupId = sourcePickupId; }
     
     public Integer getItemCount() { return itemCount; }
     public void setItemCount(Integer itemCount) { this.itemCount = itemCount; }

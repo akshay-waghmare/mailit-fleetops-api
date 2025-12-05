@@ -104,6 +104,18 @@ export class OrderService {
   }
 
   /**
+   * Get orders created from a specific pickup
+   */
+  getOrdersByPickupId(pickupId: string): Observable<OrderRecord[]> {
+    return this.api.getOrdersByPickupId(pickupId).pipe(
+      map((response: any) => {
+        this.logger.debug('OrderService getOrdersByPickupId response', response);
+        return response as OrderRecord[];
+      })
+    );
+  }
+
+  /**
    * Create new order
    */
   createOrder(orderData: CreateOrderData): Observable<OrderRecord> {

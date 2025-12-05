@@ -206,6 +206,10 @@ export class ApiService {
   return this.http.get<ApiResponse<any>>(`${this.baseUrl}/v1/orders/${id}`);
   }
 
+  getOrdersByPickupId(pickupId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/v1/orders/by-pickup/${pickupId}`);
+  }
+
   createOrder(payload: any): Observable<ApiResponse<any>> {
   return this.http.post<ApiResponse<any>>(`${this.baseUrl}/v1/orders`, payload);
   }

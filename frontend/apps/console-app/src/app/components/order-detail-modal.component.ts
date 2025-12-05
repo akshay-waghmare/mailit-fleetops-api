@@ -196,6 +196,16 @@ import { OrderRecord } from '../../../../../libs/shared';
                   <p class="text-xs text-slate-500 uppercase tracking-wide">Declared Value</p>
                   <p class="text-slate-700">₹{{ formatCurrency(order.declared_value) }}</p>
                 </div>
+                <div *ngIf="order.source_pickup_id">
+                  <p class="text-xs text-slate-500 uppercase tracking-wide">Source Pickup</p>
+                  <div class="flex items-center gap-2">
+                    <mat-icon class="text-green-600 !text-sm">local_shipping</mat-icon>
+                    <a (click)="onViewPickup(order.source_pickup_id)" 
+                       class="font-mono text-green-600 bg-green-50 px-2 py-1 rounded text-sm cursor-pointer hover:bg-green-100 hover:underline">
+                      {{ order.source_pickup_id }}
+                    </a>
+                  </div>
+                </div>
               </div>
 
               <!-- Dimensions if available -->
@@ -496,5 +506,10 @@ export class OrderDetailModalComponent implements OnInit {
         panelClass: ['error-snackbar']
       });
     });
+  }
+
+  onViewPickup(pickupId: string): void {
+    // Close dialog and navigate to pickup list with the pickup ID
+    this.dialogRef.close({ action: 'viewPickup', pickupId });
   }
 }

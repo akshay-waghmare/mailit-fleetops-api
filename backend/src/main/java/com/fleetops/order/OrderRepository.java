@@ -21,6 +21,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // Find by tracking number
     Optional<Order> findByTrackingNumber(String trackingNumber);
     
+    // Find orders created from a specific pickup
+    List<Order> findBySourcePickupIdOrderByCreatedAtDesc(String sourcePickupId);
+    
     // Find orders by status
     Page<Order> findByStatusIn(List<Order.OrderStatus> statuses, Pageable pageable);
     Page<Order> findByStatus(Order.OrderStatus status, Pageable pageable);

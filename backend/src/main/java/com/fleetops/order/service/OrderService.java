@@ -102,6 +102,11 @@ public class OrderService {
         return orderMapper.toDto(order);
     }
     
+    public List<OrderDto> getOrdersByPickupId(String pickupId) {
+        List<Order> orders = orderRepository.findBySourcePickupIdOrderByCreatedAtDesc(pickupId);
+        return orders.stream().map(orderMapper::toDto).toList();
+    }
+    
     public Page<OrderDto> getAllOrders(Pageable pageable) {
         return orderRepository.findAll(pageable).map(orderMapper::toDto);
     }

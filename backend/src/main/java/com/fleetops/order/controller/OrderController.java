@@ -69,6 +69,13 @@ public class OrderController {
         return ResponseEntity.ok(order);
     }
     
+    @GetMapping("/by-pickup/{pickupId}")
+    public ResponseEntity<List<OrderDto>> getOrdersByPickupId(@PathVariable String pickupId) {
+        logger.debug("Getting orders created from pickup: {}", pickupId);
+        List<OrderDto> orders = orderService.getOrdersByPickupId(pickupId);
+        return ResponseEntity.ok(orders);
+    }
+    
     @GetMapping
     public ResponseEntity<Page<OrderDto>> getAllOrders(
             @PageableDefault(size = 20) Pageable pageable,

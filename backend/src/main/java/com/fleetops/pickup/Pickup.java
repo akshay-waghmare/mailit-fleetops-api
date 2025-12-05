@@ -1,5 +1,6 @@
 package com.fleetops.pickup;
 
+import com.fleetops.client.Client;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,7 +18,12 @@ public class Pickup {
     @Column(name = "pickup_id", unique = true, nullable = false)
     private String pickupId;
 
-    private Long clientId;
+    // Foreign key relationship to Client
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id", referencedColumnName = "id")
+    private Client client;
+
+    // Keep clientName for backward compatibility (denormalized for performance)
     private String clientName;
 
     @Column(columnDefinition = "text")
@@ -33,6 +39,7 @@ public class Pickup {
     private BigDecimal totalWeight;
     private String carrierId;
     private BigDecimal estimatedCost;
+    private String contactNumber;
 
     private Instant createdAt;
     private Instant updatedAt;
@@ -51,8 +58,13 @@ public class Pickup {
     public void setId(Long id) { this.id = id; }
     public String getPickupId() { return pickupId; }
     public void setPickupId(String pickupId) { this.pickupId = pickupId; }
-    public Long getClientId() { return clientId; }
-    public void setClientId(Long clientId) { this.clientId = clientId; }
+    
+    // Client relationship getters/setters
+    public Client getClient() { return client; }
+    public void setClient(Client client) { this.client = client; }
+    public Long getClientId() { return client != null ? client.getId() : null; }
+    public void setClientId(Long clientId) { /* Use setClient instead */ }
+    
     public String getClientName() { return clientName; }
     public void setClientName(String clientName) { this.clientName = clientName; }
     public String getPickupAddress() { return pickupAddress; }
@@ -77,6 +89,8 @@ public class Pickup {
     public void setCarrierId(String carrierId) { this.carrierId = carrierId; }
     public BigDecimal getEstimatedCost() { return estimatedCost; }
     public void setEstimatedCost(BigDecimal estimatedCost) { this.estimatedCost = estimatedCost; }
+    public String getContactNumber() { return contactNumber; }
+    public void setContactNumber(String contactNumber) { this.contactNumber = contactNumber; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

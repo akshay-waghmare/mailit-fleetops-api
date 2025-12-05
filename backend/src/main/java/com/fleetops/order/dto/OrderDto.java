@@ -73,6 +73,10 @@ public class OrderDto {
     @JsonProperty("receiver_state")
     private String receiverState;
     
+    // Source tracking
+    @JsonProperty("source_pickup_id")
+    private String sourcePickupId;
+    
     // Package Details
     @JsonProperty("item_count")
     private Integer itemCount;
@@ -247,6 +251,9 @@ public class OrderDto {
     
     public String getReceiverState() { return receiverState; }
     public void setReceiverState(String receiverState) { this.receiverState = receiverState; }
+    
+    public String getSourcePickupId() { return sourcePickupId; }
+    public void setSourcePickupId(String sourcePickupId) { this.sourcePickupId = sourcePickupId; }
     
     public Integer getItemCount() { return itemCount; }
     public void setItemCount(Integer itemCount) { this.itemCount = itemCount; }

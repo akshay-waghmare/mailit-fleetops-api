@@ -81,6 +81,7 @@ export class PickupService {
       clientId: parseInt(scheduleData.client.id) || 12, // Convert to number, fallback to 12
       clientName: scheduleData.client.clientName, // Fix: Include client name
       pickupAddress: scheduleData.client.address,
+      contactNumber: scheduleData.client.contactNumber || '', // Include client contact
       pickupDate: scheduleData.pickupDate || new Date().toISOString().split('T')[0],
       pickupTime: scheduleData.pickupTime || '10:00',
       pickupType: scheduleData.pickupType,
@@ -209,11 +210,15 @@ export class PickupService {
     return {
       id: String(backendPickup.id),
       pickupId: backendPickup.pickupId,
-      clientName: backendPickup.clientName || 'Unknown Client',
-      clientCompany: backendPickup.clientName || '',
+      // Client information from relationship
       clientId: String(backendPickup.clientId || ''),
+      clientName: backendPickup.clientName || 'Unknown Client',
+      clientCompany: backendPickup.clientCompany || backendPickup.clientName || '',
+      contactNumber: backendPickup.contactNumber || '',
+      contactPerson: backendPickup.contactPerson || '',
+      contactEmail: backendPickup.contactEmail || '',
+      // Pickup details
       pickupAddress: backendPickup.pickupAddress,
-      contactNumber: '',
       itemCount: backendPickup.itemsCount || 1, // Backend uses itemsCount
       totalWeight: backendPickup.totalWeight || 0,
       itemDescription: backendPickup.itemsDescription || '',

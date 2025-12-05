@@ -2,11 +2,15 @@
 export interface PickupRecord {
   id: string;
   pickupId: string;
+  // Client information (from relationship)
+  clientId: string;
   clientName: string;
   clientCompany: string;
-  clientId: string;
-  pickupAddress: string;
   contactNumber: string;
+  contactPerson?: string;
+  contactEmail?: string;
+  // Pickup details
+  pickupAddress: string;
   itemCount: number;
   totalWeight: number;
   itemDescription?: string;

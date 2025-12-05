@@ -6,6 +6,7 @@ public class CreatePickupDto {
     public Long clientId;
     public String clientName; // Add client name field
     public String pickupAddress;
+    public String contactNumber; // Client contact number
     public String pickupDate; // ISO yyyy-MM-dd
     public String pickupTime;
     public String pickupType;

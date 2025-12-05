@@ -285,6 +285,14 @@ import { AuthService } from '../services/auth.service';
                         <div>
                           <div class="font-medium text-slate-900">{{order.order_id}}</div>
                           <div class="text-sm text-slate-500">{{order.created_at | date:'MMM dd, yyyy'}}</div>
+                          <div *ngIf="order.source_pickup_id" class="flex items-center mt-1">
+                            <mat-icon class="text-green-600 !text-xs mr-1" style="font-size: 12px; width: 12px; height: 12px;">local_shipping</mat-icon>
+                            <a (click)="navigateToPickup(order.source_pickup_id); $event.stopPropagation()" 
+                               class="text-xs text-green-600 hover:underline cursor-pointer"
+                               matTooltip="View source pickup">
+                              {{order.source_pickup_id}}
+                            </a>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -876,6 +884,10 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.router.navigate(['/orders']);
   }
 
+  navigateToPickup(pickupId: string): void {
+    this.router.navigate(['/pickup-list'], { queryParams: { pickupId } });
+  }
+
   viewOrderDetails(order: OrderRecord): void {
     this.logger.debug('View order details', { id: order.id });
     
@@ -890,6 +902,8 @@ export class OrderListComponent implements OnInit, AfterViewInit, OnDestroy {
     dialogRef.afterClosed().subscribe(result => {
       if (result && result.action === 'track') {
         this.trackOrder(result.order);
+      } else if (result && result.action === 'viewPickup' && result.pickupId) {
+        this.navigateToPickup(result.pickupId);
       }
     });
   }

@@ -84,6 +84,10 @@ public class Order {
     @Column(name = "receiver_state")
     private String receiverState;
     
+    // Source tracking - which pickup this order came from
+    @Column(name = "source_pickup_id")
+    private String sourcePickupId;
+    
     // Package Details
     @Column(name = "item_count")
     private Integer itemCount = 1;
@@ -281,6 +285,9 @@ public class Order {
     
     public String getReceiverState() { return receiverState; }
     public void setReceiverState(String receiverState) { this.receiverState = receiverState; }
+    
+    public String getSourcePickupId() { return sourcePickupId; }
+    public void setSourcePickupId(String sourcePickupId) { this.sourcePickupId = sourcePickupId; }
     
     public Integer getItemCount() { return itemCount; }
     public void setItemCount(Integer itemCount) { this.itemCount = itemCount; }

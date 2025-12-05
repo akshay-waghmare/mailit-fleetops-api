@@ -58,6 +58,9 @@ export interface OrderRecord {
   assigned_staff_id?: number;
   staff_department?: string;
   
+  // Source tracking
+  source_pickup_id?: string;
+  
   // Delivery Information
   estimated_delivery_date?: string;
   actual_delivery_date?: string;
@@ -130,6 +133,9 @@ export interface CreateOrderData {
   service_type: 'EXPRESS' | 'STANDARD' | 'ECONOMY';
   carrier_name: string;
   carrier_id?: string;
+  
+  // Source tracking - which pickup this order came from
+  source_pickup_id?: string;
   
   special_instructions?: string;
   cod_amount?: number;

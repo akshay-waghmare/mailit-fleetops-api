@@ -1,5 +1,7 @@
 package com.fleetops.pickup;
 
+import com.fleetops.client.Client;
+import com.fleetops.client.ClientRepository;
 import com.fleetops.pickup.dto.CreatePickupDto;
 import com.fleetops.pickup.dto.PickupDto;
 import com.fleetops.pickup.dto.UpdatePickupStatusDto;
@@ -23,13 +25,31 @@ public class PickupServiceImpl implements PickupService {
 
     @Autowired
     private PickupRepository repository;
+    
+    @Autowired
+    private ClientRepository clientRepository;
 
     @Override
     public PickupDto createPickup(CreatePickupDto dto, String idempotencyKey) {
         Pickup p = new Pickup();
         p.setPickupId("PU" + UUID.randomUUID().toString().substring(0,8).toUpperCase());
-        p.setClientId(dto.clientId);
-        p.setClientName(dto.clientName); // Fix: Use actual client name from DTO
+        
+        // Set client relationship if clientId provided
+        if (dto.clientId != null) {
+            Client client = clientRepository.findById(dto.clientId).orElse(null);
+            if (client != null) {
+                p.setClient(client);
+                // Denormalize client name for quick access
+                p.setClientName(client.getName());
+            } else {
+                // Fallback to provided name if client not found
+                p.setClientName(dto.clientName);
+            }
+        } else {
+            p.setClientName(dto.clientName);
+        }
+        
+        p.setContactNumber(dto.contactNumber); // Save client contact (can override from client)
         if (dto.pickupDate != null) p.setPickupDate(LocalDate.parse(dto.pickupDate));
         if (dto.pickupTime != null && !dto.pickupTime.isEmpty()) {
             p.setPickupTime(parseTime(dto.pickupTime));
@@ -58,6 +78,7 @@ public class PickupServiceImpl implements PickupService {
         
         // Update fields from DTO
         if (dto.clientName != null) existing.setClientName(dto.clientName);
+        if (dto.contactNumber != null) existing.setContactNumber(dto.contactNumber);
         if (dto.pickupAddress != null) existing.setPickupAddress(dto.pickupAddress);
         if (dto.pickupDate != null) existing.setPickupDate(LocalDate.parse(dto.pickupDate));
         if (dto.pickupTime != null && !dto.pickupTime.isEmpty()) {
@@ -106,7 +127,22 @@ public class PickupServiceImpl implements PickupService {
         d.status = p.getStatus();
         d.createdAt = p.getCreatedAt();
         d.updatedAt = p.getUpdatedAt();
-        d.clientName = p.getClientName();
+        
+        // Map client information from relationship
+        Client client = p.getClient();
+        if (client != null) {
+            d.clientId = client.getId();
+            d.clientName = client.getName();
+            d.clientCompany = client.getSubContractName() != null ? client.getSubContractName() : client.getName();
+            d.contactNumber = client.getVContactMobile();
+            d.contactPerson = client.getVContactPerson();
+            d.contactEmail = client.getVContactEmail();
+        } else {
+            // Fallback to denormalized fields
+            d.clientName = p.getClientName();
+            d.contactNumber = p.getContactNumber();
+        }
+        
         d.pickupAddress = p.getPickupAddress();
         d.pickupDate = p.getPickupDate() != null ? p.getPickupDate().toString() : null;
         d.pickupTime = p.getPickupTime() != null ? p.getPickupTime().toString() : null;
