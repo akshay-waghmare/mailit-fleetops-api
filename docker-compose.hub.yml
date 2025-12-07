@@ -25,7 +25,7 @@ services:
 
   # Backend Application - FROM DOCKER HUB
   backend:
-    image: macubex/fleetops-backend:latest  # Pull from Docker Hub (no build)
+    image: macubex/fleetops-backend:1.1.0  # Pull from Docker Hub (no build)
     container_name: fleetops-backend
     environment:
       SPRING_PROFILES_ACTIVE: docker  # Use docker profile like dev
@@ -51,7 +51,7 @@ services:
 
   # Frontend Application - FROM DOCKER HUB
   frontend:
-    image: macubex/fleetops-frontend:latest  # Pull from Docker Hub (no build)
+    image: macubex/fleetops-frontend:1.1.0  # Pull from Docker Hub (no build)
     container_name: fleetops-frontend
     ports:
       - "5001:80"  # Same as dev

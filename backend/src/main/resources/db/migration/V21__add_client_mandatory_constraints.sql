@@ -29,11 +29,11 @@ ALTER COLUMN name SET NOT NULL;
 
 -- Set default values for address and contact_person if NULL
 UPDATE clients 
-SET address = v_address 
+SET address = COALESCE(v_address, 'Unknown Address') 
 WHERE address IS NULL OR address = '';
 
 UPDATE clients 
-SET contact_person = v_contact_person 
+SET contact_person = COALESCE(v_contact_person, 'Unknown Contact') 
 WHERE contact_person IS NULL OR contact_person = '';
 
 -- Add NOT NULL constraints for address and contact_person
