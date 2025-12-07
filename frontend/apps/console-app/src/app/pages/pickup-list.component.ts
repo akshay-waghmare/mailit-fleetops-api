@@ -570,8 +570,14 @@ export class PickupListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private updateDataSource(pickups: PickupRecord[]) {
-    this.dataSource.data = pickups;
-    this.totalPickups = pickups.length;
+    // Sort by createdAt descending (newest first)
+    const sortedPickups = pickups.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA; // Descending order
+    });
+    this.dataSource.data = sortedPickups;
+    this.totalPickups = sortedPickups.length;
   }
 
   private updateStats() {

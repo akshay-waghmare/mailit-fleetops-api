@@ -12,14 +12,14 @@ import java.util.*;
 @Service
 public class ClientExcelParserService {
 
-    public List<ClientDto> parseClients(MultipartFile file) {
+    public ClientParseResult parseClients(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            return Collections.emptyList();
+            return ClientParseResult.builder().build();
         }
 
         try (Workbook wb = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = wb.getNumberOfSheets() > 0 ? wb.getSheetAt(0) : null;
-            if (sheet == null) return Collections.emptyList();
+            if (sheet == null) return ClientParseResult.builder().build();
 
             Row header = sheet.getRow(0);
             Map<String, Integer> idx = buildHeaderIndex(header);
@@ -28,7 +28,8 @@ public class ClientExcelParserService {
             // ContractNo, SubContractCode
             
             int last = sheet.getLastRowNum();
-            List<ClientDto> out = new ArrayList<>();
+            List<ClientDto> validClients = new ArrayList<>();
+            List<String> allErrors = new ArrayList<>();
             
             for (int r = 1; r <= last; r++) {
                 Row row = sheet.getRow(r);
@@ -37,45 +38,93 @@ public class ClientExcelParserService {
                 // Skip empty rows
                 if (isRowEmpty(row)) continue;
 
-                ClientDto dto = ClientDto.builder()
-                        .contractNo(getString(row, idx.get("ContractNo")))
-                        .subContractName(getString(row, idx.get("SubContractName")))
-                        .subContractCode(getString(row, idx.get("SubContractCode")))
-                        .vAddress(getString(row, idx.get("vAddress")))
-                        .vPincode(getString(row, idx.get("vPincode")))
-                        .vCity(getString(row, idx.get("vCity")))
-                        .vState(getString(row, idx.get("vState")))
-                        .vCountry(getString(row, idx.get("vCountry")))
-                        .vContactPerson(getString(row, idx.get("vContactPerson")))
-                        .vContactMobile(getString(row, idx.get("vContactMobile")))
-                        .vContactEmail(getString(row, idx.get("vContactEmail")))
-                        .vBillGstNo(getString(row, idx.get("vBillGSTNo")))
-                        .vBillingName(getString(row, idx.get("vBillingName")))
-                        .vDeptName(getString(row, idx.get("vDeptName")))
-                        .vBillAddress1(getString(row, idx.get("vBillAddress1")))
-                        .vBillAddress2(getString(row, idx.get("vBillAddress2")))
-                        .vBillPincode(getString(row, idx.get("vBillPincode")))
-                        .vBillState(getString(row, idx.get("vBillState")))
-                        .vBillCity(getString(row, idx.get("vBillCity")))
-                        .vCcName(getString(row, idx.get("vCCName")))
-                        .vBillCountry(getString(row, idx.get("vBillCountry")))
-                        .vBillStaeCode(getString(row, idx.get("vBillStaeCode")))
-                        .vBillKindAttn(getString(row, idx.get("vBillKindAttn")))
-                        .vBillEmail(getString(row, idx.get("vBillEmail")))
-                        .vBillMobile(getString(row, idx.get("vBillMobile")))
-                        .vIntimationEmailIds(getString(row, idx.get("vIntimationEmailids")))
-                        .build();
+                try {
+                    // Extract mandatory fields first
+                    String contractNo = getString(row, idx.get("ContractNo"));
+                    String subContractCode = getString(row, idx.get("SubContractCode"));
+                    String subContractName = getString(row, idx.get("SubContractName"));
 
-                // Map mandatory legacy fields to core fields
-                dto.setName(dto.getSubContractName());
-                dto.setAddress(dto.getVAddress());
-                dto.setContactPerson(dto.getVContactPerson());
+                    // Validate mandatory fields
+                    List<String> missingFields = new ArrayList<>();
+                    if (contractNo == null || contractNo.trim().isEmpty()) {
+                        missingFields.add("ContractNo");
+                    }
+                    if (subContractCode == null || subContractCode.trim().isEmpty()) {
+                        missingFields.add("SubContractCode");
+                    }
+                    if (subContractName == null || subContractName.trim().isEmpty()) {
+                        missingFields.add("SubContractName");
+                    }
 
-                out.add(dto);
+                    if (!missingFields.isEmpty()) {
+                        allErrors.add("Row " + (r + 1) + ": Missing mandatory fields: " + 
+                                String.join(", ", missingFields));
+                        continue; // Skip this row but continue processing others
+                    }
+
+                    ClientDto dto = ClientDto.builder()
+                            .contractNo(contractNo)
+                            .subContractName(subContractName)
+                            .subContractCode(subContractCode)
+                            .vAddress(getString(row, idx.get("vAddress")))
+                            .vPincode(getString(row, idx.get("vPincode")))
+                            .vCity(getString(row, idx.get("vCity")))
+                            .vState(getString(row, idx.get("vState")))
+                            .vCountry(getString(row, idx.get("vCountry")))
+                            .vContactPerson(getString(row, idx.get("vContactPerson")))
+                            .vContactMobile(getString(row, idx.get("vContactMobile")))
+                            .vContactEmail(getString(row, idx.get("vContactEmail")))
+                            .vBillGstNo(getString(row, idx.get("vBillGSTNo")))
+                            .vBillingName(getString(row, idx.get("vBillingName")))
+                            .vDeptName(getString(row, idx.get("vDeptName")))
+                            .vBillAddress1(getString(row, idx.get("vBillAddress1")))
+                            .vBillAddress2(getString(row, idx.get("vBillAddress2")))
+                            .vBillPincode(getString(row, idx.get("vBillPincode")))
+                            .vBillState(getString(row, idx.get("vBillState")))
+                            .vBillCity(getString(row, idx.get("vBillCity")))
+                            .vCcName(getString(row, idx.get("vCCName")))
+                            .vBillCountry(getString(row, idx.get("vBillCountry")))
+                            .vBillStaeCode(getString(row, idx.get("vBillStaeCode")))
+                            .vBillKindAttn(getString(row, idx.get("vBillKindAttn")))
+                            .vBillEmail(getString(row, idx.get("vBillEmail")))
+                            .vBillMobile(getString(row, idx.get("vBillMobile")))
+                            .vIntimationEmailIds(getString(row, idx.get("vIntimationEmailids")))
+                            .build();
+
+                    // Map mandatory legacy fields to core fields
+                    dto.setName(dto.getSubContractName());
+                    dto.setAddress(dto.getVAddress());
+                    dto.setContactPerson(dto.getVContactPerson());
+
+                    // Validate mapped mandatory fields
+                    List<String> mappedMissingFields = new ArrayList<>();
+                    if (dto.getAddress() == null || dto.getAddress().trim().isEmpty()) {
+                        mappedMissingFields.add("vAddress");
+                    }
+                    if (dto.getContactPerson() == null || dto.getContactPerson().trim().isEmpty()) {
+                        mappedMissingFields.add("vContactPerson");
+                    }
+
+                    if (!mappedMissingFields.isEmpty()) {
+                        allErrors.add("Row " + (r + 1) + ": Missing mandatory fields: " + 
+                                String.join(", ", mappedMissingFields));
+                        continue; // Skip this row but continue processing others
+                    }
+
+                    validClients.add(dto);
+                } catch (Exception e) {
+                    allErrors.add("Row " + (r + 1) + ": " + e.getMessage());
+                }
             }
-            return out;
+            
+            return ClientParseResult.builder()
+                    .validClients(validClients)
+                    .errors(allErrors)
+                    .build();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to parse Excel file: " + e.getMessage(), e);
+            return ClientParseResult.builder()
+                    .errors(List.of("Failed to read Excel file: " + e.getMessage()))
+                    .build();
         }
     }
 

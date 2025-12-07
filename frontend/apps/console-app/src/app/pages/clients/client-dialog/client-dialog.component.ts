@@ -33,6 +33,12 @@ import { Client } from '../../../models/client.model';
           </mat-form-field>
         </div>
 
+        <mat-form-field>
+          <mat-label>Sub Contract Name</mat-label>
+          <input matInput formControlName="subContractName" required>
+          <mat-error *ngIf="form.get('subContractName')?.hasError('required')">Sub Contract Name is required</mat-error>
+        </mat-form-field>
+
         <div class="grid grid-cols-2 gap-4">
           <mat-form-field>
             <mat-label>Contract No</mat-label>
@@ -212,6 +218,7 @@ export class ClientDialogComponent {
       id: [data?.client?.id],
       name: [data?.client?.name || '', Validators.required],
       contractNo: [{ value: data?.client?.contractNo || '', disabled: this.isEdit }, Validators.required],
+      subContractName: [data?.client?.subContractName || '', Validators.required],
       subContractCode: [{ value: data?.client?.subContractCode || '', disabled: this.isEdit }, Validators.required],
       address: [data?.client?.address || '', Validators.required],
       contactPerson: [data?.client?.contactPerson || '', Validators.required],

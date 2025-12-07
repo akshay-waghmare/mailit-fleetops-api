@@ -48,7 +48,7 @@ export interface ViewBookingsDialogData {
 
       <!-- Pickup Summary -->
       <div class="px-6 py-3 bg-gray-50 border-b flex-shrink-0">
-        <div class="grid grid-cols-4 gap-4 text-sm">
+        <div class="grid grid-cols-5 gap-4 text-sm">
           <div>
             <span class="text-gray-500">Client:</span>
             <span class="ml-1 font-medium">{{ data.pickup.clientName }}</span>
@@ -62,8 +62,12 @@ export interface ViewBookingsDialogData {
             <span class="ml-1 font-medium">{{ data.pickup.completedAt | date:'short' }}</span>
           </div>
           <div>
-            <span class="text-gray-500">Items Received:</span>
-            <span class="ml-1 font-medium">{{ data.pickup.itemsReceived || data.pickup.itemCount }}</span>
+            <span class="text-gray-500">Items:</span>
+            <span class="ml-1 font-medium">{{ data.pickup.itemsReceived || 0 }} / {{ data.pickup.itemsCount || data.pickup.itemCount || 0 }}</span>
+          </div>
+          <div>
+            <span class="text-gray-500">Weight:</span>
+            <span class="ml-1 font-medium">{{ data.pickup.totalWeight || 0 }} kg</span>
           </div>
         </div>
       </div>

@@ -28,44 +28,40 @@ public class ClientService {
     public ClientImportResponse importClients(MultipartFile file) {
         log.info("Starting client import from file: {}", file.getOriginalFilename());
         
-        List<ClientDto> dtos;
-        try {
-            dtos = excelParserService.parseClients(file);
-        } catch (Exception e) {
-            log.error("Failed to parse Excel file", e);
-            return ClientImportResponse.builder()
-                    .failureCount(1)
-                    .errors(List.of("Failed to parse file: " + e.getMessage()))
-                    .build();
-        }
-
-        log.info("Parsed {} clients from Excel", dtos.size());
+        // Parse the Excel file
+        ClientParseResult parseResult = excelParserService.parseClients(file);
+        
+        List<ClientDto> validDtos = parseResult.getValidClients();
+        List<String> parseErrors = parseResult.getErrors();
+        
+        log.info("Parsed {} valid clients, {} rows with errors", validDtos.size(), parseErrors.size());
 
         ClientImportResponse response = new ClientImportResponse();
-        response.setTotalProcessed(dtos.size());
+        int totalRows = validDtos.size() + parseErrors.size();
+        response.setTotalProcessed(totalRows);
         
         List<ClientDto> importedClients = new ArrayList<>();
-        List<String> errors = new ArrayList<>();
+        List<String> allErrors = new ArrayList<>(parseErrors);
         int successCount = 0;
-        int failureCount = 0;
+        int failureCount = parseErrors.size();
 
-        for (int i = 0; i < dtos.size(); i++) {
-            ClientDto dto = dtos.get(i);
+        // Try to save valid clients
+        for (ClientDto dto : validDtos) {
             try {
                 Client savedClient = upsertClient(dto);
                 importedClients.add(clientMapper.toDto(savedClient));
                 successCount++;
             } catch (Exception e) {
-                log.error("Failed to import client at row {}", i + 1, e);
+                log.error("Failed to save client: {}", dto.getContractNo(), e);
                 failureCount++;
-                errors.add("Row " + (i + 1) + ": " + e.getMessage());
+                allErrors.add("Client " + dto.getContractNo() + ": " + e.getMessage());
             }
         }
 
         response.setSuccessCount(successCount);
         response.setFailureCount(failureCount);
         response.setImportedClients(importedClients);
-        response.setErrors(errors);
+        response.setErrors(allErrors);
 
         log.info("Import completed. Success: {}, Failure: {}", successCount, failureCount);
         return response;

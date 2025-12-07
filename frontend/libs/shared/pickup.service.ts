@@ -89,8 +89,9 @@ export class PickupService {
       totalWeight: scheduleData.totalWeight,
       itemsDescription: scheduleData.itemDescription || '',
       carrierId: scheduleData.carrier?.id || null,
-  assignedStaffId: parseInt(scheduleData.employee.id) || null,
-  assignedStaffName: scheduleData.employee.name
+      estimatedCost: scheduleData.carrier?.price || null,
+      assignedStaffId: parseInt(scheduleData.employee.id) || null,
+      assignedStaffName: scheduleData.employee.name
     };
 
     return this.http.post<any>(`${this.baseUrl}/v1/pickups`, createPickupDto, {

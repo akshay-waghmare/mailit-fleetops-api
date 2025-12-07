@@ -3,6 +3,7 @@ package com.fleetops.client.controller;
 import com.fleetops.client.dto.ClientDto;
 import com.fleetops.client.dto.ClientImportResponse;
 import com.fleetops.client.service.ClientService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -45,12 +46,12 @@ public class ClientController {
     }
 
     @PostMapping
-    public ResponseEntity<ClientDto> createClient(@RequestBody ClientDto clientDto) {
+    public ResponseEntity<ClientDto> createClient(@Valid @RequestBody ClientDto clientDto) {
         return ResponseEntity.ok(clientService.createClient(clientDto));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ClientDto> updateClient(@PathVariable Long id, @RequestBody ClientDto clientDto) {
+    public ResponseEntity<ClientDto> updateClient(@PathVariable Long id, @Valid @RequestBody ClientDto clientDto) {
         return ResponseEntity.ok(clientService.updateClient(id, clientDto));
     }
 

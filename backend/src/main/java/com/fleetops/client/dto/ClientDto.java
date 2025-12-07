@@ -1,5 +1,6 @@
 package com.fleetops.client.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -12,11 +13,23 @@ import java.time.Instant;
 @Builder
 public class ClientDto {
     private Long id;
+    
+    @NotBlank(message = "Client name is required")
     private String name;
+    
+    @NotBlank(message = "Address is required")
     private String address;
+    
+    @NotBlank(message = "Contact person is required")
     private String contactPerson;
+    
+    @NotBlank(message = "Contract number is required")
     private String contractNo;
+    
+    @NotBlank(message = "Sub-contract name is required")
     private String subContractName;
+    
+    @NotBlank(message = "Sub-contract code is required")
     private String subContractCode;
     private String vAddress;
     private String vPincode;

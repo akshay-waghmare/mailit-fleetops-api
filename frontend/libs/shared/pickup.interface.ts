@@ -11,7 +11,8 @@ export interface PickupRecord {
   contactEmail?: string;
   // Pickup details
   pickupAddress: string;
-  itemCount: number;
+  itemCount: number; // For compatibility
+  itemsCount?: number; // Backend uses this
   totalWeight: number;
   itemDescription?: string;
   specialInstructions?: string;

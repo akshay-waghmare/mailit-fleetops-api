@@ -58,6 +58,13 @@ public class PickupServiceImpl implements PickupService {
         p.setPickupType(dto.pickupType); // Fix: Map pickup type from DTO
         if (dto.assignedStaffId != null) p.setAssignedStaffId(dto.assignedStaffId);
         if (dto.assignedStaffName != null) p.setAssignedStaffName(dto.assignedStaffName);
+        
+        // Map items and carrier details
+        if (dto.itemsCount != null) p.setItemsCount(dto.itemsCount);
+        if (dto.totalWeight != null) p.setTotalWeight(dto.totalWeight);
+        if (dto.carrierId != null) p.setCarrierId(dto.carrierId);
+        if (dto.estimatedCost != null) p.setEstimatedCost(dto.estimatedCost);
+        
         p.setStatus("scheduled");
         p.setCreatedAt(Instant.now());
         p.setUpdatedAt(Instant.now());

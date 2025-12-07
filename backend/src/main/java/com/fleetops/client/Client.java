@@ -1,6 +1,7 @@
 package com.fleetops.client;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -20,22 +21,29 @@ public class Client {
     private Long id;
 
     // Existing fields (inferred from usage/migrations)
+    @NotBlank(message = "Client name is required")
+    @Column(nullable = false)
     private String name;
     
-    @Column(columnDefinition = "text")
+    @NotBlank(message = "Address is required")
+    @Column(columnDefinition = "text", nullable = false)
     private String address;
     
-    @Column(name = "contact_person")
+    @NotBlank(message = "Contact person is required")
+    @Column(name = "contact_person", nullable = false)
     private String contactPerson;
 
-    // Legacy fields (V16)
-    @Column(name = "contract_no")
+    // Legacy fields (V16) - Mandatory
+    @NotBlank(message = "Contract number is required")
+    @Column(name = "contract_no", nullable = false)
     private String contractNo;
 
-    @Column(name = "sub_contract_name")
+    @NotBlank(message = "Sub-contract name is required")
+    @Column(name = "sub_contract_name", nullable = false)
     private String subContractName;
 
-    @Column(name = "sub_contract_code")
+    @NotBlank(message = "Sub-contract code is required")
+    @Column(name = "sub_contract_code", nullable = false)
     private String subContractCode;
 
     @Column(name = "v_address", columnDefinition = "text")
