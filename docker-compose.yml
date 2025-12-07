@@ -28,7 +28,7 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    image: macubex/fleetops-backend:latest
+    image: macubex/fleetops-backend:1.1.0
     container_name: fleetops-backend
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -63,7 +63,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: macubex/fleetops-frontend:latest
+    image: macubex/fleetops-frontend:1.1.0
     container_name: fleetops-frontend
     environment:
       - NODE_ENV=production

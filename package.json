@@ -1,6 +1,6 @@
 {
   "name": "fleetops-monorepo",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "FleetOps Full-Stack Application - Angular Frontend + Spring Boot Backend",
   "private": true,
   "workspaces": [
