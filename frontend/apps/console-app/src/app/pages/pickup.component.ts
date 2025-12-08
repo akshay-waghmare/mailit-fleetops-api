@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 // Angular Material imports
 import { MatStepperModule, MatStepper } from '@angular/material/stepper';
@@ -882,6 +884,7 @@ export class PickupComponent implements OnInit {
   // Search and filter properties
   showClientSearch = true;
   searchQuery = '';
+  private searchSubject = new Subject<string>();
   statusFilter: 'all' | 'active' | 'inactive' = 'all';
   viewMode: 'grid' | 'list' = 'grid';
   filteredClients: Client[] = [];
@@ -889,7 +892,8 @@ export class PickupComponent implements OnInit {
   // Pagination properties
   displayedClients: Client[] = [];
   clientsPerPage = 12;
-  currentPage = 1;
+  currentPage = 0; // 0-indexed for backend
+  totalClients = 0;
   
   // Service checking
   serviceabilityChecked = false;
@@ -997,6 +1001,16 @@ export class PickupComponent implements OnInit {
     this.initializeForm();
     this.initializeClients();
     this.pickupId = this.generatePickupId();
+
+    // Setup search debounce
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged()
+    ).subscribe(query => {
+      this.currentPage = 0;
+      this.clients = []; // Clear existing list for new search
+      this.loadClients(query);
+    });
   }
 
   initializeForm() {
@@ -1022,10 +1036,17 @@ export class PickupComponent implements OnInit {
   }
 
   initializeClients() {
-    this.clientService.getClients().subscribe({
-      next: (apiClients: Client[]) => {
-        // Transform API clients to match component interface
-        this.clients = apiClients.map(client => ({
+    this.loadClients();
+  }
+
+  loadClients(query: string = '') {
+    this.clientService.getClientsPaginated(this.currentPage, this.clientsPerPage, query).subscribe({
+      next: (response: any) => {
+        const apiClients = response.content || [];
+        this.totalClients = response.totalElements;
+        
+        // Transform API clients
+        const newClients = apiClients.map((client: any) => ({
           id: client.id,
           date: client.createdAt || new Date().toLocaleDateString(),
           subContractCode: client.subContractCode || '',
@@ -1039,13 +1060,21 @@ export class PickupComponent implements OnInit {
           name: client.name,
           vcontactMobile: client.vcontactMobile || ''
         }));
-        this.updateFilteredClients();
+
+        if (this.currentPage === 0) {
+          this.clients = newClients;
+        } else {
+          this.clients = [...this.clients, ...newClients];
+        }
+        
+        // Update display lists
+        this.filteredClients = this.clients;
+        this.displayedClients = this.clients;
         this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Failed to load clients:', err);
         this.snackBar.open('Failed to load clients', 'Close', { duration: 3000 });
-        this.updateFilteredClients();
       }
     });
   }
@@ -1055,64 +1084,55 @@ export class PickupComponent implements OnInit {
     this.showClientSearch = !this.showClientSearch;
     if (!this.showClientSearch) {
       this.searchQuery = '';
-      this.updateFilteredClients();
+      this.currentPage = 0;
+      this.loadClients();
     }
   }
 
   onSearchChange(event: Event) {
     const target = event.target as HTMLInputElement;
     this.searchQuery = target.value;
-    this.updateFilteredClients();
+    this.searchSubject.next(this.searchQuery);
   }
 
   setStatusFilter(filter: 'all' | 'active' | 'inactive') {
     this.statusFilter = filter;
-    this.updateFilteredClients();
+    // For now, just reload (though backend doesn't support status filter yet)
+    // Ideally we would add status param to backend
+    this.currentPage = 0;
+    this.loadClients(this.searchQuery);
   }
 
   updateFilteredClients() {
+    // No-op for now as we use server-side search
+    // If we implement status filter locally on the loaded page:
+    /*
     let filtered = this.clients;
-
-    // Apply status filter
     if (this.statusFilter === 'active') {
       filtered = filtered.filter(client => client.active);
     } else if (this.statusFilter === 'inactive') {
       filtered = filtered.filter(client => !client.active);
     }
-
-    // Apply search filter
-    if (this.searchQuery.trim()) {
-      const query = this.searchQuery.toLowerCase();
-      filtered = filtered.filter(client =>
-        (client.clientName || client.name || '').toLowerCase().includes(query) ||
-        (client.contactPerson || '').toLowerCase().includes(query) ||
-        (client.subContractCode || '').toLowerCase().includes(query) ||
-        (client.city || '').toLowerCase().includes(query) ||
-        (client.accountNo || '').includes(query)
-      );
-    }
-
-    this.filteredClients = filtered;
-    this.currentPage = 1;
-    this.updateDisplayedClients();
+    this.displayedClients = filtered;
+    */
+   this.displayedClients = this.clients;
   }
 
   updateDisplayedClients() {
-    const endIndex = this.currentPage * this.clientsPerPage;
-    this.displayedClients = this.filteredClients.slice(0, endIndex);
+    // No-op as displayedClients is updated in loadClients
   }
 
   loadMoreClients() {
     this.currentPage++;
-    this.updateDisplayedClients();
+    this.loadClients(this.searchQuery);
   }
 
   hasMoreClients(): boolean {
-    return this.displayedClients.length < this.filteredClients.length;
+    return this.clients.length < this.totalClients;
   }
 
   getRemainingClientsCount(): number {
-    return this.filteredClients.length - this.displayedClients.length;
+    return this.totalClients - this.clients.length;
   }
 
   selectClient(client: Client) {

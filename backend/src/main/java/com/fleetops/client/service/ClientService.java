@@ -7,6 +7,8 @@ import com.fleetops.client.mapper.ClientMapper;
 import com.fleetops.client.dto.ClientImportResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -124,6 +126,11 @@ public class ClientService {
         return clientRepository.findAll().stream()
                 .map(clientMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    public Page<ClientDto> getClients(String query, Pageable pageable) {
+        return clientRepository.searchClients(query, pageable)
+                .map(clientMapper::toDto);
     }
     
     public ClientDto createClient(ClientDto dto) {

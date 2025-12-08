@@ -32,6 +32,12 @@ export class ClientService {
     return this.http.get<Client[]>(this.apiUrl);
   }
 
+  getClientsPaginated(page: number, size: number, query?: string): Observable<any> {
+    let params: any = { page, size };
+    if (query) params.query = query;
+    return this.http.get<any>(this.apiUrl, { params });
+  }
+
   createClient(client: Client): Observable<Client> {
     return this.http.post<Client>(this.apiUrl, client);
   }

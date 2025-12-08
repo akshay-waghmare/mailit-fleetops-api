@@ -5,13 +5,15 @@ import { Router } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ClientService } from '../../../services/client.service';
 import { Client } from '../../../models/client.model';
 import { ClientDialogComponent } from '../client-dialog/client-dialog.component';
@@ -41,6 +43,14 @@ export class ClientListComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = ['contractNo', 'subContractCode', 'name', 'address', 'contactPerson', 'actions'];
   isLoading = true;
   searchText = '';
+  
+  // Pagination properties
+  totalClients = 0;
+  pageSize = 10;
+  pageIndex = 0;
+  pageSizeOptions = [5, 10, 25, 50];
+  
+  private searchSubject = new Subject<string>();
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
@@ -49,55 +59,51 @@ export class ClientListComponent implements OnInit, AfterViewInit {
     private router: Router,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
-  ) {
-    // Custom filter predicate to search across multiple fields
-    this.dataSource.filterPredicate = (data: Client, filter: string) => {
-      const searchStr = filter.toLowerCase();
-      return (
-        (data.name?.toLowerCase().includes(searchStr) || false) ||
-        (data.contractNo?.toLowerCase().includes(searchStr) || false) ||
-        (data.subContractCode?.toLowerCase().includes(searchStr) || false) ||
-        (data.address?.toLowerCase().includes(searchStr) || false) ||
-        (data.contactPerson?.toLowerCase().includes(searchStr) || false) ||
-        (data.vcity?.toLowerCase().includes(searchStr) || false) ||
-        (data.vcontactMobile?.toLowerCase().includes(searchStr) || false) ||
-        (data.vcontactEmail?.toLowerCase().includes(searchStr) || false)
-      );
-    };
-  }
+  ) {}
 
   ngOnInit(): void {
+    // Setup search debounce
+    this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(query => {
+      this.searchText = query;
+      this.pageIndex = 0; // Reset to first page on search
+      this.loadClients();
+    });
+
     this.loadClients();
   }
 
   ngAfterViewInit() {
-    this.dataSource.paginator = this.paginator;
+    // Handle paginator events
+    this.paginator.page.subscribe((event: PageEvent) => {
+      this.pageIndex = event.pageIndex;
+      this.pageSize = event.pageSize;
+      this.loadClients();
+    });
   }
 
   applyFilter(): void {
-    this.dataSource.filter = this.searchText.trim().toLowerCase();
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
+    this.searchSubject.next(this.searchText.trim());
   }
 
   clearSearch(): void {
     this.searchText = '';
-    this.applyFilter();
+    this.searchSubject.next('');
   }
 
   loadClients(): void {
     this.isLoading = true;
-    this.clientService.getClients().subscribe({
-      next: (data) => {
-        this.dataSource.data = data;
+    this.clientService.getClientsPaginated(this.pageIndex, this.pageSize, this.searchText).subscribe({
+      next: (response) => {
+        this.dataSource.data = response.content;
+        this.totalClients = response.totalElements;
         this.isLoading = false;
-        if (this.paginator) {
-          this.dataSource.paginator = this.paginator;
-        }
       },
       error: (err) => {
         console.error('Error loading clients', err);
+        this.snackBar.open('Failed to load clients', 'Close', { duration: 3000 });
         this.isLoading = false;
       }
     });

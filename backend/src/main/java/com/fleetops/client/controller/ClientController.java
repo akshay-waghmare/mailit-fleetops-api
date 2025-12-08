@@ -7,6 +7,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -41,7 +45,28 @@ public class ClientController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ClientDto>> getAllClients() {
+    public ResponseEntity<Object> getClients(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false, defaultValue = "id,desc") String[] sort) {
+        
+        if (page != null && size != null) {
+            // Parse sort param (simple implementation)
+            String sortField = "id";
+            Sort.Direction direction = Sort.Direction.DESC;
+            if (sort != null && sort.length > 0) {
+                String[] sortParams = sort[0].split(",");
+                if (sortParams.length > 0) sortField = sortParams[0];
+                if (sortParams.length > 1 && "asc".equalsIgnoreCase(sortParams[1])) {
+                    direction = Sort.Direction.ASC;
+                }
+            }
+            
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+            return ResponseEntity.ok(clientService.getClients(query, pageable));
+        }
+        
         return ResponseEntity.ok(clientService.getAllClients());
     }
 

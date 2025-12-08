@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 // Angular Material imports
 import { MatStepperModule, MatStepper } from '@angular/material/stepper';
@@ -826,7 +828,10 @@ export class OrdersComponent implements OnInit {
   // Pagination properties
   displayedClients: Client[] = [];
   clientsPerPage = 12;
-  currentPage = 1;
+  currentPage = 0;
+  totalClients = 0;
+  isLoadingClients = false;
+  private searchSubject = new Subject<string>();
 
   clients: Client[] = [];
 
@@ -891,14 +896,35 @@ export class OrdersComponent implements OnInit {
   ngOnInit() {
     this.initializeForm();
     this.generateTrackingId();
-    this.initializeClients();
+    
+    // Setup search debounce
+    this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(query => {
+      this.searchQuery = query;
+      this.currentPage = 0;
+      this.displayedClients = [];
+      this.loadClients();
+    });
+
+    this.loadClients();
   }
 
-  initializeClients() {
-    this.clientService.getClients().subscribe({
-      next: (apiClients: ApiClient[]) => {
-        // Transform API clients to match component interface
-        this.clients = apiClients.map(client => ({
+  loadClients() {
+    if (this.isLoadingClients) return;
+    this.isLoadingClients = true;
+
+    this.clientService.getClientsPaginated(
+      this.currentPage,
+      this.clientsPerPage,
+      this.searchQuery
+    ).subscribe({
+      next: (response) => {
+        const apiClients = response.content;
+        this.totalClients = response.totalElements;
+        
+        const mappedClients = apiClients.map((client: ApiClient) => ({
           id: client.id?.toString() || '',
           date: client.createdAt || new Date().toLocaleDateString(),
           subContractCode: client.subContractCode || '',
@@ -915,93 +941,72 @@ export class OrdersComponent implements OnInit {
           vpincode: client.vpincode,
           vcity: client.vcity
         }));
-        this.searchClients();
+
+        if (this.currentPage === 0) {
+          this.displayedClients = mappedClients;
+        } else {
+          this.displayedClients = [...this.displayedClients, ...mappedClients];
+        }
+        
+        this.filteredClients = this.displayedClients;
+        this.isLoadingClients = false;
         this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Failed to load clients:', err);
         this.snackBar.open('Failed to load clients', 'Close', { duration: 3000 });
-        this.searchClients();
+        this.isLoadingClients = false;
       }
     });
   }
 
   // Client search functionality
   onSearchChange(event: any) {
-    this.searchQuery = event.target.value;
-    this.searchClients();
+    this.searchSubject.next(event.target.value);
   }
 
-  searchClients() {
-    let filtered = this.clients;
 
-    // Apply status filter first
-    if (this.statusFilter === 'active') {
-      filtered = filtered.filter(client => client.active);
-    } else if (this.statusFilter === 'inactive') {
-      filtered = filtered.filter(client => !client.active);
-    }
-
-    // Apply search query if provided
-    if (this.searchQuery.trim()) {
-      const query = this.searchQuery.toLowerCase();
-      filtered = filtered.filter(client => {
-        return (
-          (client.clientName || '').toLowerCase().includes(query) ||
-          (client.subContractCode || '').toLowerCase().includes(query) ||
-          (client.contactPerson || '').toLowerCase().includes(query) ||
-          (client.accountNo || '').toLowerCase().includes(query) ||
-          (client.city || '').toLowerCase().includes(query) ||
-          (client.pincode || '').includes(query)
-        );
-      });
-    }
-
-    this.filteredClients = filtered;
-    this.currentPage = 1;
-    this.updateDisplayedClients();
-  }
-
-  updateDisplayedClients() {
-    const endIndex = this.currentPage * this.clientsPerPage;
-    this.displayedClients = this.filteredClients.slice(0, endIndex);
-  }
 
   loadMoreClients() {
     this.currentPage++;
-    this.updateDisplayedClients();
+    this.loadClients();
   }
 
   hasMoreClients(): boolean {
-    return this.displayedClients.length < this.filteredClients.length;
+    return this.displayedClients.length < this.totalClients;
   }
 
   getRemainingClientsCount(): number {
-    return this.filteredClients.length - this.displayedClients.length;
+    return this.totalClients - this.displayedClients.length;
   }
 
   setStatusFilter(filter: 'all' | 'active' | 'inactive') {
     this.statusFilter = filter;
-    this.searchClients();
+    // TODO: Implement server-side status filtering
+    this.currentPage = 0;
+    this.displayedClients = [];
+    this.loadClients();
   }
 
   clearFilters() {
     this.searchQuery = '';
-    this.statusFilter = 'active';
-    this.searchClients();
+    this.statusFilter = 'all';
+    this.currentPage = 0;
+    this.displayedClients = [];
+    this.loadClients();
   }
 
   // Helper methods for filter counts
   getTotalClientsCount(): number {
-    return this.clients.length;
+    return this.totalClients;
   }
 
   getActiveClientsCount(): number {
-    return this.clients.filter(client => client.active).length;
+    return 0; // Not available with server-side pagination yet
   }
 
   getInactiveClientsCount(): number {
-    return this.clients.filter(client => !client.active).length;
+    return 0; // Not available with server-side pagination yet
   }
 
   // Enhanced UI helper methods
